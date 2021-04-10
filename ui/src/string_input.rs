@@ -1,9 +1,11 @@
 use std::{
     fmt,
     io::{self, Write},
+    ops::Range,
 };
 
 use crossterm::event;
+use unicode_segmentation::UnicodeSegmentation;
 
 use crate::widget::Widget;
 
@@ -95,23 +97,27 @@ impl<F> StringInput<F> {
             .unwrap_or_else(|| self.value.char_indices().count())
     }
 
+    /// Get the word bound iterator for a given range
+    fn word_iter(&self, r: Range<usize>) -> impl DoubleEndedIterator<Item = (usize, &str)> {
+        self.value[r]
+            .split_word_bound_indices()
+            .filter(|(_, s)| !s.chars().next().map(char::is_whitespace).unwrap_or(true))
+    }
+
     /// Returns the byte index of the start of the first word to the left (< byte_i)
     fn find_word_left(&self, byte_i: usize) -> usize {
-        self.value[..byte_i]
-            .trim_end()
-            .rfind(char::is_whitespace)
-            .map(|new_byte_i| self.get_char_i(new_byte_i) + 1)
+        self.word_iter(0..byte_i)
+            .next_back()
+            .map(|(new_byte_i, _)| new_byte_i)
             .unwrap_or(0)
     }
 
     /// Returns the byte index of the start of the first word to the right (> byte_i)
     fn find_word_right(&self, byte_i: usize) -> usize {
-        let trimmed = self.value[byte_i..].trim_start();
-
-        trimmed
-            .find(char::is_whitespace)
-            .map(|new_byte_i| self.get_char_i(new_byte_i + self.value.len() - trimmed.len()) + 1)
-            .unwrap_or(self.value_len)
+        self.word_iter(byte_i..self.value.len())
+            .nth(1)
+            .map(|(new_byte_i, _)| new_byte_i + byte_i)
+            .unwrap_or_else(|| self.value.len())
     }
 }
 
@@ -128,7 +134,7 @@ where
                         .modifiers
                         .intersects(event::KeyModifiers::CONTROL | event::KeyModifiers::ALT) =>
             {
-                self.at = self.find_word_left(self.get_byte_i(self.at));
+                self.at = self.get_char_i(self.find_word_left(self.get_byte_i(self.at)));
             }
             event::KeyCode::Left if self.at != 0 => {
                 self.at -= 1;
@@ -140,7 +146,7 @@ where
                         .modifiers
                         .intersects(event::KeyModifiers::CONTROL | event::KeyModifiers::ALT) =>
             {
-                self.at = self.find_word_right(self.get_byte_i(self.at));
+                self.at = self.get_char_i(self.find_word_right(self.get_byte_i(self.at)));
             }
             event::KeyCode::Right if self.at != self.value_len => {
                 self.at += 1;
@@ -173,10 +179,10 @@ where
             event::KeyCode::Backspace if key.modifiers.contains(event::KeyModifiers::ALT) => {
                 let was_at = self.at;
                 let byte_i = self.get_byte_i(self.at);
-                self.at = self.find_word_left(byte_i);
+                let prev_word = self.find_word_left(byte_i);
+                self.at = self.get_char_i(prev_word);
                 self.value_len -= was_at - self.at;
-                self.value
-                    .replace_range(self.get_byte_i(self.at)..byte_i, "");
+                self.value.replace_range(prev_word..byte_i, "");
             }
             event::KeyCode::Backspace if self.at == self.value_len => {
                 self.at -= 1;
@@ -194,9 +200,8 @@ where
             event::KeyCode::Delete if key.modifiers.contains(event::KeyModifiers::ALT) => {
                 let byte_i = self.get_byte_i(self.at);
                 let next_word = self.find_word_right(byte_i);
-                self.value_len -= next_word - self.at;
-                self.value
-                    .replace_range(byte_i..self.get_byte_i(next_word), "");
+                self.value_len -= self.get_char_i(next_word) - self.at;
+                self.value.replace_range(byte_i..next_word, "");
             }
             event::KeyCode::Delete if self.at == self.value_len - 1 => {
                 self.value_len -= 1;
