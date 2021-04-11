@@ -69,9 +69,7 @@ pub trait Prompt: Widget {
     fn finish(self) -> Self::Output;
 
     /// The prompt has some default value that can be returned.
-    fn has_default(&self) -> bool {
-        true
-    }
+    fn has_default(&self) -> bool;
     /// The default value to be returned. It will only be called when has_default is true and the
     /// user presses escape.
     fn finish_default(self) -> Self::Output

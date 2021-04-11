@@ -8,17 +8,17 @@ use ui::{widgets, Widget};
 
 use crate::{answer::ListItem, error, Answer};
 
-use super::Options;
+use super::{Choice, Options};
 
+#[derive(Debug, Default)]
 pub struct Checkbox {
-    // FIXME: What is type here?
     choices: super::ChoiceList<String>,
     selected: Vec<bool>,
 }
 
 struct CheckboxPrompt {
+    message: String,
     picker: widgets::ListPicker<Checkbox>,
-    opts: Options,
 }
 
 impl ui::Prompt for CheckboxPrompt {
@@ -26,7 +26,7 @@ impl ui::Prompt for CheckboxPrompt {
     type Output = Checkbox;
 
     fn prompt(&self) -> &str {
-        &self.opts.message
+        &self.message
     }
 
     fn hint(&self) -> Option<&str> {
@@ -37,9 +37,6 @@ impl ui::Prompt for CheckboxPrompt {
         self.picker.finish()
     }
 
-    fn finish_default(self) -> Self::Output {
-        unreachable!()
-    }
     fn has_default(&self) -> bool {
         false
     }
@@ -127,12 +124,12 @@ impl widgets::List for Checkbox {
 }
 
 impl Checkbox {
-    pub fn ask<W: io::Write>(self, opts: super::Options, w: &mut W) -> error::Result<Answer> {
+    pub fn ask<W: io::Write>(self, message: String, w: &mut W) -> error::Result<Answer> {
         // We cannot simply process the Vec<bool> to a HashSet<ListItem> since we want to print the
         // selected ones in order
         let checkbox = ui::Input::new(CheckboxPrompt {
+            message,
             picker: widgets::ListPicker::new(self),
-            opts,
         })
         .hide_cursor()
         .run(w)?;
@@ -144,7 +141,7 @@ impl Checkbox {
                 .iter()
                 .zip(checkbox.choices.choices.iter())
                 .filter_map(|item| match item {
-                    (true, super::Choice::Choice(name)) => Some(name.as_str()),
+                    (true, Choice::Choice(name)) => Some(name.as_str()),
                     _ => None,
                 }),
             w,
@@ -159,7 +156,7 @@ impl Checkbox {
             .enumerate()
             .zip(checkbox.choices.choices.into_iter())
             .filter_map(|((index, is_selected), name)| match (is_selected, name) {
-                (true, super::Choice::Choice(name)) => Some(ListItem { index, name }),
+                (true, Choice::Choice(name)) => Some(ListItem { index, name }),
                 _ => None,
             })
             .collect();
@@ -168,23 +165,118 @@ impl Checkbox {
     }
 }
 
-impl super::Question {
-    pub fn checkbox(name: String, message: String, choices: Vec<super::Choice<String>>) -> Self {
-        Self::new(
-            name,
-            message,
-            super::QuestionKind::Checkbox(Checkbox {
-                selected: vec![false; choices.len()],
-                choices: super::ChoiceList {
-                    choices,
-                    default: 0,
-                    should_loop: true,
-                    // FIXME: this should be something sensible. page size is currently not used so
-                    // its fine for now
-                    page_size: 0,
-                },
-            }),
-        )
+pub struct CheckboxBuilder<'m, 'w> {
+    opts: Options<'m, 'w>,
+    checkbox: Checkbox,
+}
+
+impl<'m, 'w> CheckboxBuilder<'m, 'w> {
+    pub fn separator<I: Into<String>>(mut self, text: I) -> Self {
+        self.checkbox
+            .choices
+            .choices
+            .push(Choice::Separator(Some(text.into())));
+        self.checkbox.selected.push(false);
+        self
+    }
+
+    pub fn default_separator(mut self) -> Self {
+        self.checkbox.choices.choices.push(Choice::Separator(None));
+        self.checkbox.selected.push(false);
+        self
+    }
+
+    pub fn choice<I: Into<String>>(self, choice: I) -> Self {
+        self.choice_with_default(choice, false)
+    }
+
+    pub fn choice_with_default<I: Into<String>>(mut self, choice: I, default: bool) -> Self {
+        self.checkbox
+            .choices
+            .choices
+            .push(Choice::Choice(choice.into()));
+        self.checkbox.selected.push(default);
+        self
+    }
+
+    pub fn choices<I, T>(mut self, choices: I) -> Self
+    where
+        T: Into<Choice<String>>,
+        I: IntoIterator<Item = T>,
+    {
+        self.checkbox
+            .choices
+            .choices
+            .extend(choices.into_iter().map(Into::into));
+        self.checkbox
+            .selected
+            .resize(self.checkbox.choices.len(), false);
+        self
+    }
+
+    pub fn choices_with_default<I, T>(mut self, choices: I) -> Self
+    where
+        T: Into<Choice<(String, bool)>>,
+        I: IntoIterator<Item = T>,
+    {
+        let iter = choices.into_iter();
+        self.checkbox
+            .selected
+            .reserve(iter.size_hint().0.saturating_add(1));
+        self.checkbox
+            .choices
+            .choices
+            .reserve(iter.size_hint().0.saturating_add(1));
+
+        for choice in iter {
+            match choice.into() {
+                Choice::Choice((choice, selected)) => {
+                    self.checkbox.choices.choices.push(Choice::Choice(choice));
+                    self.checkbox.selected.push(selected);
+                }
+                Choice::Separator(s) => {
+                    self.checkbox.choices.choices.push(Choice::Separator(s));
+                    self.checkbox.selected.push(false);
+                }
+            }
+        }
+        self
+    }
+
+    pub fn page_size(mut self, page_size: usize) -> Self {
+        self.checkbox.choices.set_page_size(page_size);
+        self
+    }
+
+    pub fn should_loop(mut self, should_loop: bool) -> Self {
+        self.checkbox.choices.set_should_loop(should_loop);
+        self
+    }
+
+    pub fn build(self) -> super::Question<'m, 'w> {
+        super::Question::new(self.opts, super::QuestionKind::Checkbox(self.checkbox))
+    }
+}
+
+impl<'m, 'w> From<CheckboxBuilder<'m, 'w>> for super::Question<'m, 'w> {
+    fn from(builder: CheckboxBuilder<'m, 'w>) -> Self {
+        builder.build()
+    }
+}
+
+crate::impl_options_builder!(CheckboxBuilder; (this, opts) => {
+    CheckboxBuilder {
+        opts,
+        checkbox: this.checkbox,
+    }
+});
+
+impl super::Question<'static, 'static> {
+    pub fn checkbox<N: Into<String>>(name: N) -> CheckboxBuilder<'static, 'static> {
+        CheckboxBuilder {
+            opts: Options::new(name.into()),
+            checkbox: Default::default(),
+        }
     }
 }
 

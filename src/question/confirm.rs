@@ -1,17 +1,18 @@
 use crossterm::style::Colorize;
-use ui::{widgets, Widget};
+use ui::{widgets, Validation, Widget};
 
 use crate::{error, Answer};
 
 use super::Options;
 
+#[derive(Debug, Default)]
 pub struct Confirm {
-    pub(crate) default: bool,
+    default: Option<bool>,
 }
 
 struct ConfirmPrompt {
     confirm: Confirm,
-    opts: Options,
+    message: String,
     input: widgets::CharInput,
 }
 
@@ -45,39 +46,50 @@ impl ui::Prompt for ConfirmPrompt {
     type Output = bool;
 
     fn prompt(&self) -> &str {
-        &self.opts.message
+        &self.message
     }
 
     fn hint(&self) -> Option<&str> {
-        if self.confirm.default {
-            Some("(y/n) (default y)")
+        Some(match self.confirm.default {
+            Some(true) => "(y/n) (default y)",
+            Some(false) => "(y/n) (default n)",
+            None => "(y/n)",
+        })
+    }
+
+    fn validate(&mut self) -> Result<Validation, Self::ValidateErr> {
+        if self.input.value().is_some() || self.has_default() {
+            Ok(Validation::Finish)
         } else {
-            Some("(y/n) (default n)")
+            Err("Please enter (y/n)")
         }
     }
 
     fn finish(self) -> Self::Output {
         match self.input.finish() {
             Some('y') | Some('Y') => true,
-            Some('n') | Some('N') => true,
-            _ => unreachable!(),
+            Some('n') | Some('N') => false,
+            _ => self.confirm.default.unwrap(),
         }
     }
 
+    fn has_default(&self) -> bool {
+        self.confirm.default.is_some()
+    }
     fn finish_default(self) -> Self::Output {
-        self.confirm.default
+        self.confirm.default.unwrap()
     }
 }
 
 impl Confirm {
     pub(crate) fn ask<W: std::io::Write>(
         self,
-        opts: super::Options,
+        message: String,
         w: &mut W,
     ) -> error::Result<Answer> {
         let ans = ui::Input::new(ConfirmPrompt {
             confirm: self,
-            opts,
+            message,
             input: widgets::CharInput::new(only_yn),
         })
         .run(w)?;
@@ -90,12 +102,40 @@ impl Confirm {
     }
 }
 
-impl super::Question {
-    pub fn confirm(name: String, message: String, default: bool) -> Self {
-        Self::new(
-            name,
-            message,
-            super::QuestionKind::Confirm(Confirm { default }),
-        )
+pub struct ConfirmBuilder<'m, 'w> {
+    opts: Options<'m, 'w>,
+    confirm: Confirm,
+}
+
+impl<'m, 'w> ConfirmBuilder<'m, 'w> {
+    pub fn default(mut self, default: bool) -> Self {
+        self.confirm.default = Some(default);
+        self
+    }
+
+    pub fn build(self) -> super::Question<'m, 'w> {
+        super::Question::new(self.opts, super::QuestionKind::Confirm(self.confirm))
+    }
+}
+
+impl<'m, 'w> From<ConfirmBuilder<'m, 'w>> for super::Question<'m, 'w> {
+    fn from(builder: ConfirmBuilder<'m, 'w>) -> Self {
+        builder.build()
+    }
+}
+
+crate::impl_options_builder!(ConfirmBuilder; (this, opts) => {
+    ConfirmBuilder {
+        opts,
+        confirm: this.confirm,
+    }
+});
+
+impl super::Question<'static, 'static> {
+    pub fn confirm<N: Into<String>>(name: N) -> ConfirmBuilder<'static, 'static> {
+        ConfirmBuilder {
+            opts: Options::new(name.into()),
+            confirm: Default::default(),
+        }
     }
 }

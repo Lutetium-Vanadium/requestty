@@ -1,20 +1,20 @@
 use crossterm::style::Colorize;
-use ui::{widgets, Widget};
+use ui::{widgets, Validation, Widget};
 
 use crate::{error, Answer};
 
 use super::Options;
 
+#[derive(Debug, Default)]
 pub struct Input {
-    // FIXME: reference instead?
-    pub(crate) default: String,
+    default: Option<String>,
 }
 
 struct InputPrompt {
-    input_opts: Input,
-    opts: Options,
+    message: String,
     input: widgets::StringInput,
-    hint: String,
+    /// The default value wrapped with brackets
+    hint: Option<String>,
 }
 
 impl Widget for InputPrompt {
@@ -40,27 +40,44 @@ impl ui::Prompt for InputPrompt {
     type Output = String;
 
     fn prompt(&self) -> &str {
-        &self.opts.message
+        &self.message
     }
 
     fn hint(&self) -> Option<&str> {
-        Some(&self.hint)
+        self.hint.as_ref().map(String::as_ref)
     }
 
     fn finish(self) -> Self::Output {
-        self.input.finish().unwrap_or(self.input_opts.default)
+        let hint = self.hint;
+        self.input
+            .finish()
+            .unwrap_or_else(|| remove_brackets(hint.unwrap()))
+    }
+    fn validate(&mut self) -> Result<Validation, Self::ValidateErr> {
+        if self.input.has_value() || self.has_default() {
+            Ok(Validation::Finish)
+        } else {
+            Err("Please enter a string")
+        }
+    }
+    fn has_default(&self) -> bool {
+        self.hint.is_some()
     }
     fn finish_default(self) -> <Self as ui::Prompt>::Output {
-        self.input_opts.default
+        remove_brackets(self.hint.unwrap())
     }
 }
 
 impl Input {
-    pub fn ask<W: std::io::Write>(self, opts: Options, w: &mut W) -> error::Result<Answer> {
+    pub fn ask<W: std::io::Write>(mut self, message: String, w: &mut W) -> error::Result<Answer> {
+        if let Some(ref mut default) = self.default {
+            default.insert(0, '(');
+            default.push(')');
+        }
+
         let ans = ui::Input::new(InputPrompt {
-            opts,
-            hint: format!("({})", self.default),
-            input_opts: self,
+            message,
+            hint: self.default,
             input: widgets::StringInput::default(),
         })
         .run(w)?;
@@ -71,8 +88,46 @@ impl Input {
     }
 }
 
-impl super::Question {
-    pub fn input(name: String, message: String, default: String) -> Self {
-        Self::new(name, message, super::QuestionKind::Input(Input { default }))
+pub struct InputBuilder<'m, 'w> {
+    opts: Options<'m, 'w>,
+    input: Input,
+}
+
+impl super::Question<'static, 'static> {
+    pub fn input<N: Into<String>>(name: N) -> InputBuilder<'static, 'static> {
+        InputBuilder {
+            opts: Options::new(name.into()),
+            input: Default::default(),
+        }
     }
+}
+
+impl<'m, 'w> InputBuilder<'m, 'w> {
+    pub fn default<I: Into<String>>(mut self, default: I) -> Self {
+        self.input.default = Some(default.into());
+        self
+    }
+
+    pub fn build(self) -> super::Question<'m, 'w> {
+        super::Question::new(self.opts, super::QuestionKind::Input(self.input))
+    }
+}
+
+impl<'m, 'w> From<InputBuilder<'m, 'w>> for super::Question<'m, 'w> {
+    fn from(builder: InputBuilder<'m, 'w>) -> Self {
+        builder.build()
+    }
+}
+
+crate::impl_options_builder!(InputBuilder; (this, opts) => {
+    InputBuilder {
+        opts,
+        input: this.input,
+    }
+});
+
+fn remove_brackets(mut s: String) -> String {
+    s.remove(0);
+    s.pop();
+    s
 }

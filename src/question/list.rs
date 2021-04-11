@@ -11,14 +11,15 @@ use crate::{
 
 use super::Options;
 
+#[derive(Debug, Default)]
 pub struct List {
     // FIXME: Whats the correct type?
     choices: super::ChoiceList<String>,
 }
 
 struct ListPrompt {
+    message: String,
     picker: widgets::ListPicker<List>,
-    opts: Options,
 }
 
 impl ListPrompt {
@@ -41,7 +42,7 @@ impl ui::Prompt for ListPrompt {
     type Output = ListItem;
 
     fn prompt(&self) -> &str {
-        &self.opts.message
+        &self.message
     }
 
     fn hint(&self) -> Option<&str> {
@@ -53,8 +54,11 @@ impl ui::Prompt for ListPrompt {
         self.finish_index(index)
     }
 
+    fn has_default(&self) -> bool {
+        self.picker.list.choices.default().is_some()
+    }
     fn finish_default(self) -> Self::Output {
-        let index = self.picker.list.choices.default;
+        let index = self.picker.list.choices.default().unwrap();
         self.finish_index(index)
     }
 }
@@ -110,10 +114,10 @@ impl widgets::List for List {
 }
 
 impl List {
-    pub fn ask<W: std::io::Write>(self, opts: Options, w: &mut W) -> error::Result<Answer> {
+    pub fn ask<W: std::io::Write>(self, message: String, w: &mut W) -> error::Result<Answer> {
         let ans = ui::Input::new(ListPrompt {
             picker: widgets::ListPicker::new(self),
-            opts,
+            message,
         })
         .hide_cursor()
         .run(w)?;
@@ -124,26 +128,86 @@ impl List {
     }
 }
 
-impl super::Question {
-    pub fn list(
-        name: String,
-        message: String,
-        choices: Vec<super::Choice<String>>,
-        default: usize,
-    ) -> Self {
-        Self::new(
-            name,
-            message,
-            super::QuestionKind::List(List {
-                choices: super::ChoiceList {
-                    choices,
-                    default,
-                    should_loop: true,
-                    // FIXME: this should be something sensible. page size is currently not used so
-                    // its fine for now
-                    page_size: 0,
-                },
-            }),
-        )
+pub struct ListBuilder<'m, 'w> {
+    opts: Options<'m, 'w>,
+    list: List,
+}
+
+impl<'m, 'w> ListBuilder<'m, 'w> {
+    pub fn default(mut self, default: usize) -> Self {
+        self.list.choices.set_default(default);
+        self
+    }
+
+    pub fn separator<I: Into<String>>(mut self, text: I) -> Self {
+        self.list
+            .choices
+            .choices
+            .push(super::Choice::Separator(Some(text.into())));
+        self
+    }
+
+    pub fn default_separator(mut self) -> Self {
+        self.list
+            .choices
+            .choices
+            .push(super::Choice::Separator(None));
+        self
+    }
+
+    pub fn choice<I: Into<String>>(mut self, choice: I) -> Self {
+        self.list
+            .choices
+            .choices
+            .push(super::Choice::Choice(choice.into()));
+        self
+    }
+
+    pub fn choices<I, T>(mut self, choices: I) -> Self
+    where
+        T: Into<super::Choice<String>>,
+        I: IntoIterator<Item = T>,
+    {
+        self.list
+            .choices
+            .choices
+            .extend(choices.into_iter().map(Into::into));
+        self
+    }
+
+    pub fn page_size(mut self, page_size: usize) -> Self {
+        self.list.choices.set_page_size(page_size);
+        self
+    }
+
+    pub fn should_loop(mut self, should_loop: bool) -> Self {
+        self.list.choices.set_should_loop(should_loop);
+        self
+    }
+
+    pub fn build(self) -> super::Question<'m, 'w> {
+        super::Question::new(self.opts, super::QuestionKind::List(self.list))
+    }
+}
+
+impl<'m, 'w> From<ListBuilder<'m, 'w>> for super::Question<'m, 'w> {
+    fn from(builder: ListBuilder<'m, 'w>) -> Self {
+        builder.build()
+    }
+}
+
+crate::impl_options_builder!(ListBuilder; (this, opts) => {
+    ListBuilder {
+        opts,
+        list: this.list,
+    }
+});
+
+impl super::Question<'static, 'static> {
+    pub fn list<N: Into<String>>(name: N) -> ListBuilder<'static, 'static> {
+        ListBuilder {
+            opts: Options::new(name.into()),
+            list: Default::default(),
+        }
     }
 }

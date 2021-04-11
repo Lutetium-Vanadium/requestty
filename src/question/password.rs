@@ -5,14 +5,15 @@ use crate::{error, Answer};
 
 use super::Options;
 
+#[derive(Debug, Default)]
 pub struct Password {
     pub(crate) mask: Option<char>,
 }
 
 struct PasswordPrompt {
+    message: String,
     password: Password,
     input: widgets::StringInput,
-    opts: Options,
 }
 
 impl ui::Prompt for PasswordPrompt {
@@ -20,7 +21,7 @@ impl ui::Prompt for PasswordPrompt {
     type Output = String;
 
     fn prompt(&self) -> &str {
-        &self.opts.message
+        &self.message
     }
 
     fn hint(&self) -> Option<&str> {
@@ -37,10 +38,6 @@ impl ui::Prompt for PasswordPrompt {
 
     fn has_default(&self) -> bool {
         false
-    }
-
-    fn finish_default(self) -> Self::Output {
-        unreachable!()
     }
 }
 
@@ -63,11 +60,11 @@ impl Widget for PasswordPrompt {
 }
 
 impl Password {
-    pub fn ask<W: std::io::Write>(self, opts: Options, w: &mut W) -> error::Result<Answer> {
+    pub fn ask<W: std::io::Write>(self, message: String, w: &mut W) -> error::Result<Answer> {
         let ans = ui::Input::new(PasswordPrompt {
+            message,
             input: widgets::StringInput::new(widgets::no_filter as _).password(self.mask),
             password: self,
-            opts,
         })
         .run(w)?;
 
@@ -77,22 +74,40 @@ impl Password {
     }
 }
 
-impl super::Question {
-    pub fn password(name: String, message: String) -> Self {
-        Self::new(
-            name,
-            message,
-            super::QuestionKind::Password(Password { mask: None }),
-        )
+pub struct PasswordBuilder<'m, 'w> {
+    opts: Options<'m, 'w>,
+    password: Password,
+}
+
+impl<'m, 'w> PasswordBuilder<'m, 'w> {
+    pub fn mask(mut self, mask: char) -> Self {
+        self.password.mask = Some(mask);
+        self
     }
 
-    pub fn with_mask(mut self, mask: char) -> Self {
-        if let super::QuestionKind::Password(ref mut p) = self.kind {
-            p.mask = Some(mask);
-        } else {
-            unreachable!("with_mask should only be called when a question is password")
-        }
+    pub fn build(self) -> super::Question<'m, 'w> {
+        super::Question::new(self.opts, super::QuestionKind::Password(self.password))
+    }
+}
 
-        self
+impl<'m, 'w> From<PasswordBuilder<'m, 'w>> for super::Question<'m, 'w> {
+    fn from(builder: PasswordBuilder<'m, 'w>) -> Self {
+        builder.build()
+    }
+}
+
+crate::impl_options_builder!(PasswordBuilder; (this, opts) => {
+    PasswordBuilder {
+        opts,
+        password: this.password
+    }
+});
+
+impl super::Question<'static, 'static> {
+    pub fn password<N: Into<String>>(name: N) -> PasswordBuilder<'static, 'static> {
+        PasswordBuilder {
+            opts: Options::new(name.into()),
+            password: Default::default(),
+        }
     }
 }

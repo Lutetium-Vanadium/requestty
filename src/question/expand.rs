@@ -3,12 +3,14 @@ use crossterm::{
     style::{Color, Colorize, ResetColor, SetForegroundColor},
     terminal,
 };
+use fxhash::FxHashSet as HashSet;
 use ui::{widgets, Validation, Widget};
 
-use crate::{answer::ExpandItem, error, Answer};
+use crate::{error, Answer, ExpandItem};
 
 use super::{Choice, Options};
 
+#[derive(Debug, Default)]
 pub struct Expand {
     choices: super::ChoiceList<ExpandItem>,
     selected: Option<char>,
@@ -16,10 +18,10 @@ pub struct Expand {
 }
 
 struct ExpandPrompt<'a, F> {
+    message: String,
+    hint: &'a str,
     list: widgets::ListPicker<Expand>,
     input: widgets::CharInput<F>,
-    opts: Options,
-    hint: &'a str,
     expanded: bool,
 }
 
@@ -44,7 +46,7 @@ impl<F: Fn(char) -> Option<char>> ui::Prompt for ExpandPrompt<'_, F> {
     type Output = ExpandItem;
 
     fn prompt(&self) -> &str {
-        &self.opts.message
+        &self.message
     }
 
     fn hint(&self) -> Option<&str> {
@@ -57,6 +59,10 @@ impl<F: Fn(char) -> Option<char>> ui::Prompt for ExpandPrompt<'_, F> {
                 self.expanded = true;
                 self.input.set_value(None);
                 self.list.list.selected = None;
+                Ok(Validation::Continue)
+            }
+            None if !self.expanded => {
+                self.expanded = true;
                 Ok(Validation::Continue)
             }
             None if self.list.list.default.is_none() => Err("Please enter a command"),
@@ -210,7 +216,7 @@ impl widgets::List for Expand {
 }
 
 impl Expand {
-    pub fn ask<W: std::io::Write>(self, opts: Options, w: &mut W) -> error::Result<Answer> {
+    pub fn ask<W: std::io::Write>(self, message: String, w: &mut W) -> error::Result<Answer> {
         let hint: String = {
             let mut s = String::with_capacity(3 + self.choices.len());
             s.push('(');
@@ -219,7 +225,7 @@ impl Expand {
                     .choices
                     .iter()
                     .filter_map(|choice| match choice {
-                        Choice::Choice(choice) => Some(choice.key),
+                        Choice::Choice(choice) => Some(choice.key.to_ascii_lowercase()),
                         _ => None,
                     }),
             );
@@ -228,12 +234,12 @@ impl Expand {
         };
 
         let ans = ui::Input::new(ExpandPrompt {
+            message,
             input: widgets::CharInput::new(|c| {
                 let c = c.to_ascii_lowercase();
                 hint[1..(hint.len() - 1)].contains(c).then(|| c)
             }),
             list: widgets::ListPicker::new(self),
-            opts,
             hint: &hint,
             expanded: false,
         })
@@ -245,28 +251,113 @@ impl Expand {
     }
 }
 
-impl super::Question {
-    pub fn expand(
-        name: String,
-        message: String,
-        choices: Vec<Choice<ExpandItem>>,
-        default: Option<char>,
-    ) -> Self {
-        Self::new(
-            name,
-            message,
-            super::QuestionKind::Expand(Expand {
-                choices: super::ChoiceList {
-                    choices,
-                    default: 0,
-                    should_loop: true,
-                    // FIXME: this should be something sensible. page size is currently not used so
-                    // its fine for now
-                    page_size: 0,
-                },
-                selected: None,
-                default,
-            }),
-        )
+pub struct ExpandBuilder<'m, 'w> {
+    opts: Options<'m, 'w>,
+    expand: Expand,
+    keys: HashSet<char>,
+}
+
+impl<'m, 'w> ExpandBuilder<'m, 'w> {
+    pub fn default(mut self, default: char) -> Self {
+        self.expand.default = Some(default);
+        self
+    }
+
+    pub fn separator<I: Into<String>>(mut self, text: I) -> Self {
+        self.expand
+            .choices
+            .choices
+            .push(Choice::Separator(Some(text.into())));
+        self
+    }
+
+    pub fn default_separator(mut self) -> Self {
+        self.expand.choices.choices.push(Choice::Separator(None));
+        self
+    }
+
+    pub fn choice(mut self, mut key: char, name: String) -> Self {
+        key = key.to_ascii_lowercase();
+        if key == 'h' {
+            panic!("Reserved key 'h'");
+        }
+        if self.keys.contains(&key) {
+            panic!("Duplicate key '{}'", key);
+        }
+
+        self.keys.insert(key);
+
+        self.expand
+            .choices
+            .choices
+            .push(Choice::Choice(ExpandItem { key, name }));
+
+        self
+    }
+
+    pub fn choices<I, T>(mut self, choices: I) -> Self
+    where
+        T: Into<Choice<ExpandItem>>,
+        I: IntoIterator<Item = T>,
+    {
+        let Self {
+            ref mut keys,
+            ref mut expand,
+            ..
+        } = self;
+        expand
+            .choices
+            .choices
+            .extend(choices.into_iter().map(Into::into).inspect(|choice| {
+                if let Choice::Choice(c) = choice {
+                    let key = c.key.to_ascii_lowercase();
+                    if key == 'h' {
+                        panic!("Reserved key 'h'");
+                    }
+                    if keys.contains(&key) {
+                        panic!("Duplicate key '{}'", key);
+                    }
+                    keys.insert(key);
+                }
+            }));
+        self
+    }
+
+    pub fn page_size(mut self, page_size: usize) -> Self {
+        self.expand.choices.set_page_size(page_size);
+        self
+    }
+
+    pub fn should_loop(mut self, should_loop: bool) -> Self {
+        self.expand.choices.set_should_loop(should_loop);
+        self
+    }
+
+    pub fn build(self) -> super::Question<'m, 'w> {
+        super::Question::new(self.opts, super::QuestionKind::Expand(self.expand))
+    }
+}
+
+impl<'m, 'w> From<ExpandBuilder<'m, 'w>> for super::Question<'m, 'w> {
+    fn from(builder: ExpandBuilder<'m, 'w>) -> Self {
+        builder.build()
+    }
+}
+
+crate::impl_options_builder!(ExpandBuilder; (this, opts) => {
+    ExpandBuilder {
+        opts,
+        expand: this.expand,
+        keys: this.keys,
+    }
+});
+
+impl super::Question<'static, 'static> {
+    pub fn expand<N: Into<String>>(name: N) -> ExpandBuilder<'static, 'static> {
+        ExpandBuilder {
+            opts: Options::new(name.into()),
+            expand: Default::default(),
+            keys: Default::default(),
+        }
     }
 }

@@ -1,179 +1,145 @@
 // TODO: delete
 // this is a temporary file, for testing out the prompts
-use inquisition::{Choice::Separator, ExpandItem, Question};
-use std::{env, io};
+use inquisition::{Choice::Separator, Question};
+use std::{array::IntoIter, env, io};
 
 fn main() {
     let (a, b) = match env::args().nth(1).as_deref() {
         Some("b") => (
-            Question::confirm("a".into(), "Hello there 1".into(), true),
-            Question::confirm("b".into(), "Hello there 2".into(), false),
+            Question::confirm("a").message("Hello there 1").build(),
+            Question::confirm("b")
+                // .message("Hello there 2")
+                .default(true)
+                .build(),
         ),
         Some("s") => (
-            Question::input("a".into(), "Hello there 1".into(), "No".into()),
-            Question::input("b".into(), "Hello there 2".into(), "Yes".into()),
+            Question::input("a").message("Hello there 1").into(),
+            Question::input("b")
+                .message("Hello there 2")
+                .default("Yes")
+                .into(),
         ),
         Some("p") => (
-            Question::password("a".into(), "password 1".into()).with_mask('*'),
-            Question::password("b".into(), "password 2".into()),
+            Question::password("a")
+                .message("password 1")
+                .mask('*')
+                .into(),
+            Question::password("b").message("password 2").into(),
         ),
         Some("i") => (
-            Question::int("a".into(), "int 1".into(), 0),
-            Question::int("b".into(), "int 2".into(), 3),
+            Question::int("a").message("int 1").into(),
+            Question::int("b").message("int 2").default(3).into(),
         ),
         Some("f") => (
-            Question::float("a".into(), "float 1".into(), 0.123),
-            Question::float("b".into(), "float 2".into(), 3.12),
+            Question::float("a").message("float 1").into(),
+            Question::float("b").message("float 2").default(3.12).into(),
         ),
         Some("e") => (
-            Question::editor("a".into(), "editor 1".into()),
-            Question::editor("b".into(), "editor 2".into()),
+            Question::editor("a").message("editor 1").into(),
+            Question::editor("b").message("editor 2").into(),
         ),
 
         Some("l") => (
-            Question::list(
-                "a".into(),
-                "list 1".into(),
-                vec![
+            Question::list("a")
+                .message("list 1")
+                .choices(IntoIter::new([
                     Separator(Some("=== TITLE BOI ===".into())),
                     "hello worldssssss 1".into(),
                     "hello worldssssss 2".into(),
                     "hello worldssssss 3".into(),
                     "hello worldssssss 4".into(),
                     "hello worldssssss 5".into(),
-                ],
-                0,
-            ),
-            Question::list(
-                "b".into(),
-                "list 2".into(),
-                vec![
+                ]))
+                .into(),
+            Question::list("b")
+                .message("list 2")
+                .choices(IntoIter::new([
                     "0".into(),
                     Separator(None),
                     "1".into(),
                     "2".into(),
                     "3".into(),
                     Separator(Some("== Hello separator".into())),
-                ],
-                0,
-            ),
+                ]))
+                .default(3)
+                .into(),
         ),
 
         Some("c") => (
-            Question::checkbox(
-                "a".into(),
-                "checkbox 1".into(),
-                vec![
+            Question::checkbox("a")
+                .message("checkbox 1")
+                .choices(vec![
                     Separator(Some("=== TITLE BOI ===".into())),
                     "hello worldssssss 1".into(),
                     "hello worldssssss 2".into(),
                     "hello worldssssss 3".into(),
                     "hello worldssssss 4".into(),
                     "hello worldssssss 5".into(),
-                ],
-            ),
-            Question::checkbox(
-                "b".into(),
-                "checkbox 2".into(),
-                vec![
-                    "0".into(),
-                    Separator(None),
-                    "1".into(),
-                    "2".into(),
-                    "3".into(),
-                    Separator(Some("== Hello separator".into())),
-                ],
-            ),
+                ])
+                .into(),
+            Question::checkbox("b")
+                .message("checkbox 2")
+                .choice_with_default("0", true)
+                .default_separator()
+                .choices_with_default(IntoIter::new([
+                    ("1".into(), false),
+                    ("2".into(), true),
+                    ("3".into(), false),
+                ]))
+                .separator("== Hello separator")
+                .into(),
         ),
 
         Some("r") => (
-            Question::raw_list(
-                "a".into(),
-                "list 1".into(),
-                vec![
+            Question::rawlist("a")
+                .message("list 1")
+                .choices(IntoIter::new([
                     Separator(Some("=== TITLE BOI ===".into())),
                     "hello worldssssss 1".into(),
                     "hello worldssssss 2".into(),
                     "hello worldssssss 3".into(),
                     "hello worldssssss 4".into(),
                     "hello worldssssss 5".into(),
-                ],
-                0,
-            ),
-            Question::raw_list(
-                "b".into(),
-                "list 2".into(),
-                vec![
+                ]))
+                .into(),
+            Question::rawlist("b")
+                .message("list 2")
+                .choices(IntoIter::new([
                     "0".into(),
                     Separator(None),
                     "1".into(),
                     "2".into(),
                     "3".into(),
                     Separator(Some("== Hello separator".into())),
-                ],
-                0,
-            ),
+                ]))
+                .default(2)
+                .into(),
         ),
 
         Some("x") => (
-            Question::expand(
-                "a".into(),
-                "expand 1".into(),
-                vec![
-                    ExpandItem {
-                        key: 'y',
-                        name: "Overwrite".into(),
-                    }
-                    .into(),
-                    ExpandItem {
-                        key: 'a',
-                        name: "Overwrite this one and all next".into(),
-                    }
-                    .into(),
-                    ExpandItem {
-                        key: 'd',
-                        name: "Show diff".into(),
-                    }
-                    .into(),
+            Question::expand("a")
+                .message("expand 1")
+                .choices(IntoIter::new([
+                    ('y', "Overwrite").into(),
+                    ('a', "Overwrite this one and all next").into(),
+                    ('d', "Show diff").into(),
                     Separator(None),
-                    ExpandItem {
-                        key: 'x',
-                        name: "Abort".into(),
-                    }
-                    .into(),
-                ],
-                None,
-            ),
-            Question::expand(
-                "b".into(),
-                "expand 2".into(),
-                vec![
-                    ExpandItem {
-                        key: 'a',
-                        name: "Name for a".into(),
-                    }
-                    .into(),
+                    ('x', "Abort").into(),
+                ]))
+                .into(),
+            Question::expand("b")
+                .message("expand 2")
+                .choices(IntoIter::new([
+                    ('a', "Name for a").into(),
                     Separator(None),
-                    ExpandItem {
-                        key: 'b',
-                        name: "Name for b".into(),
-                    }
-                    .into(),
-                    ExpandItem {
-                        key: 'c',
-                        name: "Name for c".into(),
-                    }
-                    .into(),
+                    ('b', "Name for b").into(),
+                    ('c', "Name for c").into(),
                     Separator(None),
-                    ExpandItem {
-                        key: 'd',
-                        name: "Name for d".into(),
-                    }
-                    .into(),
+                    ('d', "Name for d").into(),
                     Separator(Some("== Hello separator".into())),
-                ],
-                Some('b'),
-            ),
+                ]))
+                .default('b')
+                .into(),
         ),
         _ => panic!("no arg"),
     };

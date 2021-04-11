@@ -13,15 +13,15 @@ use crate::{
 
 use super::{Choice, Options};
 
+#[derive(Debug, Default)]
 pub struct Rawlist {
-    // FIXME: Whats the correct type?
     choices: super::ChoiceList<(usize, String)>,
 }
 
 struct RawlistPrompt {
+    message: String,
     list: widgets::ListPicker<Rawlist>,
     input: widgets::StringInput,
-    opts: Options,
 }
 
 impl RawlistPrompt {
@@ -45,7 +45,7 @@ impl ui::Prompt for RawlistPrompt {
     type Output = ListItem;
 
     fn prompt(&self) -> &str {
-        &self.opts.message
+        &self.message
     }
 
     fn hint(&self) -> Option<&str> {
@@ -65,8 +65,12 @@ impl ui::Prompt for RawlistPrompt {
         self.finish_index(index)
     }
 
+    fn has_default(&self) -> bool {
+        self.list.list.choices.default().is_some()
+    }
+
     fn finish_default(self) -> Self::Output {
-        let index = self.list.list.choices.default;
+        let index = self.list.list.choices.default().unwrap();
         self.finish_index(index)
     }
 }
@@ -162,11 +166,11 @@ impl widgets::List for Rawlist {
 }
 
 impl Rawlist {
-    pub fn ask<W: std::io::Write>(self, opts: Options, w: &mut W) -> error::Result<Answer> {
+    pub fn ask<W: std::io::Write>(self, message: String, w: &mut W) -> error::Result<Answer> {
         let ans = ui::Input::new(RawlistPrompt {
             input: widgets::StringInput::new(|c| c.is_digit(10).then(|| c)),
             list: widgets::ListPicker::new(self),
-            opts,
+            message,
         })
         .run(w)?;
 
@@ -176,36 +180,95 @@ impl Rawlist {
     }
 }
 
-impl super::Question {
-    pub fn raw_list(
-        name: String,
-        message: String,
-        choices: Vec<Choice<String>>,
-        default: usize,
-    ) -> Self {
-        Self::new(
-            name,
-            message,
-            super::QuestionKind::Rawlist(Rawlist {
-                choices: super::ChoiceList {
-                    choices: choices
-                        .into_iter()
-                        .scan(0, |index, choice| match choice {
-                            Choice::Choice(s) => {
-                                let res = Choice::Choice((*index, s));
-                                *index += 1;
-                                Some(res)
-                            }
-                            Choice::Separator(s) => Some(Choice::Separator(s)),
-                        })
-                        .collect(),
-                    default,
-                    should_loop: true,
-                    // FIXME: this should be something sensible. page size is currently not used so
-                    // its fine for now
-                    page_size: 0,
-                },
-            }),
-        )
+pub struct RawlistBuilder<'m, 'w> {
+    opts: Options<'m, 'w>,
+    list: Rawlist,
+    choice_count: usize,
+}
+
+impl<'m, 'w> RawlistBuilder<'m, 'w> {
+    pub fn default(mut self, default: usize) -> Self {
+        self.list.choices.set_default(default);
+        self
+    }
+
+    pub fn separator<I: Into<String>>(mut self, text: I) -> Self {
+        self.list
+            .choices
+            .choices
+            .push(Choice::Separator(Some(text.into())));
+        self
+    }
+
+    pub fn default_separator(mut self) -> Self {
+        self.list.choices.choices.push(Choice::Separator(None));
+        self
+    }
+
+    pub fn choice<I: Into<String>>(mut self, choice: I) -> Self {
+        self.list
+            .choices
+            .choices
+            .push(Choice::Choice((self.choice_count, choice.into())));
+        self.choice_count += 1;
+        self
+    }
+
+    pub fn choices<I, T>(mut self, choices: I) -> Self
+    where
+        T: Into<Choice<String>>,
+        I: IntoIterator<Item = T>,
+    {
+        let choice_count = &mut self.choice_count;
+        self.list
+            .choices
+            .choices
+            .extend(choices.into_iter().map(|choice| match choice.into() {
+                Choice::Choice(c) => {
+                    let choice = Choice::Choice((*choice_count, c));
+                    *choice_count += 1;
+                    choice
+                }
+                Choice::Separator(s) => Choice::Separator(s),
+            }));
+        self
+    }
+
+    pub fn page_size(mut self, page_size: usize) -> Self {
+        self.list.choices.set_page_size(page_size);
+        self
+    }
+
+    pub fn should_loop(mut self, should_loop: bool) -> Self {
+        self.list.choices.set_should_loop(should_loop);
+        self
+    }
+
+    pub fn build(self) -> super::Question<'m, 'w> {
+        super::Question::new(self.opts, super::QuestionKind::Rawlist(self.list))
+    }
+}
+
+impl<'m, 'w> From<RawlistBuilder<'m, 'w>> for super::Question<'m, 'w> {
+    fn from(builder: RawlistBuilder<'m, 'w>) -> Self {
+        builder.build()
+    }
+}
+
+crate::impl_options_builder!(RawlistBuilder; (this, opts) => {
+    RawlistBuilder {
+        opts,
+        list: this.list,
+        choice_count: this.choice_count,
+    }
+});
+
+impl super::Question<'static, 'static> {
+    pub fn rawlist<N: Into<String>>(name: N) -> RawlistBuilder<'static, 'static> {
+        RawlistBuilder {
+            opts: Options::new(name.into()),
+            list: Default::default(),
+            choice_count: 0,
+        }
     }
 }
