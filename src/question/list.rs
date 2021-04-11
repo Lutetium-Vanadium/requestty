@@ -115,12 +115,13 @@ impl widgets::List for List {
 
 impl List {
     pub fn ask<W: std::io::Write>(self, message: String, w: &mut W) -> error::Result<Answer> {
-        let ans = ui::Input::new(ListPrompt {
-            picker: widgets::ListPicker::new(self),
-            message,
-        })
-        .hide_cursor()
-        .run(w)?;
+        let mut picker = widgets::ListPicker::new(self);
+        if let Some(default) = picker.list.choices.default() {
+            picker.set_at(default);
+        }
+        let ans = ui::Input::new(ListPrompt { picker, message })
+            .hide_cursor()
+            .run(w)?;
 
         writeln!(w, "{}", ans.name.as_str().dark_cyan())?;
 

@@ -51,8 +51,8 @@ impl ui::Prompt for ConfirmPrompt {
 
     fn hint(&self) -> Option<&str> {
         Some(match self.confirm.default {
-            Some(true) => "(y/n) (default y)",
-            Some(false) => "(y/n) (default n)",
+            Some(true) => "(Y/n)",
+            Some(false) => "(y/N)",
             None => "(y/n)",
         })
     }

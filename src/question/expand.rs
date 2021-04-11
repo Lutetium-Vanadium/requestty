@@ -10,22 +10,32 @@ use crate::{error, Answer, ExpandItem};
 
 use super::{Choice, Options};
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct Expand {
     choices: super::ChoiceList<ExpandItem>,
     selected: Option<char>,
-    default: Option<char>,
+    default: char,
 }
 
-struct ExpandPrompt<'a, F> {
+impl Default for Expand {
+    fn default() -> Self {
+        Expand {
+            default: 'h',
+            selected: None,
+            choices: Default::default(),
+        }
+    }
+}
+
+struct ExpandPrompt<F> {
     message: String,
-    hint: &'a str,
+    hint: String,
     list: widgets::ListPicker<Expand>,
     input: widgets::CharInput<F>,
     expanded: bool,
 }
 
-impl<F> ExpandPrompt<'_, F> {
+impl<F> ExpandPrompt<F> {
     fn finish_with(self, c: char) -> ExpandItem {
         self.list
             .finish()
@@ -41,7 +51,7 @@ impl<F> ExpandPrompt<'_, F> {
     }
 }
 
-impl<F: Fn(char) -> Option<char>> ui::Prompt for ExpandPrompt<'_, F> {
+impl<F: Fn(char) -> Option<char>> ui::Prompt for ExpandPrompt<F> {
     type ValidateErr = &'static str;
     type Output = ExpandItem;
 
@@ -50,44 +60,39 @@ impl<F: Fn(char) -> Option<char>> ui::Prompt for ExpandPrompt<'_, F> {
     }
 
     fn hint(&self) -> Option<&str> {
-        Some(self.hint)
+        Some(&self.hint)
     }
 
     fn validate(&mut self) -> Result<Validation, Self::ValidateErr> {
-        match self.input.value() {
-            Some('h') => {
+        match self.input.value().unwrap_or(self.list.list.default) {
+            'h' => {
                 self.expanded = true;
                 self.input.set_value(None);
                 self.list.list.selected = None;
                 Ok(Validation::Continue)
             }
-            None if !self.expanded => {
-                self.expanded = true;
-                Ok(Validation::Continue)
-            }
-            None if self.list.list.default.is_none() => Err("Please enter a command"),
             _ => Ok(Validation::Finish),
         }
     }
 
     fn finish(self) -> Self::Output {
-        let c = self.input.value().unwrap();
+        let c = self.input.value().unwrap_or(self.list.list.default);
         self.finish_with(c)
     }
 
     fn has_default(&self) -> bool {
-        self.list.list.default.is_some()
+        self.list.list.default != 'h'
     }
 
     fn finish_default(self) -> Self::Output {
-        let c = self.list.list.default.unwrap();
+        let c = self.list.list.default;
         self.finish_with(c)
     }
 }
 
 const ANSWER_PROMPT: &[u8] = b"  Answer: ";
 
-impl<F: Fn(char) -> Option<char>> ui::Widget for ExpandPrompt<'_, F> {
+impl<F: Fn(char) -> Option<char>> ui::Widget for ExpandPrompt<F> {
     fn render<W: std::io::Write>(&mut self, max_width: usize, w: &mut W) -> crossterm::Result<()> {
         if self.expanded {
             let max_width = terminal::size()?.0 as usize - ANSWER_PROMPT.len();
@@ -217,19 +222,28 @@ impl widgets::List for Expand {
 
 impl Expand {
     pub fn ask<W: std::io::Write>(self, message: String, w: &mut W) -> error::Result<Answer> {
-        let hint: String = {
-            let mut s = String::with_capacity(3 + self.choices.len());
+        let choices = self
+            .choices
+            .choices
+            .iter()
+            .filter_map(|choice| match choice {
+                Choice::Choice(choice) => Some(choice.key.to_ascii_lowercase()),
+                _ => None,
+            })
+            .chain(std::iter::once('h'))
+            .collect::<String>();
+
+        let hint = {
+            let mut s = String::with_capacity(2 + choices.len());
             s.push('(');
-            s.extend(
-                self.choices
-                    .choices
-                    .iter()
-                    .filter_map(|choice| match choice {
-                        Choice::Choice(choice) => Some(choice.key.to_ascii_lowercase()),
-                        _ => None,
-                    }),
-            );
-            s += "h)";
+            s.extend(choices.chars().map(|c| {
+                if c == self.default {
+                    c.to_ascii_uppercase()
+                } else {
+                    c
+                }
+            }));
+            s.push(')');
             s
         };
 
@@ -237,10 +251,10 @@ impl Expand {
             message,
             input: widgets::CharInput::new(|c| {
                 let c = c.to_ascii_lowercase();
-                hint[1..(hint.len() - 1)].contains(c).then(|| c)
+                choices.contains(c).then(|| c)
             }),
             list: widgets::ListPicker::new(self),
-            hint: &hint,
+            hint,
             expanded: false,
         })
         .run(w)?;
@@ -259,7 +273,7 @@ pub struct ExpandBuilder<'m, 'w> {
 
 impl<'m, 'w> ExpandBuilder<'m, 'w> {
     pub fn default(mut self, default: char) -> Self {
-        self.expand.default = Some(default);
+        self.expand.default = default;
         self
     }
 

@@ -167,9 +167,14 @@ impl widgets::List for Rawlist {
 
 impl Rawlist {
     pub fn ask<W: std::io::Write>(self, message: String, w: &mut W) -> error::Result<Answer> {
+        let mut list = widgets::ListPicker::new(self);
+        if let Some(default) = list.list.choices.default() {
+            list.set_at(default);
+        }
+
         let ans = ui::Input::new(RawlistPrompt {
             input: widgets::StringInput::new(|c| c.is_digit(10).then(|| c)),
-            list: widgets::ListPicker::new(self),
+            list,
             message,
         })
         .run(w)?;
