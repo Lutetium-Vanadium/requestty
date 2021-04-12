@@ -1,21 +1,33 @@
 use std::{
     env,
     ffi::OsString,
-    io::{self, Read},
+    io::{self, Read, Seek, SeekFrom, Write},
     process::Command,
 };
 
 use crossterm::style::Colorize;
-use ui::Widget;
+use tempfile::NamedTempFile;
+use ui::{Validation, Widget};
 
 use crate::{error, Answer};
 
 use super::Options;
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct Editor {
-    // TODO: What is this??
-    postfix: (),
+    postfix: Option<String>,
+    default: Option<String>,
+    editor: OsString,
+}
+
+impl Default for Editor {
+    fn default() -> Self {
+        Self {
+            editor: get_editor(),
+            postfix: None,
+            default: None,
+        }
+    }
 }
 
 fn get_editor() -> OsString {
@@ -31,12 +43,14 @@ fn get_editor() -> OsString {
 }
 
 struct EditorPrompt {
+    file: NamedTempFile,
+    ans: String,
     message: String,
     editor: Editor,
 }
 
 impl Widget for EditorPrompt {
-    fn render<W: io::Write>(&mut self, _: usize, _: &mut W) -> crossterm::Result<()> {
+    fn render<W: Write>(&mut self, _: usize, _: &mut W) -> crossterm::Result<()> {
         Ok(())
     }
 
@@ -46,8 +60,8 @@ impl Widget for EditorPrompt {
 }
 
 impl ui::Prompt for EditorPrompt {
-    type ValidateErr = &'static str;
-    type Output = Editor;
+    type ValidateErr = io::Error;
+    type Output = String;
 
     fn prompt(&self) -> &str {
         &self.message
@@ -57,8 +71,23 @@ impl ui::Prompt for EditorPrompt {
         Some("Press <enter> to launch your preferred editor.")
     }
 
+    fn validate(&mut self) -> Result<Validation, Self::ValidateErr> {
+        // FIXME: handle error
+        assert!(Command::new(&self.editor.editor)
+            .arg(self.file.path())
+            .status()?
+            .success());
+
+        self.file.read_to_string(&mut self.ans)?;
+        self.file.seek(SeekFrom::Start(0))?;
+
+        // TODO: accept validation from library caller
+
+        Ok(Validation::Finish)
+    }
+
     fn finish(self) -> Self::Output {
-        self.editor
+        self.ans
     }
 
     fn has_default(&self) -> bool {
@@ -67,23 +96,28 @@ impl ui::Prompt for EditorPrompt {
 }
 
 impl Editor {
-    pub fn ask<W: io::Write>(self, message: String, w: &mut W) -> error::Result<Answer> {
-        ui::Input::new(EditorPrompt {
+    pub fn ask<W: Write>(self, message: String, w: &mut W) -> error::Result<Answer> {
+        let mut builder = tempfile::Builder::new();
+
+        if let Some(ref postfix) = self.postfix {
+            builder.suffix(postfix);
+        }
+
+        let mut file = builder.tempfile()?;
+
+        if let Some(ref default) = self.default {
+            file.write_all(default.as_bytes())?;
+            file.seek(SeekFrom::Start(0))?;
+            file.flush()?;
+        }
+
+        let ans = ui::Input::new(EditorPrompt {
             message,
             editor: self,
+            file,
+            ans: String::new(),
         })
         .run(w)?;
-
-        let mut file = tempfile::NamedTempFile::new()?;
-
-        // FIXME: handle error
-        assert!(Command::new(get_editor())
-            .arg(file.path())
-            .status()?
-            .success());
-
-        let mut ans = String::new();
-        file.read_to_string(&mut ans)?;
 
         writeln!(w, "{}", "Received".dark_grey())?;
 
@@ -97,6 +131,16 @@ pub struct EditorBuilder<'m, 'w> {
 }
 
 impl<'m, 'w> EditorBuilder<'m, 'w> {
+    pub fn default<I: Into<String>>(mut self, default: I) -> Self {
+        self.editor.default = Some(default.into());
+        self
+    }
+
+    pub fn postfix<I: Into<String>>(mut self, postfix: I) -> Self {
+        self.editor.postfix = Some(postfix.into());
+        self
+    }
+
     pub fn build(self) -> super::Question<'m, 'w> {
         super::Question::new(self.opts, super::QuestionKind::Editor(self.editor))
     }

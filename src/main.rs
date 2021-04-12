@@ -35,8 +35,14 @@ fn main() {
             Question::float("b").message("float 2").default(3.12).into(),
         ),
         Some("e") => (
-            Question::editor("a").message("editor 1").into(),
-            Question::editor("b").message("editor 2").into(),
+            Question::editor("a")
+                .message("editor 1")
+                .default("Hello there")
+                .into(),
+            Question::editor("b")
+                .message("editor 2")
+                .postfix(".rs")
+                .into(),
         ),
 
         Some("l") => (
