@@ -110,7 +110,9 @@ impl Widget for RawlistPrompt {
             self.list.set_at(self.list.list.len() + 1);
             true
         } else if self.list.handle_key(key) {
-            self.input.set_value(self.list.get_at().to_string());
+            let at = self.list.get_at();
+            let index = self.list.list.choices[at].as_ref().unwrap_choice().0 + 1;
+            self.input.set_value(index.to_string());
             true
         } else {
             false
