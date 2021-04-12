@@ -43,17 +43,6 @@ fn main() {
             Question::list("a")
                 .message("list 1")
                 .choices(IntoIter::new([
-                    Separator(Some("=== TITLE BOI ===".into())),
-                    "hello worldssssss 1".into(),
-                    "hello worldssssss 2".into(),
-                    "hello worldssssss 3".into(),
-                    "hello worldssssss 4".into(),
-                    "hello worldssssss 5".into(),
-                ]))
-                .into(),
-            Question::list("b")
-                .message("list 2")
-                .choices(IntoIter::new([
                     "0".into(),
                     Separator(None),
                     "1".into(),
@@ -63,22 +52,27 @@ fn main() {
                 ]))
                 .default(3)
                 .into(),
-        ),
-
-        Some("c") => (
-            Question::checkbox("a")
-                .message("checkbox 1")
-                .choices(vec![
+            Question::list("b")
+                .message("list 2")
+                .choices(IntoIter::new([
                     Separator(Some("=== TITLE BOI ===".into())),
                     "hello worldssssss 1".into(),
                     "hello worldssssss 2".into(),
                     "hello worldssssss 3".into(),
                     "hello worldssssss 4".into(),
                     "hello worldssssss 5".into(),
-                ])
+                    Separator(None),
+                    "hello worldssssss 6".into(),
+                    "hello worldssssss 7".into(),
+                    "hello worldssssss 8".into(),
+                ]))
+                .page_size(6)
                 .into(),
-            Question::checkbox("b")
-                .message("checkbox 2")
+        ),
+
+        Some("c") => (
+            Question::checkbox("a")
+                .message("checkbox 1")
                 .choice_with_default("0", true)
                 .default_separator()
                 .choices_with_default(IntoIter::new([
@@ -88,11 +82,8 @@ fn main() {
                 ]))
                 .separator("== Hello separator")
                 .into(),
-        ),
-
-        Some("r") => (
-            Question::rawlist("a")
-                .message("list 1")
+            Question::checkbox("b")
+                .message("checkbox 2")
                 .choices(IntoIter::new([
                     Separator(Some("=== TITLE BOI ===".into())),
                     "hello worldssssss 1".into(),
@@ -100,10 +91,19 @@ fn main() {
                     "hello worldssssss 3".into(),
                     "hello worldssssss 4".into(),
                     "hello worldssssss 5".into(),
+                    Separator(None),
+                    "hello worldssssss 6".into(),
+                    "hello worldssssss 7".into(),
+                    "hello worldssssss 8".into(),
                 ]))
+                .page_size(6)
+                .should_loop(false)
                 .into(),
-            Question::rawlist("b")
-                .message("list 2")
+        ),
+
+        Some("r") => (
+            Question::rawlist("a")
+                .message("list 1")
                 .choices(IntoIter::new([
                     "0".into(),
                     Separator(None),
@@ -113,6 +113,23 @@ fn main() {
                     Separator(Some("== Hello separator".into())),
                 ]))
                 .default(2)
+                .into(),
+            Question::rawlist("b")
+                .message("list 2")
+                .choices(IntoIter::new([
+                    Separator(Some("=== TITLE BOI ===".into())),
+                    "hello worldssssss 1".into(),
+                    "hello worldssssss 2".into(),
+                    "hello worldssssss 3".into(),
+                    "hello worldssssss 4".into(),
+                    "hello worldssssss 5".into(),
+                    Separator(None),
+                    "hello worldssssss 6".into(),
+                    "hello worldssssss 7".into(),
+                    "hello worldssssss 8".into(),
+                ]))
+                .page_size(6)
+                // .should_loop(false)
                 .into(),
         ),
 

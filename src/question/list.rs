@@ -111,6 +111,14 @@ impl widgets::List for List {
     fn len(&self) -> usize {
         self.choices.len()
     }
+
+    fn page_size(&self) -> usize {
+        self.choices.page_size()
+    }
+
+    fn should_loop(&self) -> bool {
+        self.choices.should_loop()
+    }
 }
 
 impl List {

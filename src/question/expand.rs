@@ -218,6 +218,14 @@ impl widgets::List for Expand {
     fn len(&self) -> usize {
         self.choices.len() + 1
     }
+
+    fn page_size(&self) -> usize {
+        self.choices.page_size()
+    }
+
+    fn should_loop(&self) -> bool {
+        self.choices.should_loop()
+    }
 }
 
 impl Expand {
