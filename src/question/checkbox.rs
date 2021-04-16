@@ -1,29 +1,47 @@
-use std::io;
+use std::{fmt, io};
 
 use crossterm::{
     event, execute, queue,
     style::{Color, Print, ResetColor, SetForegroundColor},
 };
-use ui::{widgets, Widget};
+use ui::{widgets, Validation, Widget};
 
-use crate::{answer::ListItem, error, Answer};
+use crate::{error, Answer, ListItem};
 
-use super::{Choice, Options};
+use super::{none, some, Choice, Filter, Options, Transformer, Validate};
 
-#[derive(Debug, Default)]
-pub struct Checkbox {
+#[derive(Default)]
+pub struct Checkbox<'f, 'v, 't> {
     choices: super::ChoiceList<String>,
     selected: Vec<bool>,
+    filter: Option<Box<Filter<'f, Vec<bool>>>>,
+    validate: Option<Box<Validate<'v, [bool]>>>,
+    transformer: Option<Box<Transformer<'t, [bool]>>>,
 }
 
-struct CheckboxPrompt {
+impl fmt::Debug for Checkbox<'_, '_, '_> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("Checkbox")
+            .field("choices", &self.choices)
+            .field("selected", &self.selected)
+            .field("filter", &self.filter.as_ref().map_or_else(none, some))
+            .field("validate", &self.validate.as_ref().map_or_else(none, some))
+            .field(
+                "transformer",
+                &self.transformer.as_ref().map_or_else(none, some),
+            )
+            .finish()
+    }
+}
+
+struct CheckboxPrompt<'f, 'v, 't> {
     message: String,
-    picker: widgets::ListPicker<Checkbox>,
+    picker: widgets::ListPicker<Checkbox<'f, 'v, 't>>,
 }
 
-impl ui::Prompt for CheckboxPrompt {
-    type ValidateErr = &'static str;
-    type Output = Checkbox;
+impl<'f, 'v, 't> ui::Prompt for CheckboxPrompt<'f, 'v, 't> {
+    type ValidateErr = String;
+    type Output = Checkbox<'f, 'v, 't>;
 
     fn prompt(&self) -> &str {
         &self.message
@@ -31,6 +49,13 @@ impl ui::Prompt for CheckboxPrompt {
 
     fn hint(&self) -> Option<&str> {
         Some("(Press <space> to select, <a> to toggle all, <i> to invert selection)")
+    }
+
+    fn validate(&mut self) -> Result<Validation, Self::ValidateErr> {
+        if let Some(ref validate) = self.picker.list.validate {
+            validate(&self.picker.list.selected)?;
+        }
+        Ok(Validation::Finish)
     }
 
     fn finish(self) -> Self::Output {
@@ -42,7 +67,7 @@ impl ui::Prompt for CheckboxPrompt {
     }
 }
 
-impl Widget for CheckboxPrompt {
+impl Widget for CheckboxPrompt<'_, '_, '_> {
     fn render<W: io::Write>(&mut self, max_width: usize, w: &mut W) -> crossterm::Result<()> {
         self.picker.render(max_width, w)
     }
@@ -79,7 +104,7 @@ impl Widget for CheckboxPrompt {
     }
 }
 
-impl widgets::List for Checkbox {
+impl widgets::List for Checkbox<'_, '_, '_> {
     fn render_item<W: io::Write>(
         &mut self,
         index: usize,
@@ -131,38 +156,52 @@ impl widgets::List for Checkbox {
     }
 }
 
-impl Checkbox {
-    pub fn ask<W: io::Write>(self, message: String, w: &mut W) -> error::Result<Answer> {
+impl Checkbox<'_, '_, '_> {
+    pub fn ask<W: io::Write>(mut self, message: String, w: &mut W) -> error::Result<Answer> {
+        let filter = self.filter.take();
+        let transformer = self.transformer.take();
+
         // We cannot simply process the Vec<bool> to a HashSet<ListItem> since we want to print the
         // selected ones in order
-        let checkbox = ui::Input::new(CheckboxPrompt {
+        let Checkbox {
+            mut selected,
+            choices,
+            ..
+        } = ui::Input::new(CheckboxPrompt {
             message,
             picker: widgets::ListPicker::new(self),
         })
         .hide_cursor()
         .run(w)?;
 
-        queue!(w, SetForegroundColor(Color::DarkCyan))?;
-        print_comma_separated(
-            checkbox
-                .selected
-                .iter()
-                .zip(checkbox.choices.choices.iter())
-                .filter_map(|item| match item {
-                    (true, Choice::Choice(name)) => Some(name.as_str()),
-                    _ => None,
-                }),
-            w,
-        )?;
+        if let Some(filter) = filter {
+            selected = filter(selected);
+        }
 
-        w.write_all(b"\n")?;
-        execute!(w, ResetColor)?;
+        match transformer {
+            Some(transformer) => transformer(&selected, w)?,
+            None => {
+                queue!(w, SetForegroundColor(Color::DarkCyan))?;
+                print_comma_separated(
+                    selected
+                        .iter()
+                        .zip(choices.choices.iter())
+                        .filter_map(|item| match item {
+                            (true, Choice::Choice(name)) => Some(name.as_str()),
+                            _ => None,
+                        }),
+                    w,
+                )?;
 
-        let ans = checkbox
-            .selected
+                w.write_all(b"\n")?;
+                execute!(w, ResetColor)?;
+            }
+        }
+
+        let ans = selected
             .into_iter()
             .enumerate()
-            .zip(checkbox.choices.choices.into_iter())
+            .zip(choices.choices.into_iter())
             .filter_map(|((index, is_selected), name)| match (is_selected, name) {
                 (true, Choice::Choice(name)) => Some(ListItem { index, name }),
                 _ => None,
@@ -173,12 +212,12 @@ impl Checkbox {
     }
 }
 
-pub struct CheckboxBuilder<'m, 'w> {
+pub struct CheckboxBuilder<'m, 'w, 'f, 'v, 't> {
     opts: Options<'m, 'w>,
-    checkbox: Checkbox,
+    checkbox: Checkbox<'f, 'v, 't>,
 }
 
-impl<'m, 'w> CheckboxBuilder<'m, 'w> {
+impl<'m, 'w, 'f, 'v, 't> CheckboxBuilder<'m, 'w, 'f, 'v, 't> {
     pub fn separator<I: Into<String>>(mut self, text: I) -> Self {
         self.checkbox
             .choices
@@ -261,26 +300,69 @@ impl<'m, 'w> CheckboxBuilder<'m, 'w> {
         self
     }
 
-    pub fn build(self) -> super::Question<'m, 'w> {
+    pub fn build(self) -> super::Question<'m, 'w, 'f, 'v, 't> {
         super::Question::new(self.opts, super::QuestionKind::Checkbox(self.checkbox))
     }
 }
 
-impl<'m, 'w> From<CheckboxBuilder<'m, 'w>> for super::Question<'m, 'w> {
-    fn from(builder: CheckboxBuilder<'m, 'w>) -> Self {
+impl<'m, 'w, 'f, 'v, 't> From<CheckboxBuilder<'m, 'w, 'f, 'v, 't>>
+    for super::Question<'m, 'w, 'f, 'v, 't>
+{
+    fn from(builder: CheckboxBuilder<'m, 'w, 'f, 'v, 't>) -> Self {
         builder.build()
     }
 }
 
-crate::impl_options_builder!(CheckboxBuilder; (this, opts) => {
+crate::impl_options_builder!(CheckboxBuilder<'f, 'v, 't>; (this, opts) => {
     CheckboxBuilder {
         opts,
         checkbox: this.checkbox,
     }
 });
 
-impl super::Question<'static, 'static> {
-    pub fn checkbox<N: Into<String>>(name: N) -> CheckboxBuilder<'static, 'static> {
+crate::impl_filter_builder!(CheckboxBuilder<'m, 'w, f, 'v, 't> Vec<bool>; (this, filter) => {
+    CheckboxBuilder {
+        opts: this.opts,
+        checkbox: Checkbox {
+            filter,
+            choices: this.checkbox.choices,
+            validate: this.checkbox.validate,
+            transformer: this.checkbox.transformer,
+            selected: this.checkbox.selected,
+        }
+    }
+});
+
+crate::impl_validate_builder!(CheckboxBuilder<'m, 'w, 'f, v, 't> [bool]; (this, validate) => {
+    CheckboxBuilder {
+        opts: this.opts,
+        checkbox: Checkbox {
+            validate,
+            choices: this.checkbox.choices,
+            filter: this.checkbox.filter,
+            transformer: this.checkbox.transformer,
+            selected: this.checkbox.selected,
+        }
+    }
+});
+
+crate::impl_transformer_builder!(CheckboxBuilder<'m, 'w, 'f, 'v, t> [bool]; (this, transformer) => {
+    CheckboxBuilder {
+        opts: this.opts,
+        checkbox: Checkbox {
+            transformer,
+            choices: this.checkbox.choices,
+            filter: this.checkbox.filter,
+            validate: this.checkbox.validate,
+            selected: this.checkbox.selected,
+        }
+    }
+});
+
+impl super::Question<'static, 'static, 'static, 'static, 'static> {
+    pub fn checkbox<N: Into<String>>(
+        name: N,
+    ) -> CheckboxBuilder<'static, 'static, 'static, 'static, 'static> {
         CheckboxBuilder {
             opts: Options::new(name.into()),
             checkbox: Default::default(),

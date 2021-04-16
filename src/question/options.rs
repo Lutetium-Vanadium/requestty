@@ -1,4 +1,7 @@
+use std::fmt;
+
 // TODO: make this private
+#[derive(Debug)]
 pub struct Options<'m, 'w> {
     pub(crate) name: String,
     pub(crate) message: Option<Getter<'m, String>>,
@@ -15,6 +18,7 @@ impl Options<'static, 'static> {
     }
 }
 
+#[doc(hidden)]
 #[macro_export]
 macro_rules! impl_options_builder {
     // Unwieldy macro magic -- matches over lifetimes
@@ -60,6 +64,15 @@ pub enum Getter<'a, T> {
     // TODO: this should take the answers has first argument
     Function(Box<dyn FnOnce() -> T + 'a>),
     Value(T),
+}
+
+impl<T: fmt::Debug> fmt::Debug for Getter<'_, T> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Getter::Function(_) => f.write_str("Function(_)"),
+            Getter::Value(v) => write!(f, "Value({:?})", v),
+        }
+    }
 }
 
 impl<T> Getter<'_, T> {

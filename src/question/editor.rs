@@ -1,6 +1,7 @@
 use std::{
     env,
     ffi::OsString,
+    fmt,
     io::{self, Read, Seek, SeekFrom, Write},
     process::Command,
 };
@@ -11,21 +12,42 @@ use ui::{Validation, Widget};
 
 use crate::{error, Answer};
 
-use super::Options;
+use super::{none, some, Filter, Options, Transformer, Validate};
 
-#[derive(Debug)]
-pub struct Editor {
+pub struct Editor<'f, 'v, 't> {
     postfix: Option<String>,
     default: Option<String>,
     editor: OsString,
+    filter: Option<Box<Filter<'f, String>>>,
+    validate: Option<Box<Validate<'v, str>>>,
+    transformer: Option<Box<Transformer<'t, str>>>,
 }
 
-impl Default for Editor {
+impl fmt::Debug for Editor<'_, '_, '_> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("Editor")
+            .field("default", &self.default)
+            .field("postfix", &self.postfix)
+            .field("editor", &self.editor)
+            .field("filter", &self.filter.as_ref().map_or_else(none, some))
+            .field("validate", &self.validate.as_ref().map_or_else(none, some))
+            .field(
+                "transformer",
+                &self.transformer.as_ref().map_or_else(none, some),
+            )
+            .finish()
+    }
+}
+
+impl Default for Editor<'static, 'static, 'static> {
     fn default() -> Self {
         Self {
             editor: get_editor(),
             postfix: None,
             default: None,
+            filter: None,
+            validate: None,
+            transformer: None,
         }
     }
 }
@@ -42,14 +64,14 @@ fn get_editor() -> OsString {
         })
 }
 
-struct EditorPrompt {
+struct EditorPrompt<'f, 'v, 't> {
     file: NamedTempFile,
     ans: String,
     message: String,
-    editor: Editor,
+    editor: Editor<'f, 'v, 't>,
 }
 
-impl Widget for EditorPrompt {
+impl Widget for EditorPrompt<'_, '_, '_> {
     fn render<W: Write>(&mut self, _: usize, _: &mut W) -> crossterm::Result<()> {
         Ok(())
     }
@@ -59,7 +81,7 @@ impl Widget for EditorPrompt {
     }
 }
 
-impl ui::Prompt for EditorPrompt {
+impl ui::Prompt for EditorPrompt<'_, '_, '_> {
     type ValidateErr = io::Error;
     type Output = String;
 
@@ -72,22 +94,33 @@ impl ui::Prompt for EditorPrompt {
     }
 
     fn validate(&mut self) -> Result<Validation, Self::ValidateErr> {
-        // FIXME: handle error
-        assert!(Command::new(&self.editor.editor)
+        if !Command::new(&self.editor.editor)
             .arg(self.file.path())
             .status()?
-            .success());
+            .success()
+        {
+            return Err(io::Error::new(
+                io::ErrorKind::Other,
+                "Could not open editor",
+            ));
+        }
 
+        self.ans.clear();
         self.file.read_to_string(&mut self.ans)?;
         self.file.seek(SeekFrom::Start(0))?;
 
-        // TODO: accept validation from library caller
+        if let Some(ref validate) = self.editor.validate {
+            validate(&self.ans).map_err(|err| io::Error::new(io::ErrorKind::InvalidInput, err))?;
+        }
 
         Ok(Validation::Finish)
     }
 
     fn finish(self) -> Self::Output {
-        self.ans
+        match self.editor.filter {
+            Some(filter) => filter(self.ans),
+            None => self.ans,
+        }
     }
 
     fn has_default(&self) -> bool {
@@ -95,8 +128,8 @@ impl ui::Prompt for EditorPrompt {
     }
 }
 
-impl Editor {
-    pub fn ask<W: Write>(self, message: String, w: &mut W) -> error::Result<Answer> {
+impl Editor<'_, '_, '_> {
+    pub fn ask<W: Write>(mut self, message: String, w: &mut W) -> error::Result<Answer> {
         let mut builder = tempfile::Builder::new();
 
         if let Some(ref postfix) = self.postfix {
@@ -111,6 +144,8 @@ impl Editor {
             file.flush()?;
         }
 
+        let transformer = self.transformer.take();
+
         let ans = ui::Input::new(EditorPrompt {
             message,
             editor: self,
@@ -119,18 +154,21 @@ impl Editor {
         })
         .run(w)?;
 
-        writeln!(w, "{}", "Received".dark_grey())?;
+        match transformer {
+            Some(transformer) => transformer(&ans, w)?,
+            None => writeln!(w, "{}", "Received".dark_grey())?,
+        }
 
         Ok(Answer::String(ans))
     }
 }
 
-pub struct EditorBuilder<'m, 'w> {
+pub struct EditorBuilder<'m, 'w, 'f, 'v, 't> {
     opts: Options<'m, 'w>,
-    editor: Editor,
+    editor: Editor<'f, 'v, 't>,
 }
 
-impl<'m, 'w> EditorBuilder<'m, 'w> {
+impl<'m, 'w, 'f, 'v, 't> EditorBuilder<'m, 'w, 'f, 'v, 't> {
     pub fn default<I: Into<String>>(mut self, default: I) -> Self {
         self.editor.default = Some(default.into());
         self
@@ -141,26 +179,70 @@ impl<'m, 'w> EditorBuilder<'m, 'w> {
         self
     }
 
-    pub fn build(self) -> super::Question<'m, 'w> {
+    pub fn build(self) -> super::Question<'m, 'w, 'f, 'v, 't> {
         super::Question::new(self.opts, super::QuestionKind::Editor(self.editor))
     }
 }
 
-impl<'m, 'w> From<EditorBuilder<'m, 'w>> for super::Question<'m, 'w> {
-    fn from(builder: EditorBuilder<'m, 'w>) -> Self {
+impl<'m, 'w, 'f, 'v, 't> From<EditorBuilder<'m, 'w, 'f, 'v, 't>>
+    for super::Question<'m, 'w, 'f, 'v, 't>
+{
+    fn from(builder: EditorBuilder<'m, 'w, 'f, 'v, 't>) -> Self {
         builder.build()
     }
 }
 
-crate::impl_options_builder!(EditorBuilder; (this, opts) => {
+crate::impl_options_builder!(EditorBuilder<'f, 'v, 't>; (this, opts) => {
     EditorBuilder {
         opts,
         editor: this.editor,
     }
 });
 
-impl super::Question<'static, 'static> {
-    pub fn editor<N: Into<String>>(name: N) -> EditorBuilder<'static, 'static> {
+crate::impl_filter_builder!(EditorBuilder<'m, 'w, f, 'v, 't> String; (this, filter) => {
+    EditorBuilder {
+        opts: this.opts,
+        editor: Editor {
+            filter,
+            editor: this.editor.editor,
+            postfix: this.editor.postfix,
+            default: this.editor.default,
+            validate: this.editor.validate,
+            transformer: this.editor.transformer,
+        }
+    }
+});
+crate::impl_validate_builder!(EditorBuilder<'m, 'w, 'f, v, 't> str; (this, validate) => {
+    EditorBuilder {
+        opts: this.opts,
+        editor: Editor {
+            validate,
+            editor: this.editor.editor,
+            postfix: this.editor.postfix,
+            default: this.editor.default,
+            filter: this.editor.filter,
+            transformer: this.editor.transformer,
+        }
+    }
+});
+crate::impl_transformer_builder!(EditorBuilder<'m, 'w, 'f, 'v, t> str; (this, transformer) => {
+    EditorBuilder {
+        opts: this.opts,
+        editor: Editor {
+            transformer,
+            editor: this.editor.editor,
+            postfix: this.editor.postfix,
+            validate: this.editor.validate,
+            default: this.editor.default,
+            filter: this.editor.filter,
+        }
+    }
+});
+
+impl super::Question<'static, 'static, 'static, 'static, 'static> {
+    pub fn editor<N: Into<String>>(
+        name: N,
+    ) -> EditorBuilder<'static, 'static, 'static, 'static, 'static> {
         EditorBuilder {
             opts: Options::new(name.into()),
             editor: Default::default(),

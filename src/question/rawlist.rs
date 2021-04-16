@@ -1,3 +1,5 @@
+use std::fmt;
+
 use crossterm::{
     event, queue,
     style::{Color, Colorize, ResetColor, SetForegroundColor},
@@ -11,20 +13,33 @@ use crate::{
     error,
 };
 
-use super::{Choice, Options};
+use super::{none, some, Choice, Options, Transformer};
 
-#[derive(Debug, Default)]
-pub struct Rawlist {
+#[derive(Default)]
+pub struct Rawlist<'t> {
     choices: super::ChoiceList<(usize, String)>,
+    transformer: Option<Box<Transformer<'t, ListItem>>>,
 }
 
-struct RawlistPrompt {
+impl fmt::Debug for Rawlist<'_> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("Rawlist")
+            .field("choices", &self.choices)
+            .field(
+                "transformer",
+                &self.transformer.as_ref().map_or_else(none, some),
+            )
+            .finish()
+    }
+}
+
+struct RawlistPrompt<'t> {
     message: String,
-    list: widgets::ListPicker<Rawlist>,
+    list: widgets::ListPicker<Rawlist<'t>>,
     input: widgets::StringInput,
 }
 
-impl RawlistPrompt {
+impl RawlistPrompt<'_> {
     fn finish_index(self, index: usize) -> ListItem {
         ListItem {
             index,
@@ -40,7 +55,7 @@ impl RawlistPrompt {
     }
 }
 
-impl ui::Prompt for RawlistPrompt {
+impl ui::Prompt for RawlistPrompt<'_> {
     type ValidateErr = &'static str;
     type Output = ListItem;
 
@@ -77,7 +92,7 @@ impl ui::Prompt for RawlistPrompt {
 
 const ANSWER_PROMPT: &[u8] = b"  Answer: ";
 
-impl Widget for RawlistPrompt {
+impl Widget for RawlistPrompt<'_> {
     fn render<W: std::io::Write>(&mut self, _: usize, w: &mut W) -> crossterm::Result<()> {
         let max_width = terminal::size()?.0 as usize;
         self.list.render(max_width, w)?;
@@ -125,7 +140,7 @@ impl Widget for RawlistPrompt {
     }
 }
 
-impl widgets::List for Rawlist {
+impl widgets::List for Rawlist<'_> {
     fn render_item<W: std::io::Write>(
         &mut self,
         index: usize,
@@ -175,8 +190,10 @@ impl widgets::List for Rawlist {
     }
 }
 
-impl Rawlist {
-    pub fn ask<W: std::io::Write>(self, message: String, w: &mut W) -> error::Result<Answer> {
+impl Rawlist<'_> {
+    pub fn ask<W: std::io::Write>(mut self, message: String, w: &mut W) -> error::Result<Answer> {
+        let transformer = self.transformer.take();
+
         let mut list = widgets::ListPicker::new(self);
         if let Some(default) = list.list.choices.default() {
             list.set_at(default);
@@ -189,19 +206,22 @@ impl Rawlist {
         })
         .run(w)?;
 
-        writeln!(w, "{}", ans.name.as_str().dark_cyan())?;
+        match transformer {
+            Some(transformer) => transformer(&ans, w)?,
+            None => writeln!(w, "{}", ans.name.as_str().dark_cyan())?,
+        }
 
         Ok(Answer::ListItem(ans))
     }
 }
 
-pub struct RawlistBuilder<'m, 'w> {
+pub struct RawlistBuilder<'m, 'w, 't> {
     opts: Options<'m, 'w>,
-    list: Rawlist,
+    list: Rawlist<'t>,
     choice_count: usize,
 }
 
-impl<'m, 'w> RawlistBuilder<'m, 'w> {
+impl<'m, 'w, 't> RawlistBuilder<'m, 'w, 't> {
     pub fn default(mut self, default: usize) -> Self {
         self.list.choices.set_default(default);
         self
@@ -259,18 +279,20 @@ impl<'m, 'w> RawlistBuilder<'m, 'w> {
         self
     }
 
-    pub fn build(self) -> super::Question<'m, 'w> {
+    pub fn build(self) -> super::Question<'m, 'w, 'static, 'static, 't> {
         super::Question::new(self.opts, super::QuestionKind::Rawlist(self.list))
     }
 }
 
-impl<'m, 'w> From<RawlistBuilder<'m, 'w>> for super::Question<'m, 'w> {
-    fn from(builder: RawlistBuilder<'m, 'w>) -> Self {
+impl<'m, 'w, 't> From<RawlistBuilder<'m, 'w, 't>>
+    for super::Question<'m, 'w, 'static, 'static, 't>
+{
+    fn from(builder: RawlistBuilder<'m, 'w, 't>) -> Self {
         builder.build()
     }
 }
 
-crate::impl_options_builder!(RawlistBuilder; (this, opts) => {
+crate::impl_options_builder!(RawlistBuilder<'t>; (this, opts) => {
     RawlistBuilder {
         opts,
         list: this.list,
@@ -278,8 +300,19 @@ crate::impl_options_builder!(RawlistBuilder; (this, opts) => {
     }
 });
 
-impl super::Question<'static, 'static> {
-    pub fn rawlist<N: Into<String>>(name: N) -> RawlistBuilder<'static, 'static> {
+crate::impl_transformer_builder!(RawlistBuilder<'m, 'w, t> ListItem; (this, transformer) => {
+    RawlistBuilder {
+        opts: this.opts,
+        choice_count: this.choice_count,
+        list: Rawlist {
+            transformer,
+            choices: this.list.choices,
+        }
+    }
+});
+
+impl super::Question<'static, 'static, 'static, 'static, 'static> {
+    pub fn rawlist<N: Into<String>>(name: N) -> RawlistBuilder<'static, 'static, 'static> {
         RawlistBuilder {
             opts: Options::new(name.into()),
             list: Default::default(),

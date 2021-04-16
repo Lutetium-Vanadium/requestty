@@ -8,7 +8,7 @@ fn main() {
         Some("b") => (
             Question::confirm("a").message("Hello there 1").build(),
             Question::confirm("b")
-                // .message("Hello there 2")
+                .message("Hello there 2")
                 .default(true)
                 .build(),
         ),

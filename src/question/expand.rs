@@ -1,3 +1,5 @@
+use std::fmt;
+
 use crossterm::{
     cursor, queue,
     style::{Color, Colorize, ResetColor, SetForegroundColor},
@@ -8,34 +10,49 @@ use ui::{widgets, Validation, Widget};
 
 use crate::{error, Answer, ExpandItem};
 
-use super::{Choice, Options};
+use super::{none, some, Choice, Options, Transformer};
 
-#[derive(Debug)]
-pub struct Expand {
+pub struct Expand<'t> {
     choices: super::ChoiceList<ExpandItem>,
     selected: Option<char>,
     default: char,
+    transformer: Option<Box<Transformer<'t, ExpandItem>>>,
 }
 
-impl Default for Expand {
+impl fmt::Debug for Expand<'_> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("Expand")
+            .field("default", &self.default)
+            .field("selected", &self.selected)
+            .field("choices", &self.choices)
+            .field(
+                "transformer",
+                &self.transformer.as_ref().map_or_else(none, some),
+            )
+            .finish()
+    }
+}
+
+impl Default for Expand<'static> {
     fn default() -> Self {
         Expand {
             default: 'h',
             selected: None,
             choices: Default::default(),
+            transformer: None,
         }
     }
 }
 
-struct ExpandPrompt<F> {
+struct ExpandPrompt<'t, F> {
     message: String,
     hint: String,
-    list: widgets::ListPicker<Expand>,
+    list: widgets::ListPicker<Expand<'t>>,
     input: widgets::CharInput<F>,
     expanded: bool,
 }
 
-impl<F> ExpandPrompt<F> {
+impl<F> ExpandPrompt<'_, F> {
     fn finish_with(self, c: char) -> ExpandItem {
         self.list
             .finish()
@@ -51,7 +68,7 @@ impl<F> ExpandPrompt<F> {
     }
 }
 
-impl<F: Fn(char) -> Option<char>> ui::Prompt for ExpandPrompt<F> {
+impl<F: Fn(char) -> Option<char>> ui::Prompt for ExpandPrompt<'_, F> {
     type ValidateErr = &'static str;
     type Output = ExpandItem;
 
@@ -92,7 +109,7 @@ impl<F: Fn(char) -> Option<char>> ui::Prompt for ExpandPrompt<F> {
 
 const ANSWER_PROMPT: &[u8] = b"  Answer: ";
 
-impl<F: Fn(char) -> Option<char>> ui::Widget for ExpandPrompt<F> {
+impl<F: Fn(char) -> Option<char>> ui::Widget for ExpandPrompt<'_, F> {
     fn render<W: std::io::Write>(&mut self, max_width: usize, w: &mut W) -> crossterm::Result<()> {
         if self.expanded {
             let max_width = terminal::size()?.0 as usize - ANSWER_PROMPT.len();
@@ -157,30 +174,6 @@ impl<F: Fn(char) -> Option<char>> ui::Widget for ExpandPrompt<F> {
     }
 }
 
-impl Expand {
-    fn render_choice<W: std::io::Write>(
-        &self,
-        item: &ExpandItem,
-        max_width: usize,
-        w: &mut W,
-    ) -> crossterm::Result<()> {
-        let hovered = self.selected.map(|c| c == item.key).unwrap_or(false);
-
-        if hovered {
-            queue!(w, SetForegroundColor(Color::DarkCyan))?;
-        }
-
-        write!(w, "  {}) ", item.key)?;
-        item.name.as_str().render(max_width - 5, w)?;
-
-        if hovered {
-            queue!(w, ResetColor)?;
-        }
-
-        Ok(())
-    }
-}
-
 thread_local! {
     static HELP_CHOICE: ExpandItem = ExpandItem {
         key: 'h',
@@ -188,7 +181,7 @@ thread_local! {
     };
 }
 
-impl widgets::List for Expand {
+impl widgets::List for Expand<'_> {
     fn render_item<W: std::io::Write>(
         &mut self,
         index: usize,
@@ -228,8 +221,30 @@ impl widgets::List for Expand {
     }
 }
 
-impl Expand {
-    pub fn ask<W: std::io::Write>(self, message: String, w: &mut W) -> error::Result<Answer> {
+impl Expand<'_> {
+    fn render_choice<W: std::io::Write>(
+        &self,
+        item: &ExpandItem,
+        max_width: usize,
+        w: &mut W,
+    ) -> crossterm::Result<()> {
+        let hovered = self.selected.map(|c| c == item.key).unwrap_or(false);
+
+        if hovered {
+            queue!(w, SetForegroundColor(Color::DarkCyan))?;
+        }
+
+        write!(w, "  {}) ", item.key)?;
+        item.name.as_str().render(max_width - 5, w)?;
+
+        if hovered {
+            queue!(w, ResetColor)?;
+        }
+
+        Ok(())
+    }
+
+    pub fn ask<W: std::io::Write>(mut self, message: String, w: &mut W) -> error::Result<Answer> {
         let choices = self
             .choices
             .choices
@@ -255,6 +270,8 @@ impl Expand {
             s
         };
 
+        let transformer = self.transformer.take();
+
         let ans = ui::Input::new(ExpandPrompt {
             message,
             input: widgets::CharInput::new(|c| {
@@ -267,19 +284,22 @@ impl Expand {
         })
         .run(w)?;
 
-        writeln!(w, "{}", ans.name.as_str().dark_cyan())?;
+        match transformer {
+            Some(transformer) => transformer(&ans, w)?,
+            None => writeln!(w, "{}", ans.name.as_str().dark_cyan())?,
+        }
 
         Ok(Answer::ExpandItem(ans))
     }
 }
 
-pub struct ExpandBuilder<'m, 'w> {
+pub struct ExpandBuilder<'m, 'w, 't> {
     opts: Options<'m, 'w>,
-    expand: Expand,
+    expand: Expand<'t>,
     keys: HashSet<char>,
 }
 
-impl<'m, 'w> ExpandBuilder<'m, 'w> {
+impl<'m, 'w, 't> ExpandBuilder<'m, 'w, 't> {
     pub fn default(mut self, default: char) -> Self {
         self.expand.default = default;
         self
@@ -355,18 +375,18 @@ impl<'m, 'w> ExpandBuilder<'m, 'w> {
         self
     }
 
-    pub fn build(self) -> super::Question<'m, 'w> {
+    pub fn build(self) -> super::Question<'m, 'w, 'static, 'static, 't> {
         super::Question::new(self.opts, super::QuestionKind::Expand(self.expand))
     }
 }
 
-impl<'m, 'w> From<ExpandBuilder<'m, 'w>> for super::Question<'m, 'w> {
-    fn from(builder: ExpandBuilder<'m, 'w>) -> Self {
+impl<'m, 'w, 't> From<ExpandBuilder<'m, 'w, 't>> for super::Question<'m, 'w, 'static, 'static, 't> {
+    fn from(builder: ExpandBuilder<'m, 'w, 't>) -> Self {
         builder.build()
     }
 }
 
-crate::impl_options_builder!(ExpandBuilder; (this, opts) => {
+crate::impl_options_builder!(ExpandBuilder<'t>; (this, opts) => {
     ExpandBuilder {
         opts,
         expand: this.expand,
@@ -374,8 +394,21 @@ crate::impl_options_builder!(ExpandBuilder; (this, opts) => {
     }
 });
 
-impl super::Question<'static, 'static> {
-    pub fn expand<N: Into<String>>(name: N) -> ExpandBuilder<'static, 'static> {
+crate::impl_transformer_builder!(ExpandBuilder<'m, 'w, t> ExpandItem; (this, transformer) => {
+    ExpandBuilder {
+        opts: this.opts,
+        keys: this.keys,
+        expand: Expand {
+            transformer,
+            choices: this.expand.choices,
+            default: this.expand.default,
+            selected: this.expand.selected,
+        }
+    }
+});
+
+impl super::Question<'static, 'static, 'static, 'static, 'static> {
+    pub fn expand<N: Into<String>>(name: N) -> ExpandBuilder<'static, 'static, 'static> {
         ExpandBuilder {
             opts: Options::new(name.into()),
             expand: Default::default(),

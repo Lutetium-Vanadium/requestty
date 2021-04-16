@@ -1,3 +1,5 @@
+use std::fmt;
+
 use crossterm::{
     queue,
     style::{Color, Colorize, Print, ResetColor, SetForegroundColor},
@@ -9,20 +11,32 @@ use crate::{
     error,
 };
 
-use super::Options;
+use super::{none, some, Options, Transformer};
 
-#[derive(Debug, Default)]
-pub struct List {
-    // FIXME: Whats the correct type?
+#[derive(Default)]
+pub struct List<'t> {
     choices: super::ChoiceList<String>,
+    transformer: Option<Box<Transformer<'t, ListItem>>>,
 }
 
-struct ListPrompt {
+impl fmt::Debug for List<'_> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("List")
+            .field("choices", &self.choices)
+            .field(
+                "transformer",
+                &self.transformer.as_ref().map_or_else(none, some),
+            )
+            .finish()
+    }
+}
+
+struct ListPrompt<'t> {
     message: String,
-    picker: widgets::ListPicker<List>,
+    picker: widgets::ListPicker<List<'t>>,
 }
 
-impl ListPrompt {
+impl ListPrompt<'_> {
     fn finish_index(self, index: usize) -> ListItem {
         ListItem {
             index,
@@ -37,7 +51,7 @@ impl ListPrompt {
     }
 }
 
-impl ui::Prompt for ListPrompt {
+impl ui::Prompt for ListPrompt<'_> {
     type ValidateErr = &'static str;
     type Output = ListItem;
 
@@ -63,7 +77,7 @@ impl ui::Prompt for ListPrompt {
     }
 }
 
-impl Widget for ListPrompt {
+impl Widget for ListPrompt<'_> {
     fn render<W: std::io::Write>(&mut self, max_width: usize, w: &mut W) -> crossterm::Result<()> {
         self.picker.render(max_width, w)
     }
@@ -81,7 +95,7 @@ impl Widget for ListPrompt {
     }
 }
 
-impl widgets::List for List {
+impl widgets::List for List<'_> {
     fn render_item<W: std::io::Write>(
         &mut self,
         index: usize,
@@ -121,8 +135,9 @@ impl widgets::List for List {
     }
 }
 
-impl List {
-    pub fn ask<W: std::io::Write>(self, message: String, w: &mut W) -> error::Result<Answer> {
+impl List<'_> {
+    pub fn ask<W: std::io::Write>(mut self, message: String, w: &mut W) -> error::Result<Answer> {
+        let transformer = self.transformer.take();
         let mut picker = widgets::ListPicker::new(self);
         if let Some(default) = picker.list.choices.default() {
             picker.set_at(default);
@@ -131,18 +146,21 @@ impl List {
             .hide_cursor()
             .run(w)?;
 
-        writeln!(w, "{}", ans.name.as_str().dark_cyan())?;
+        match transformer {
+            Some(transformer) => transformer(&ans, w)?,
+            None => writeln!(w, "{}", ans.name.as_str().dark_cyan())?,
+        }
 
         Ok(Answer::ListItem(ans))
     }
 }
 
-pub struct ListBuilder<'m, 'w> {
+pub struct ListBuilder<'m, 'w, 't> {
     opts: Options<'m, 'w>,
-    list: List,
+    list: List<'t>,
 }
 
-impl<'m, 'w> ListBuilder<'m, 'w> {
+impl<'m, 'w, 't> ListBuilder<'m, 'w, 't> {
     pub fn default(mut self, default: usize) -> Self {
         self.list.choices.set_default(default);
         self
@@ -194,26 +212,36 @@ impl<'m, 'w> ListBuilder<'m, 'w> {
         self
     }
 
-    pub fn build(self) -> super::Question<'m, 'w> {
+    pub fn build(self) -> super::Question<'m, 'w, 'static, 'static, 't> {
         super::Question::new(self.opts, super::QuestionKind::List(self.list))
     }
 }
 
-impl<'m, 'w> From<ListBuilder<'m, 'w>> for super::Question<'m, 'w> {
-    fn from(builder: ListBuilder<'m, 'w>) -> Self {
+impl<'m, 'w, 't> From<ListBuilder<'m, 'w, 't>> for super::Question<'m, 'w, 'static, 'static, 't> {
+    fn from(builder: ListBuilder<'m, 'w, 't>) -> Self {
         builder.build()
     }
 }
 
-crate::impl_options_builder!(ListBuilder; (this, opts) => {
+crate::impl_options_builder!(ListBuilder<'t>; (this, opts) => {
     ListBuilder {
         opts,
         list: this.list,
     }
 });
 
-impl super::Question<'static, 'static> {
-    pub fn list<N: Into<String>>(name: N) -> ListBuilder<'static, 'static> {
+crate::impl_transformer_builder!(ListBuilder<'m, 'w, t> ListItem; (this, transformer) => {
+    ListBuilder {
+        opts: this.opts,
+        list: List {
+            transformer,
+            choices: this.list.choices,
+        }
+    }
+});
+
+impl super::Question<'static, 'static, 'static, 'static, 'static> {
+    pub fn list<N: Into<String>>(name: N) -> ListBuilder<'static, 'static, 'static> {
         ListBuilder {
             opts: Options::new(name.into()),
             list: Default::default(),
