@@ -116,10 +116,6 @@ impl<T: AsRef<str>> Choice<T> {
             Choice::Separator(s) => get_sep_str(s),
         }
     }
-
-    pub(crate) fn as_bytes(&self) -> &[u8] {
-        self.as_str().as_bytes()
-    }
 }
 
 impl<T> From<T> for Choice<T> {

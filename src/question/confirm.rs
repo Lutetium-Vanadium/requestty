@@ -3,7 +3,7 @@ use std::fmt;
 use crossterm::style::Colorize;
 use ui::{widgets, Validation, Widget};
 
-use crate::{error, Answer};
+use crate::{error, Answer, Answers};
 
 use super::{none, some, Options, TransformerV};
 
@@ -100,6 +100,7 @@ impl Confirm<'_> {
     pub(crate) fn ask<W: std::io::Write>(
         mut self,
         message: String,
+        answers: &Answers,
         w: &mut W,
     ) -> error::Result<Answer> {
         let transformer = self.transformer.take();
@@ -112,7 +113,7 @@ impl Confirm<'_> {
         .run(w)?;
 
         match transformer {
-            Some(transformer) => transformer(ans, w)?,
+            Some(transformer) => transformer(ans, answers, w)?,
             None => {
                 let ans = if ans { "Yes" } else { "No" };
 

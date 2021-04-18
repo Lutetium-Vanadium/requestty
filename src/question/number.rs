@@ -3,7 +3,7 @@ use std::fmt;
 use crossterm::style::{Color, ResetColor, SetForegroundColor};
 use ui::{widgets, Validation, Widget};
 
-use crate::{error, Answer};
+use crate::{error, Answer, Answers};
 
 use super::{none, some, Filter, Options, TransformerV, ValidateV};
 
@@ -54,8 +54,8 @@ impl fmt::Debug for Int<'_, '_, '_> {
 trait Number {
     type Inner;
 
-    fn validate(&self, inner: Self::Inner) -> Result<(), String>;
-    fn filter(self, inner: Self::Inner) -> Self::Inner;
+    fn validate(&self, inner: Self::Inner, answers: &Answers) -> Result<(), String>;
+    fn filter(self, inner: Self::Inner, answers: &Answers) -> Self::Inner;
     fn filter_map_char(c: char) -> Option<char>;
     fn parse(s: &str) -> Result<Self::Inner, String>;
     fn default(&self) -> Option<Self::Inner>;
@@ -82,17 +82,17 @@ impl Number for Int<'_, '_, '_> {
         self.default
     }
 
-    fn validate(&self, i: Self::Inner) -> Result<(), String> {
+    fn validate(&self, i: Self::Inner, answers: &Answers) -> Result<(), String> {
         if let Some(ref validate) = self.validate {
-            validate(i)
+            validate(i, answers)
         } else {
             Ok(())
         }
     }
 
-    fn filter(self, i: Self::Inner) -> Self::Inner {
+    fn filter(self, i: Self::Inner, answers: &Answers) -> Self::Inner {
         if let Some(filter) = self.filter {
-            filter(i)
+            filter(i, answers)
         } else {
             i
         }
@@ -132,17 +132,17 @@ impl Number for Float<'_, '_, '_> {
         self.default
     }
 
-    fn validate(&self, f: Self::Inner) -> Result<(), String> {
+    fn validate(&self, f: Self::Inner, answers: &Answers) -> Result<(), String> {
         if let Some(ref validate) = self.validate {
-            validate(f)
+            validate(f, answers)
         } else {
             Ok(())
         }
     }
 
-    fn filter(self, f: Self::Inner) -> Self::Inner {
+    fn filter(self, f: Self::Inner, answers: &Answers) -> Self::Inner {
         if let Some(filter) = self.filter {
-            filter(f)
+            filter(f, answers)
         } else {
             f
         }
@@ -163,14 +163,15 @@ impl Number for Float<'_, '_, '_> {
     }
 }
 
-struct NumberPrompt<N> {
+struct NumberPrompt<'a, N> {
     number: N,
     message: String,
     input: widgets::StringInput,
     hint: Option<String>,
+    answers: &'a Answers,
 }
 
-impl<N: Number> Widget for NumberPrompt<N> {
+impl<N: Number> Widget for NumberPrompt<'_, N> {
     fn render<W: std::io::Write>(&mut self, max_width: usize, w: &mut W) -> crossterm::Result<()> {
         self.input.render(max_width, w)
     }
@@ -188,7 +189,7 @@ impl<N: Number> Widget for NumberPrompt<N> {
     }
 }
 
-impl<N: Number> ui::Prompt for NumberPrompt<N> {
+impl<N: Number> ui::Prompt for NumberPrompt<'_, N> {
     type ValidateErr = String;
     type Output = N::Inner;
 
@@ -206,14 +207,15 @@ impl<N: Number> ui::Prompt for NumberPrompt<N> {
         }
 
         self.number
-            .validate(N::parse(self.input.value())?)
+            .validate(N::parse(self.input.value())?, self.answers)
             .map(|_| Validation::Finish)
     }
     fn finish(self) -> Self::Output {
         if self.input.value().is_empty() && self.has_default() {
             return self.number.default().unwrap();
         }
-        self.number.filter(N::parse(self.input.value()).unwrap())
+        self.number
+            .filter(N::parse(self.input.value()).unwrap(), self.answers)
     }
 
     fn has_default(&self) -> bool {
@@ -230,6 +232,7 @@ macro_rules! impl_ask {
             pub(crate) fn ask<W: std::io::Write>(
                 mut self,
                 message: String,
+                answers: &Answers,
                 w: &mut W,
             ) -> error::Result<Answer> {
                 let transformer = self.transformer.take();
@@ -239,11 +242,12 @@ macro_rules! impl_ask {
                     input: widgets::StringInput::new(Self::filter_map_char),
                     number: self,
                     message,
+                    answers,
                 })
                 .run(w)?;
 
                 match transformer {
-                    Some(transformer) => transformer(ans, w)?,
+                    Some(transformer) => transformer(ans, answers, w)?,
                     None => Self::write(ans, w)?,
                 }
 

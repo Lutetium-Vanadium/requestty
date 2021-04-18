@@ -1,40 +1,40 @@
 // TODO: delete
 // this is a temporary file, for testing out the prompts
-use inquisition::{Choice::Separator, Question};
-use std::{array::IntoIter, env, io};
+use inquisition::{Question, Separator};
+use std::{array::IntoIter, env};
 
 fn main() {
-    let (a, b) = match env::args().nth(1).as_deref() {
-        Some("b") => (
+    let q = match env::args().nth(1).as_deref() {
+        Some("b") => vec![
             Question::confirm("a").message("Hello there 1").build(),
             Question::confirm("b")
                 .message("Hello there 2")
                 .default(true)
                 .build(),
-        ),
-        Some("s") => (
+        ],
+        Some("s") => vec![
             Question::input("a").message("Hello there 1").into(),
             Question::input("b")
                 .message("Hello there 2")
                 .default("Yes")
                 .into(),
-        ),
-        Some("p") => (
+        ],
+        Some("p") => vec![
             Question::password("a")
                 .message("password 1")
                 .mask('*')
                 .into(),
             Question::password("b").message("password 2").into(),
-        ),
-        Some("i") => (
+        ],
+        Some("i") => vec![
             Question::int("a").message("int 1").into(),
             Question::int("b").message("int 2").default(3).into(),
-        ),
-        Some("f") => (
+        ],
+        Some("f") => vec![
             Question::float("a").message("float 1").into(),
             Question::float("b").message("float 2").default(3.12).into(),
-        ),
-        Some("e") => (
+        ],
+        Some("e") => vec![
             Question::editor("a")
                 .message("editor 1")
                 .default("Hello there")
@@ -43,9 +43,9 @@ fn main() {
                 .message("editor 2")
                 .postfix(".rs")
                 .into(),
-        ),
+        ],
 
-        Some("l") => (
+        Some("l") => vec![
             Question::list("a")
                 .message("list 1")
                 .choices(IntoIter::new([
@@ -74,9 +74,9 @@ fn main() {
                 ]))
                 .page_size(6)
                 .into(),
-        ),
+        ],
 
-        Some("c") => (
+        Some("c") => vec![
             Question::checkbox("a")
                 .message("checkbox 1")
                 .choice_with_default("0", true)
@@ -105,9 +105,9 @@ fn main() {
                 .page_size(6)
                 .should_loop(false)
                 .into(),
-        ),
+        ],
 
-        Some("r") => (
+        Some("r") => vec![
             Question::rawlist("a")
                 .message("list 1")
                 .choices(IntoIter::new([
@@ -137,9 +137,9 @@ fn main() {
                 .page_size(6)
                 // .should_loop(false)
                 .into(),
-        ),
+        ],
 
-        Some("x") => (
+        Some("x") => vec![
             Question::expand("a")
                 .message("expand 1")
                 .choices(IntoIter::new([
@@ -163,11 +163,9 @@ fn main() {
                 ]))
                 .default('b')
                 .into(),
-        ),
+        ],
         _ => panic!("no arg"),
     };
 
-    let mut stdout = io::stdout();
-    println!("{:?}", a.ask(&mut stdout));
-    println!("{:?}", b.ask(&mut stdout));
+    println!("{:#?}", inquisition::prompt(q));
 }

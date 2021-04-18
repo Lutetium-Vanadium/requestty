@@ -10,7 +10,7 @@ use crossterm::style::Colorize;
 use tempfile::NamedTempFile;
 use ui::{Validation, Widget};
 
-use crate::{error, Answer};
+use crate::{error, Answer, Answers};
 
 use super::{none, some, Filter, Options, Transformer, Validate};
 
@@ -64,14 +64,15 @@ fn get_editor() -> OsString {
         })
 }
 
-struct EditorPrompt<'f, 'v, 't> {
+struct EditorPrompt<'f, 'v, 't, 'a> {
     file: NamedTempFile,
     ans: String,
     message: String,
     editor: Editor<'f, 'v, 't>,
+    answers: &'a Answers,
 }
 
-impl Widget for EditorPrompt<'_, '_, '_> {
+impl Widget for EditorPrompt<'_, '_, '_, '_> {
     fn render<W: Write>(&mut self, _: usize, _: &mut W) -> crossterm::Result<()> {
         Ok(())
     }
@@ -81,7 +82,7 @@ impl Widget for EditorPrompt<'_, '_, '_> {
     }
 }
 
-impl ui::Prompt for EditorPrompt<'_, '_, '_> {
+impl ui::Prompt for EditorPrompt<'_, '_, '_, '_> {
     type ValidateErr = io::Error;
     type Output = String;
 
@@ -110,7 +111,8 @@ impl ui::Prompt for EditorPrompt<'_, '_, '_> {
         self.file.seek(SeekFrom::Start(0))?;
 
         if let Some(ref validate) = self.editor.validate {
-            validate(&self.ans).map_err(|err| io::Error::new(io::ErrorKind::InvalidInput, err))?;
+            validate(&self.ans, self.answers)
+                .map_err(|err| io::Error::new(io::ErrorKind::InvalidInput, err))?;
         }
 
         Ok(Validation::Finish)
@@ -118,7 +120,7 @@ impl ui::Prompt for EditorPrompt<'_, '_, '_> {
 
     fn finish(self) -> Self::Output {
         match self.editor.filter {
-            Some(filter) => filter(self.ans),
+            Some(filter) => filter(self.ans, self.answers),
             None => self.ans,
         }
     }
@@ -129,7 +131,12 @@ impl ui::Prompt for EditorPrompt<'_, '_, '_> {
 }
 
 impl Editor<'_, '_, '_> {
-    pub fn ask<W: Write>(mut self, message: String, w: &mut W) -> error::Result<Answer> {
+    pub fn ask<W: Write>(
+        mut self,
+        message: String,
+        answers: &Answers,
+        w: &mut W,
+    ) -> error::Result<Answer> {
         let mut builder = tempfile::Builder::new();
 
         if let Some(ref postfix) = self.postfix {
@@ -151,11 +158,12 @@ impl Editor<'_, '_, '_> {
             editor: self,
             file,
             ans: String::new(),
+            answers,
         })
         .run(w)?;
 
         match transformer {
-            Some(transformer) => transformer(&ans, w)?,
+            Some(transformer) => transformer(&ans, answers, w)?,
             None => writeln!(w, "{}", "Received".dark_grey())?,
         }
 

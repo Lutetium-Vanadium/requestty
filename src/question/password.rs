@@ -3,7 +3,7 @@ use std::fmt;
 use crossterm::style::Colorize;
 use ui::{widgets, Validation, Widget};
 
-use crate::{error, Answer};
+use crate::{error, Answer, Answers};
 
 use super::{none, some, Filter, Options, Transformer, Validate};
 
@@ -29,13 +29,14 @@ impl fmt::Debug for Password<'_, '_, '_> {
     }
 }
 
-struct PasswordPrompt<'f, 'v, 't> {
+struct PasswordPrompt<'f, 'v, 't, 'a> {
     message: String,
     password: Password<'f, 'v, 't>,
     input: widgets::StringInput,
+    answers: &'a Answers,
 }
 
-impl ui::Prompt for PasswordPrompt<'_, '_, '_> {
+impl ui::Prompt for PasswordPrompt<'_, '_, '_, '_> {
     type ValidateErr = String;
     type Output = String;
 
@@ -53,7 +54,7 @@ impl ui::Prompt for PasswordPrompt<'_, '_, '_> {
 
     fn validate(&mut self) -> Result<Validation, Self::ValidateErr> {
         if let Some(ref validate) = self.password.validate {
-            validate(self.input.value())?;
+            validate(self.input.value(), self.answers)?;
         }
 
         Ok(Validation::Finish)
@@ -63,7 +64,7 @@ impl ui::Prompt for PasswordPrompt<'_, '_, '_> {
         let mut ans = self.input.finish().unwrap_or_else(String::new);
 
         if let Some(filter) = self.password.filter {
-            ans = filter(ans)
+            ans = filter(ans, self.answers)
         }
 
         ans
@@ -74,7 +75,7 @@ impl ui::Prompt for PasswordPrompt<'_, '_, '_> {
     }
 }
 
-impl Widget for PasswordPrompt<'_, '_, '_> {
+impl Widget for PasswordPrompt<'_, '_, '_, '_> {
     fn render<W: std::io::Write>(&mut self, max_width: usize, w: &mut W) -> crossterm::Result<()> {
         self.input.render(max_width, w)
     }
@@ -93,18 +94,24 @@ impl Widget for PasswordPrompt<'_, '_, '_> {
 }
 
 impl Password<'_, '_, '_> {
-    pub fn ask<W: std::io::Write>(mut self, message: String, w: &mut W) -> error::Result<Answer> {
+    pub fn ask<W: std::io::Write>(
+        mut self,
+        message: String,
+        answers: &Answers,
+        w: &mut W,
+    ) -> error::Result<Answer> {
         let transformer = self.transformer.take();
 
         let ans = ui::Input::new(PasswordPrompt {
             message,
             input: widgets::StringInput::new(widgets::no_filter as _).password(self.mask),
             password: self,
+            answers,
         })
         .run(w)?;
 
         match transformer {
-            Some(transformer) => transformer(&ans, w)?,
+            Some(transformer) => transformer(&ans, answers, w)?,
             None => writeln!(w, "{}", "[hidden]".dark_grey())?,
         }
 

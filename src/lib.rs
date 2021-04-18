@@ -1,36 +1,76 @@
-// FIXME: remove this
-#![allow(dead_code)]
+use std::{borrow::Borrow, hash::Hash};
+
+use fxhash::FxHashMap as HashMap;
 
 mod answer;
 mod error;
-pub mod question;
+mod question;
 
 pub use answer::{Answer, ExpandItem, ListItem};
-pub use question::{Choice, Choice::Separator, Question};
+pub use question::{Choice::Choice, Choice::Separator, Question};
 
-pub struct Inquisition<'m, 'w, 'f, 'v, 't> {
-    questions: Vec<Question<'m, 'w, 'f, 'v, 't>>,
+#[derive(Debug, Default)]
+pub struct Answers {
+    answers: HashMap<String, Answer>,
 }
 
-impl<'m, 'w, 'f, 'v, 't> Inquisition<'m, 'w, 'f, 'v, 't> {
-    pub fn new(questions: Vec<Question<'m, 'w, 'f, 'v, 't>>) -> Self {
-        Inquisition { questions }
+impl Answers {
+    fn insert(&mut self, name: String, answer: Answer) {
+        self.answers.insert(name, answer);
     }
 
-    pub fn add_question(&mut self, question: Question<'m, 'w, 'f, 'v, 't>) {
-        self.questions.push(question)
+    fn reserve(&mut self, capacity: usize) {
+        self.answers.reserve(capacity - self.answers.len())
     }
 
-    pub fn prompt(self) -> PromptModule<'m, 'w, 'f, 'v, 't> {
-        PromptModule {
-            answers: Vec::with_capacity(self.questions.len()),
-            questions: self.questions,
-        }
+    pub fn contains<Q: ?Sized>(&self, question: &Q) -> bool
+    where
+        String: Borrow<Q>,
+        Q: Hash + Eq,
+    {
+        self.answers.contains_key(question)
     }
 }
 
-// TODO: ask questions
 pub struct PromptModule<'m, 'w, 'f, 'v, 't> {
     questions: Vec<Question<'m, 'w, 'f, 'v, 't>>,
-    answers: Vec<Answer>,
+    answers: Answers,
+}
+
+impl<'m, 'w, 'f, 'v, 't> PromptModule<'m, 'w, 'f, 'v, 't> {
+    pub fn new(questions: Vec<Question<'m, 'w, 'f, 'v, 't>>) -> Self {
+        Self {
+            answers: Answers::default(),
+            questions,
+        }
+    }
+
+    pub fn with_answers(mut self, answers: Answers) -> Self {
+        self.answers = answers;
+        self
+    }
+
+    pub fn prompt_all(self) -> error::Result<Answers> {
+        let PromptModule {
+            questions,
+            mut answers,
+        } = self;
+
+        answers.reserve(questions.len());
+
+        let stdout = std::io::stdout();
+        let mut stdout = stdout.lock();
+
+        for question in questions {
+            if let Some((name, answer)) = question.ask(&answers, &mut stdout)? {
+                answers.insert(name, answer);
+            }
+        }
+
+        Ok(answers)
+    }
+}
+
+pub fn prompt(questions: Vec<Question>) -> error::Result<Answers> {
+    PromptModule::new(questions).prompt_all()
 }

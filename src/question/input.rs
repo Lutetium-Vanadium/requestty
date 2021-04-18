@@ -3,7 +3,7 @@ use std::fmt;
 use crossterm::style::Colorize;
 use ui::{widgets, Validation, Widget};
 
-use crate::{error, Answer};
+use crate::{error, Answer, Answers};
 
 use super::{none, some, Filter, Options, Transformer, Validate};
 
@@ -29,13 +29,14 @@ impl fmt::Debug for Input<'_, '_, '_> {
     }
 }
 
-struct InputPrompt<'f, 'v, 't> {
+struct InputPrompt<'f, 'v, 't, 'a> {
     message: String,
     input_opts: Input<'f, 'v, 't>,
     input: widgets::StringInput,
+    answers: &'a Answers,
 }
 
-impl Widget for InputPrompt<'_, '_, '_> {
+impl Widget for InputPrompt<'_, '_, '_, '_> {
     fn render<W: std::io::Write>(&mut self, max_width: usize, w: &mut W) -> crossterm::Result<()> {
         self.input.render(max_width, w)
     }
@@ -53,7 +54,7 @@ impl Widget for InputPrompt<'_, '_, '_> {
     }
 }
 
-impl ui::Prompt for InputPrompt<'_, '_, '_> {
+impl ui::Prompt for InputPrompt<'_, '_, '_, '_> {
     type ValidateErr = String;
     type Output = String;
 
@@ -73,7 +74,7 @@ impl ui::Prompt for InputPrompt<'_, '_, '_> {
             .unwrap_or_else(|| remove_brackets(hint.unwrap()));
 
         if let Some(filter) = self.input_opts.filter {
-            ans = filter(ans);
+            ans = filter(ans, self.answers);
         }
 
         ans
@@ -88,7 +89,7 @@ impl ui::Prompt for InputPrompt<'_, '_, '_> {
         }
 
         if let Some(ref validate) = self.input_opts.validate {
-            validate(self.input.value())?;
+            validate(self.input.value(), self.answers)?;
         }
 
         Ok(Validation::Finish)
@@ -102,7 +103,12 @@ impl ui::Prompt for InputPrompt<'_, '_, '_> {
 }
 
 impl Input<'_, '_, '_> {
-    pub fn ask<W: std::io::Write>(mut self, message: String, w: &mut W) -> error::Result<Answer> {
+    pub fn ask<W: std::io::Write>(
+        mut self,
+        message: String,
+        answers: &Answers,
+        w: &mut W,
+    ) -> error::Result<Answer> {
         if let Some(ref mut default) = self.default {
             default.insert(0, '(');
             default.push(')');
@@ -114,11 +120,12 @@ impl Input<'_, '_, '_> {
             message,
             input_opts: self,
             input: widgets::StringInput::default(),
+            answers,
         })
         .run(w)?;
 
         match transformer {
-            Some(transformer) => transformer(&ans, w)?,
+            Some(transformer) => transformer(&ans, answers, w)?,
             None => writeln!(w, "{}", ans.as_str().dark_cyan())?,
         }
 

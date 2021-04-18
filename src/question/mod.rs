@@ -11,20 +11,18 @@ mod options;
 mod password;
 mod rawlist;
 
-use crate::{error, Answer};
+use crate::{error, Answer, Answers};
 pub use choice::Choice;
 use choice::{get_sep_str, ChoiceList};
-// TODO: make this private
-pub use options::Options;
+use options::Options;
 
 use std::io::prelude::*;
 
-// TODO: all of these three will take a reference to the answers as well
-type Filter<'a, T> = dyn FnOnce(T) -> T + 'a;
-type Validate<'a, T> = dyn Fn(&T) -> Result<(), String> + 'a;
-type ValidateV<'a, T> = dyn Fn(T) -> Result<(), String> + 'a;
-type Transformer<'a, T> = dyn FnOnce(&T, &mut dyn Write) -> error::Result<()> + 'a;
-type TransformerV<'a, T> = dyn FnOnce(T, &mut dyn Write) -> error::Result<()> + 'a;
+type Filter<'a, T> = dyn FnOnce(T, &Answers) -> T + 'a;
+type Validate<'a, T> = dyn Fn(&T, &Answers) -> Result<(), String> + 'a;
+type ValidateV<'a, T> = dyn Fn(T, &Answers) -> Result<(), String> + 'a;
+type Transformer<'a, T> = dyn FnOnce(&T, &Answers, &mut dyn Write) -> error::Result<()> + 'a;
+type TransformerV<'a, T> = dyn FnOnce(T, &Answers, &mut dyn Write) -> error::Result<()> + 'a;
 
 fn some<T>(_: T) -> &'static str {
     "Some(_)"
@@ -61,35 +59,38 @@ enum QuestionKind<'f, 'v, 't> {
 }
 
 impl Question<'_, '_, '_, '_, '_> {
-    pub fn ask<W: Write>(self, w: &mut W) -> error::Result<Option<Answer>> {
-        if !self.opts.when.get() {
+    pub fn ask<W: Write>(
+        self,
+        answers: &Answers,
+        w: &mut W,
+    ) -> error::Result<Option<(String, Answer)>> {
+        if (!self.opts.ask_if_answered && answers.contains(&self.opts.name))
+            || !self.opts.when.get(answers)
+        {
             return Ok(None);
         }
 
-        let mut name = self.opts.name;
+        let name = self.opts.name;
         let message = self
             .opts
             .message
-            .map(options::Getter::get)
-            .unwrap_or_else(|| {
-                name.push(':');
-                name
-            });
+            .map(|message| message.get(answers))
+            .unwrap_or_else(|| name.clone() + ":");
 
         let res = match self.kind {
-            QuestionKind::Input(i) => i.ask(message, w)?,
-            QuestionKind::Int(i) => i.ask(message, w)?,
-            QuestionKind::Float(f) => f.ask(message, w)?,
-            QuestionKind::Confirm(c) => c.ask(message, w)?,
-            QuestionKind::List(l) => l.ask(message, w)?,
-            QuestionKind::Rawlist(r) => r.ask(message, w)?,
-            QuestionKind::Expand(e) => e.ask(message, w)?,
-            QuestionKind::Checkbox(c) => c.ask(message, w)?,
-            QuestionKind::Password(p) => p.ask(message, w)?,
-            QuestionKind::Editor(e) => e.ask(message, w)?,
+            QuestionKind::Input(i) => i.ask(message, answers, w)?,
+            QuestionKind::Int(i) => i.ask(message, answers, w)?,
+            QuestionKind::Float(f) => f.ask(message, answers, w)?,
+            QuestionKind::Confirm(c) => c.ask(message, answers, w)?,
+            QuestionKind::List(l) => l.ask(message, answers, w)?,
+            QuestionKind::Rawlist(r) => r.ask(message, answers, w)?,
+            QuestionKind::Expand(e) => e.ask(message, answers, w)?,
+            QuestionKind::Checkbox(c) => c.ask(message, answers, w)?,
+            QuestionKind::Password(p) => p.ask(message, answers, w)?,
+            QuestionKind::Editor(e) => e.ask(message, answers, w)?,
         };
 
-        Ok(Some(res))
+        Ok(Some((name, res)))
     }
 }
 
@@ -101,7 +102,7 @@ macro_rules! impl_filter_builder {
         impl<$($pre_lifetime),*, 'f, $($post_lifetime),*> $ty<$($pre_lifetime),*, 'f, $($post_lifetime),*> {
             pub fn filter<'a, F>(self, filter: F) -> $ty<$($pre_lifetime),*, 'a, $($post_lifetime),*>
             where
-                F: FnOnce($t) -> $t + 'a,
+                F: FnOnce($t, &crate::Answers) -> $t + 'a,
             {
                 let $self = self;
                 let $filter: Option<Box<crate::question::Filter<'a, $t>>> = Some(Box::new(filter));
@@ -119,7 +120,7 @@ macro_rules! impl_validate_builder {
         impl<$($pre_lifetime),*, 'v, $($post_lifetime),*> $ty<$($pre_lifetime),*, 'v, $($post_lifetime),*> {
             pub fn validate<'a, F>(self, validate: F) -> $ty<$($pre_lifetime),*, 'a, $($post_lifetime),*>
             where
-                F: Fn(&$t) -> Result<(), String> + 'a,
+                F: Fn(&$t, &crate::Answers) -> Result<(), String> + 'a,
             {
                 let $self = self;
                 let $validate: Option<Box<crate::question::Validate<'a, $t>>> = Some(Box::new(validate));
@@ -133,7 +134,7 @@ macro_rules! impl_validate_builder {
         impl<$($pre_lifetime),*, 'v, $($post_lifetime),*> $ty<$($pre_lifetime),*, 'v, $($post_lifetime),*> {
             pub fn validate<'a, F>(self, validate: F) -> $ty<$($pre_lifetime),*, 'a, $($post_lifetime),*>
             where
-                F: Fn($t) -> Result<(), String> + 'a,
+                F: Fn($t, &crate::Answers) -> Result<(), String> + 'a,
             {
                 let $self = self;
                 let $validate: Option<Box<crate::question::ValidateV<'a, $t>>> = Some(Box::new(validate));
@@ -151,7 +152,7 @@ macro_rules! impl_transformer_builder {
         impl<$($pre_lifetime),*, 't, $($post_lifetime),*> $ty<$($pre_lifetime),*, 't, $($post_lifetime),*> {
             pub fn transformer<'a, F>(self, transformer: F) -> $ty<$($pre_lifetime),*, 'a, $($post_lifetime),*>
             where
-                F: FnOnce(&$t, &mut dyn std::io::Write) -> crate::error::Result<()> + 'a,
+                F: FnOnce(&$t, &crate::Answers, &mut dyn std::io::Write) -> crate::error::Result<()> + 'a,
             {
                 let $self = self;
                 let $transformer: Option<Box<crate::question::Transformer<'a, $t>>> = Some(Box::new(transformer));
@@ -165,7 +166,7 @@ macro_rules! impl_transformer_builder {
         impl<$($pre_lifetime),*, 't, $($post_lifetime),*> $ty<$($pre_lifetime),*, 't, $($post_lifetime),*> {
             pub fn transformer<'a, F>(self, transformer: F) -> $ty<$($pre_lifetime),*, 'a, $($post_lifetime),*>
             where
-                F: FnOnce($t, &mut dyn std::io::Write) -> crate::error::Result<()> + 'a,
+                F: FnOnce($t, &crate::Answers, &mut dyn std::io::Write) -> crate::error::Result<()> + 'a,
             {
                 let $self = self;
                 let $transformer: Option<Box<crate::question::TransformerV<'a, $t>>> = Some(Box::new(transformer));

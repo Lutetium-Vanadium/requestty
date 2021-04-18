@@ -6,7 +6,7 @@ use crossterm::{
 };
 use ui::{widgets, Validation, Widget};
 
-use crate::{error, Answer, ListItem};
+use crate::{error, Answer, Answers, ListItem};
 
 use super::{none, some, Choice, Filter, Options, Transformer, Validate};
 
@@ -34,12 +34,13 @@ impl fmt::Debug for Checkbox<'_, '_, '_> {
     }
 }
 
-struct CheckboxPrompt<'f, 'v, 't> {
+struct CheckboxPrompt<'f, 'v, 't, 'a> {
     message: String,
     picker: widgets::ListPicker<Checkbox<'f, 'v, 't>>,
+    answers: &'a Answers,
 }
 
-impl<'f, 'v, 't> ui::Prompt for CheckboxPrompt<'f, 'v, 't> {
+impl<'f, 'v, 't> ui::Prompt for CheckboxPrompt<'f, 'v, 't, '_> {
     type ValidateErr = String;
     type Output = Checkbox<'f, 'v, 't>;
 
@@ -53,7 +54,7 @@ impl<'f, 'v, 't> ui::Prompt for CheckboxPrompt<'f, 'v, 't> {
 
     fn validate(&mut self) -> Result<Validation, Self::ValidateErr> {
         if let Some(ref validate) = self.picker.list.validate {
-            validate(&self.picker.list.selected)?;
+            validate(&self.picker.list.selected, self.answers)?;
         }
         Ok(Validation::Finish)
     }
@@ -67,7 +68,7 @@ impl<'f, 'v, 't> ui::Prompt for CheckboxPrompt<'f, 'v, 't> {
     }
 }
 
-impl Widget for CheckboxPrompt<'_, '_, '_> {
+impl Widget for CheckboxPrompt<'_, '_, '_, '_> {
     fn render<W: io::Write>(&mut self, max_width: usize, w: &mut W) -> crossterm::Result<()> {
         self.picker.render(max_width, w)
     }
@@ -157,12 +158,17 @@ impl widgets::List for Checkbox<'_, '_, '_> {
 }
 
 impl Checkbox<'_, '_, '_> {
-    pub fn ask<W: io::Write>(mut self, message: String, w: &mut W) -> error::Result<Answer> {
+    pub fn ask<W: io::Write>(
+        mut self,
+        message: String,
+        answers: &Answers,
+        w: &mut W,
+    ) -> error::Result<Answer> {
         let filter = self.filter.take();
         let transformer = self.transformer.take();
 
-        // We cannot simply process the Vec<bool> to a HashSet<ListItem> since we want to print the
-        // selected ones in order
+        // We cannot simply process the Vec<bool> to a HashSet<ListItem> inside the widget since we
+        // want to print the selected ones in order
         let Checkbox {
             mut selected,
             choices,
@@ -170,16 +176,17 @@ impl Checkbox<'_, '_, '_> {
         } = ui::Input::new(CheckboxPrompt {
             message,
             picker: widgets::ListPicker::new(self),
+            answers,
         })
         .hide_cursor()
         .run(w)?;
 
         if let Some(filter) = filter {
-            selected = filter(selected);
+            selected = filter(selected, answers);
         }
 
         match transformer {
-            Some(transformer) => transformer(&selected, w)?,
+            Some(transformer) => transformer(&selected, answers, w)?,
             None => {
                 queue!(w, SetForegroundColor(Color::DarkCyan))?;
                 print_comma_separated(

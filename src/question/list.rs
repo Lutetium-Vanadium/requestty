@@ -8,7 +8,7 @@ use ui::{widgets, Widget};
 
 use crate::{
     answer::{Answer, ListItem},
-    error,
+    error, Answers,
 };
 
 use super::{none, some, Options, Transformer};
@@ -136,7 +136,12 @@ impl widgets::List for List<'_> {
 }
 
 impl List<'_> {
-    pub fn ask<W: std::io::Write>(mut self, message: String, w: &mut W) -> error::Result<Answer> {
+    pub fn ask<W: std::io::Write>(
+        mut self,
+        message: String,
+        answers: &Answers,
+        w: &mut W,
+    ) -> error::Result<Answer> {
         let transformer = self.transformer.take();
         let mut picker = widgets::ListPicker::new(self);
         if let Some(default) = picker.list.choices.default() {
@@ -147,7 +152,7 @@ impl List<'_> {
             .run(w)?;
 
         match transformer {
-            Some(transformer) => transformer(&ans, w)?,
+            Some(transformer) => transformer(&ans, answers, w)?,
             None => writeln!(w, "{}", ans.name.as_str().dark_cyan())?,
         }
 

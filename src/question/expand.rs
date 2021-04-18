@@ -8,7 +8,7 @@ use crossterm::{
 use fxhash::FxHashSet as HashSet;
 use ui::{widgets, Validation, Widget};
 
-use crate::{error, Answer, ExpandItem};
+use crate::{error, Answer, Answers, ExpandItem};
 
 use super::{none, some, Choice, Options, Transformer};
 
@@ -244,7 +244,12 @@ impl Expand<'_> {
         Ok(())
     }
 
-    pub fn ask<W: std::io::Write>(mut self, message: String, w: &mut W) -> error::Result<Answer> {
+    pub fn ask<W: std::io::Write>(
+        mut self,
+        message: String,
+        answers: &Answers,
+        w: &mut W,
+    ) -> error::Result<Answer> {
         let choices = self
             .choices
             .choices
@@ -285,7 +290,7 @@ impl Expand<'_> {
         .run(w)?;
 
         match transformer {
-            Some(transformer) => transformer(&ans, w)?,
+            Some(transformer) => transformer(&ans, answers, w)?,
             None => writeln!(w, "{}", ans.name.as_str().dark_cyan())?,
         }
 
