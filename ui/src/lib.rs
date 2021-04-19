@@ -1,6 +1,6 @@
 #![deny(missing_docs, rust_2018_idioms)]
 //! A widget based cli ui rendering library
-use std::{convert::TryFrom, io};
+use std::{convert::TryFrom, io, sync::Mutex};
 
 use crossterm::{
     cursor, event, execute, queue,
@@ -299,9 +299,24 @@ impl<P> Input<P> {
     }
 }
 
-// FIXME: maybe allow this to be changed?
-fn exit() -> ! {
+lazy_static::lazy_static! {
+    static ref EXIT_HANDLER: Mutex<fn() -> !> = Mutex::new(default_exit);
+}
+
+/// Sets the exit handler to call when CTRL+C is received
+pub fn set_exit_handler(handler: fn() -> !) {
+    *EXIT_HANDLER.lock().unwrap() = handler;
+}
+
+fn default_exit() -> ! {
     std::process::exit(130);
+}
+
+fn exit() -> ! {
+    match EXIT_HANDLER.lock() {
+        Ok(exit) => exit(),
+        Err(_) => default_exit(),
+    }
 }
 
 /// Simple helper to make sure if the code panics in between, raw mode is disabled

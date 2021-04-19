@@ -74,3 +74,8 @@ where
 pub fn prompt(questions: Vec<Question>) -> error::Result<Answers> {
     PromptModule::new(questions).prompt_all()
 }
+
+/// Sets the exit handler to call when CTRL+C is received
+pub fn set_exit_handler(handler: fn() -> !) {
+    ui::set_exit_handler(handler);
+}
