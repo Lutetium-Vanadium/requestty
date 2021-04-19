@@ -172,10 +172,8 @@ impl<P: Prompt> Input<P> {
         let prompt_len = u16::try_from(prompt.chars().count() + 3).expect("really big prompt");
 
         let _raw = RawMode::enable()?;
-        let _cursor = if self.hide_cursor {
-            Some(HideCursor::enable(stdout)?)
-        } else {
-            None
+        if self.hide_cursor {
+            queue!(stdout, cursor::Hide)?;
         };
 
         let height = self.prompt.height();
@@ -228,7 +226,9 @@ impl<P: Prompt> Input<P> {
                                 cursor::MoveTo(0, self.base_row + self.prompt.height() as u16)
                             )?;
                             drop(_raw);
-                            drop(_cursor);
+                            if self.hide_cursor {
+                                queue!(stdout, cursor::Show)?;
+                            }
                             exit()
                         }
                         event::KeyCode::Null => {
@@ -237,7 +237,9 @@ impl<P: Prompt> Input<P> {
                                 cursor::MoveTo(0, self.base_row + self.prompt.height() as u16)
                             )?;
                             drop(_raw);
-                            drop(_cursor);
+                            if self.hide_cursor {
+                                queue!(stdout, cursor::Show)?;
+                            }
                             exit()
                         }
                         event::KeyCode::Esc if self.prompt.has_default() => {
@@ -303,7 +305,7 @@ fn exit() -> ! {
 }
 
 /// Simple helper to make sure if the code panics in between, raw mode is disabled
-pub struct RawMode {
+struct RawMode {
     _private: (),
 }
 
@@ -318,27 +320,5 @@ impl RawMode {
 impl Drop for RawMode {
     fn drop(&mut self) {
         let _ = terminal::disable_raw_mode();
-    }
-}
-
-/// Simple helper to make sure if the code panics in between, cursor is shown
-pub struct HideCursor {
-    _private: (),
-}
-
-impl HideCursor {
-    /// Hide the cursor in the terminal
-    /// note: it is implicitly bound to stdout because it is required in the destructor
-    pub fn enable<W: io::Write>(stdout: &mut W) -> crossterm::Result<Self> {
-        queue!(stdout, cursor::Hide)?;
-        Ok(Self { _private: () })
-    }
-}
-
-impl Drop for HideCursor {
-    fn drop(&mut self) {
-        // FIXME: this implicitly binds the hiding cursor to stdout, even though enable is generic
-        // over any write
-        let _ = queue!(io::stdout(), cursor::Show);
     }
 }

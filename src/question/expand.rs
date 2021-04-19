@@ -1,11 +1,11 @@
 use std::fmt;
 
+use ahash::AHashSet as HashSet;
 use crossterm::{
     cursor, queue,
     style::{Color, Colorize, ResetColor, SetForegroundColor},
     terminal,
 };
-use fxhash::FxHashSet as HashSet;
 use ui::{widgets, Validation, Widget};
 
 use crate::{error, Answer, Answers, ExpandItem};
@@ -417,7 +417,7 @@ impl super::Question<'static, 'static, 'static, 'static, 'static> {
         ExpandBuilder {
             opts: Options::new(name.into()),
             expand: Default::default(),
-            keys: Default::default(),
+            keys: HashSet::default(),
         }
     }
 }

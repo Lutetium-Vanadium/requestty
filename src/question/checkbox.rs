@@ -16,7 +16,7 @@ pub struct Checkbox<'f, 'v, 't> {
     selected: Vec<bool>,
     filter: Option<Box<Filter<'f, Vec<bool>>>>,
     validate: Option<Box<Validate<'v, [bool]>>>,
-    transformer: Option<Box<Transformer<'t, [bool]>>>,
+    transformer: Option<Box<Transformer<'t, [ListItem]>>>,
 }
 
 impl fmt::Debug for Checkbox<'_, '_, '_> {
@@ -40,9 +40,9 @@ struct CheckboxPrompt<'f, 'v, 't, 'a> {
     answers: &'a Answers,
 }
 
-impl<'f, 'v, 't> ui::Prompt for CheckboxPrompt<'f, 'v, 't, '_> {
+impl ui::Prompt for CheckboxPrompt<'_, '_, '_, '_> {
     type ValidateErr = String;
-    type Output = Checkbox<'f, 'v, 't>;
+    type Output = Vec<ListItem>;
 
     fn prompt(&self) -> &str {
         &self.message
@@ -60,7 +60,26 @@ impl<'f, 'v, 't> ui::Prompt for CheckboxPrompt<'f, 'v, 't, '_> {
     }
 
     fn finish(self) -> Self::Output {
-        self.picker.finish()
+        let Checkbox {
+            mut selected,
+            choices,
+            filter,
+            ..
+        } = self.picker.finish();
+
+        if let Some(filter) = filter {
+            selected = filter(selected, self.answers);
+        }
+
+        selected
+            .into_iter()
+            .enumerate()
+            .zip(choices.choices.into_iter())
+            .filter_map(|((index, is_selected), name)| match (is_selected, name) {
+                (true, Choice::Choice(name)) => Some(ListItem { index, name }),
+                _ => None,
+            })
+            .collect()
     }
 
     fn has_default(&self) -> bool {
@@ -164,16 +183,9 @@ impl Checkbox<'_, '_, '_> {
         answers: &Answers,
         w: &mut W,
     ) -> error::Result<Answer> {
-        let filter = self.filter.take();
         let transformer = self.transformer.take();
 
-        // We cannot simply process the Vec<bool> to a HashSet<ListItem> inside the widget since we
-        // want to print the selected ones in order
-        let Checkbox {
-            mut selected,
-            choices,
-            ..
-        } = ui::Input::new(CheckboxPrompt {
+        let ans = ui::Input::new(CheckboxPrompt {
             message,
             picker: widgets::ListPicker::new(self),
             answers,
@@ -181,39 +193,16 @@ impl Checkbox<'_, '_, '_> {
         .hide_cursor()
         .run(w)?;
 
-        if let Some(filter) = filter {
-            selected = filter(selected, answers);
-        }
-
         match transformer {
-            Some(transformer) => transformer(&selected, answers, w)?,
+            Some(transformer) => transformer(&ans, answers, w)?,
             None => {
                 queue!(w, SetForegroundColor(Color::DarkCyan))?;
-                print_comma_separated(
-                    selected
-                        .iter()
-                        .zip(choices.choices.iter())
-                        .filter_map(|item| match item {
-                            (true, Choice::Choice(name)) => Some(name.as_str()),
-                            _ => None,
-                        }),
-                    w,
-                )?;
+                print_comma_separated(ans.iter().map(|item| item.name.as_str()), w)?;
 
                 w.write_all(b"\n")?;
                 execute!(w, ResetColor)?;
             }
         }
-
-        let ans = selected
-            .into_iter()
-            .enumerate()
-            .zip(choices.choices.into_iter())
-            .filter_map(|((index, is_selected), name)| match (is_selected, name) {
-                (true, Choice::Choice(name)) => Some(ListItem { index, name }),
-                _ => None,
-            })
-            .collect();
 
         Ok(Answer::ListItems(ans))
     }
@@ -353,7 +342,7 @@ crate::impl_validate_builder!(CheckboxBuilder<'m, 'w, 'f, v, 't> [bool]; (this, 
     }
 });
 
-crate::impl_transformer_builder!(CheckboxBuilder<'m, 'w, 'f, 'v, t> [bool]; (this, transformer) => {
+crate::impl_transformer_builder!(CheckboxBuilder<'m, 'w, 'f, 'v, t> [ListItem]; (this, transformer) => {
     CheckboxBuilder {
         opts: this.opts,
         checkbox: Checkbox {

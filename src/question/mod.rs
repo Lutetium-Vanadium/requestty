@@ -64,7 +64,7 @@ impl Question<'_, '_, '_, '_, '_> {
         answers: &Answers,
         w: &mut W,
     ) -> error::Result<Option<(String, Answer)>> {
-        if (!self.opts.ask_if_answered && answers.contains(&self.opts.name))
+        if (!self.opts.ask_if_answered && answers.contains_key(&self.opts.name))
             || !self.opts.when.get(answers)
         {
             return Ok(None);

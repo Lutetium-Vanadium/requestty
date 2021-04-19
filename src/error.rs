@@ -3,11 +3,13 @@ use std::{fmt, io};
 pub type Result<T> = std::result::Result<T, InquirerError>;
 
 #[derive(Debug)]
+#[non_exhaustive]
 pub enum InquirerError {
     IoError(io::Error),
     FmtError(fmt::Error),
     Utf8Error(std::string::FromUtf8Error),
     ParseIntError(std::num::ParseIntError),
+    NotATty,
 }
 
 impl std::error::Error for InquirerError {
@@ -17,16 +19,19 @@ impl std::error::Error for InquirerError {
             InquirerError::FmtError(e) => Some(e),
             InquirerError::Utf8Error(e) => Some(e),
             InquirerError::ParseIntError(e) => Some(e),
+            InquirerError::NotATty => None,
         }
     }
 }
 
-// TODO: better display impl
 impl fmt::Display for InquirerError {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match *self {
-            InquirerError::IoError(_) => write!(fmt, "IO-error occurred"),
-            _ => write!(fmt, "Some error has occurred"),
+        match self {
+            InquirerError::IoError(e) => write!(fmt, "IoError: {}", e),
+            InquirerError::FmtError(e) => write!(fmt, "FmtError: {}", e),
+            InquirerError::Utf8Error(e) => write!(fmt, "Utf8Error: {}", e),
+            InquirerError::ParseIntError(e) => write!(fmt, "ParseIntError: {}", e),
+            InquirerError::NotATty => write!(fmt, "Not a tty"),
         }
     }
 }

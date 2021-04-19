@@ -1,47 +1,27 @@
-use std::{borrow::Borrow, hash::Hash};
-
-use fxhash::FxHashMap as HashMap;
-
 mod answer;
 mod error;
 mod question;
 
-pub use answer::{Answer, ExpandItem, ListItem};
+pub use answer::{Answer, Answers, ExpandItem, ListItem};
+use crossterm::tty::IsTty;
 pub use question::{Choice::Choice, Choice::Separator, Question};
 
-#[derive(Debug, Default)]
-pub struct Answers {
-    answers: HashMap<String, Answer>,
-}
-
-impl Answers {
-    fn insert(&mut self, name: String, answer: Answer) {
-        self.answers.insert(name, answer);
-    }
-
-    fn reserve(&mut self, capacity: usize) {
-        self.answers.reserve(capacity - self.answers.len())
-    }
-
-    pub fn contains<Q: ?Sized>(&self, question: &Q) -> bool
-    where
-        String: Borrow<Q>,
-        Q: Hash + Eq,
-    {
-        self.answers.contains_key(question)
-    }
-}
-
-pub struct PromptModule<'m, 'w, 'f, 'v, 't> {
-    questions: Vec<Question<'m, 'w, 'f, 'v, 't>>,
+pub struct PromptModule<Q> {
+    questions: Q,
     answers: Answers,
 }
 
-impl<'m, 'w, 'f, 'v, 't> PromptModule<'m, 'w, 'f, 'v, 't> {
-    pub fn new(questions: Vec<Question<'m, 'w, 'f, 'v, 't>>) -> Self {
+impl<'m, 'w, 'f, 'v, 't, Q> PromptModule<Q>
+where
+    Q: Iterator<Item = Question<'m, 'w, 'f, 'v, 't>>,
+{
+    pub fn new<I>(questions: I) -> Self
+    where
+        I: IntoIterator<IntoIter = Q>,
+    {
         Self {
             answers: Answers::default(),
-            questions,
+            questions: questions.into_iter(),
         }
     }
 
@@ -50,24 +30,44 @@ impl<'m, 'w, 'f, 'v, 't> PromptModule<'m, 'w, 'f, 'v, 't> {
         self
     }
 
-    pub fn prompt_all(self) -> error::Result<Answers> {
-        let PromptModule {
-            questions,
-            mut answers,
-        } = self;
-
-        answers.reserve(questions.len());
-
-        let stdout = std::io::stdout();
-        let mut stdout = stdout.lock();
-
-        for question in questions {
-            if let Some((name, answer)) = question.ask(&answers, &mut stdout)? {
-                answers.insert(name, answer);
+    fn prompt_impl<W: std::io::Write>(
+        &mut self,
+        stdout: &mut W,
+    ) -> error::Result<Option<&mut Answer>> {
+        while let Some(question) = self.questions.next() {
+            if let Some((name, answer)) = question.ask(&self.answers, stdout)? {
+                return Ok(Some(self.answers.insert(name, answer)));
             }
         }
 
-        Ok(answers)
+        Ok(None)
+    }
+
+    pub fn prompt(&mut self) -> error::Result<Option<&mut Answer>> {
+        let stdout = std::io::stdout();
+        if !stdout.is_tty() {
+            return Err(error::InquirerError::NotATty);
+        }
+        let mut stdout = stdout.lock();
+        self.prompt_impl(&mut stdout)
+    }
+
+    pub fn prompt_all(mut self) -> error::Result<Answers> {
+        self.answers.reserve(self.questions.size_hint().0);
+
+        let stdout = std::io::stdout();
+        if !stdout.is_tty() {
+            return Err(error::InquirerError::NotATty);
+        }
+        let mut stdout = stdout.lock();
+
+        while self.prompt_impl(&mut stdout)?.is_some() {}
+
+        Ok(self.answers)
+    }
+
+    pub fn into_answers(self) -> Answers {
+        self.answers
     }
 }
 
