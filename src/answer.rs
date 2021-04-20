@@ -4,7 +4,10 @@ use std::{
     ops::{Deref, DerefMut},
 };
 
+#[cfg(feature = "fast-hash")]
 use ahash::AHashMap as HashMap;
+#[cfg(not(feature = "fast-hash"))]
+use std::collections::HashMap;
 
 #[derive(Debug, Clone, PartialEq, PartialOrd)]
 pub enum Answer {

@@ -1,6 +1,6 @@
 [package]
 name = "inquisition"
-version = "0.1.0"
+version = "0.0.1"
 authors = ["Lutetium Vanadium"]
 edition = "2018"
 
@@ -11,7 +11,11 @@ members = [
 ]
 
 [dependencies]
-ahash = "0.7.2"
+ahash = { version = "0.7.2", optional = true }
 crossterm = "0.19.0"
 tempfile = "3"
 ui = { path = "./ui" }
+
+[features]
+default = ["fast-hash"]
+fast-hash = ["ahash"]

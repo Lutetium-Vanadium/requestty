@@ -1,6 +1,10 @@
 use std::fmt;
 
+#[cfg(feature = "fast-hash")]
 use ahash::AHashSet as HashSet;
+#[cfg(not(feature = "fast-hash"))]
+use std::collections::HashSet;
+
 use crossterm::{
     cursor, queue,
     style::{Color, Colorize, ResetColor, SetForegroundColor},
