@@ -2,9 +2,15 @@ mod answer;
 mod error;
 mod question;
 
-pub use answer::{Answer, Answers, ExpandItem, ListItem};
 use crossterm::tty::IsTty;
-pub use question::{Choice::Choice, Choice::Separator, Question};
+
+pub use answer::{Answer, Answers, ExpandItem, ListItem};
+pub use question::{Choice::Choice, Choice::Separator, Plugin, Question};
+
+pub mod plugin {
+    pub use crate::Plugin;
+    pub use ui;
+}
 
 pub struct PromptModule<Q> {
     questions: Q,
@@ -71,7 +77,10 @@ where
     }
 }
 
-pub fn prompt(questions: Vec<Question>) -> error::Result<Answers> {
+pub fn prompt<'m, 'w, 'f, 'v, 't, Q>(questions: Q) -> error::Result<Answers>
+where
+    Q: IntoIterator<Item = Question<'m, 'w, 'f, 'v, 't>>,
+{
     PromptModule::new(questions).prompt_all()
 }
 

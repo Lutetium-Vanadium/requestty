@@ -9,12 +9,14 @@ mod number;
 #[macro_use]
 mod options;
 mod password;
+mod plugin;
 mod rawlist;
 
 use crate::{error, Answer, Answers};
 pub use choice::Choice;
 use choice::{get_sep_str, ChoiceList};
 use options::Options;
+pub use plugin::Plugin;
 
 use std::io::prelude::*;
 
@@ -56,11 +58,13 @@ enum QuestionKind<'f, 'v, 't> {
     Checkbox(checkbox::Checkbox<'f, 'v, 't>),
     Password(password::Password<'f, 'v, 't>),
     Editor(editor::Editor<'f, 'v, 't>),
+    // random lifetime so that it doesn't have to be static
+    Plugin(Box<dyn Plugin + 'f>),
 }
 
 impl Question<'_, '_, '_, '_, '_> {
     pub fn ask<W: Write>(
-        self,
+        mut self,
         answers: &Answers,
         w: &mut W,
     ) -> error::Result<Option<(String, Answer)>> {
@@ -88,6 +92,7 @@ impl Question<'_, '_, '_, '_, '_> {
             QuestionKind::Checkbox(c) => c.ask(message, answers, w)?,
             QuestionKind::Password(p) => p.ask(message, answers, w)?,
             QuestionKind::Editor(e) => e.ask(message, answers, w)?,
+            QuestionKind::Plugin(ref mut o) => o.ask(message, answers, w)?,
         };
 
         Ok(Some((name, res)))
