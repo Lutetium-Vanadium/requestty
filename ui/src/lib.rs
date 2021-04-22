@@ -229,7 +229,9 @@ impl<P: Prompt> Input<P> {
                             if self.hide_cursor {
                                 queue!(stdout, cursor::Show)?;
                             }
-                            exit()
+                            exit();
+
+                            return Err(io::Error::new(io::ErrorKind::Other, "CTRL+C").into());
                         }
                         event::KeyCode::Null => {
                             queue!(
@@ -240,7 +242,8 @@ impl<P: Prompt> Input<P> {
                             if self.hide_cursor {
                                 queue!(stdout, cursor::Show)?;
                             }
-                            exit()
+                            exit();
+                            return Err(io::Error::new(io::ErrorKind::UnexpectedEof, "EOF").into());
                         }
                         event::KeyCode::Esc if self.prompt.has_default() => {
                             return self.finish(false, prompt_len, stdout);
@@ -300,19 +303,22 @@ impl<P> Input<P> {
 }
 
 lazy_static::lazy_static! {
-    static ref EXIT_HANDLER: Mutex<fn() -> !> = Mutex::new(default_exit);
+    static ref EXIT_HANDLER: Mutex<fn()> = Mutex::new(default_exit);
 }
 
-/// Sets the exit handler to call when CTRL+C is received
-pub fn set_exit_handler(handler: fn() -> !) {
+/// Sets the exit handler to call when `CTRL+C` or EOF is received
+///
+/// By default, it exits the program, however it can be overridden to not exit. If it doesn't exit,
+/// [`Input::run`] will return an `Err`
+pub fn set_exit_handler(handler: fn()) {
     *EXIT_HANDLER.lock().unwrap() = handler;
 }
 
-fn default_exit() -> ! {
+fn default_exit() {
     std::process::exit(130);
 }
 
-fn exit() -> ! {
+fn exit() {
     match EXIT_HANDLER.lock() {
         Ok(exit) => exit(),
         Err(_) => default_exit(),

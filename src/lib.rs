@@ -84,7 +84,10 @@ where
     PromptModule::new(questions).prompt_all()
 }
 
-/// Sets the exit handler to call when CTRL+C is received
-pub fn set_exit_handler(handler: fn() -> !) {
+/// Sets the exit handler to call when `CTRL+C` or EOF is received
+///
+/// By default, it exits the program, however it can be overridden to not exit. If it doesn't exit,
+/// [`Input::run`] will return an `Err`
+pub fn set_exit_handler(handler: fn()) {
     ui::set_exit_handler(handler);
 }
