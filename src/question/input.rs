@@ -1,32 +1,16 @@
-use std::fmt;
-
 use crossterm::style::Colorize;
 use ui::{widgets, Validation, Widget};
 
 use crate::{error, Answer, Answers};
 
-use super::{none, some, Filter, Options, Transformer, Validate};
+use super::{Filter, Options, Transformer, Validate};
 
-#[derive(Default)]
+#[derive(Debug, Default)]
 pub struct Input<'f, 'v, 't> {
     default: Option<String>,
-    filter: Option<Box<Filter<'f, String>>>,
-    validate: Option<Box<Validate<'v, str>>>,
-    transformer: Option<Box<Transformer<'t, str>>>,
-}
-
-impl fmt::Debug for Input<'_, '_, '_> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_struct("Input")
-            .field("default", &self.default)
-            .field("filter", &self.filter.as_ref().map_or_else(none, some))
-            .field("validate", &self.validate.as_ref().map_or_else(none, some))
-            .field(
-                "transformer",
-                &self.transformer.as_ref().map_or_else(none, some),
-            )
-            .finish()
-    }
+    filter: Filter<'f, String>,
+    validate: Validate<'v, str>,
+    transformer: Transformer<'t, str>,
 }
 
 struct InputPrompt<'f, 'v, 't, 'a> {
@@ -73,7 +57,7 @@ impl ui::Prompt for InputPrompt<'_, '_, '_, '_> {
             .finish()
             .unwrap_or_else(|| remove_brackets(hint.unwrap()));
 
-        if let Some(filter) = self.input_opts.filter {
+        if let Filter::Sync(filter) = self.input_opts.filter {
             ans = filter(ans, self.answers);
         }
 
@@ -88,7 +72,7 @@ impl ui::Prompt for InputPrompt<'_, '_, '_, '_> {
             }
         }
 
-        if let Some(ref validate) = self.input_opts.validate {
+        if let Validate::Sync(ref validate) = self.input_opts.validate {
             validate(self.input.value(), self.answers)?;
         }
 
@@ -125,8 +109,8 @@ impl Input<'_, '_, '_> {
         .run(w)?;
 
         match transformer {
-            Some(transformer) => transformer(&ans, answers, w)?,
-            None => writeln!(w, "{}", ans.as_str().dark_cyan())?,
+            Transformer::Sync(transformer) => transformer(&ans, answers, w)?,
+            _ => writeln!(w, "{}", ans.as_str().dark_cyan())?,
         }
 
         Ok(Answer::String(ans))

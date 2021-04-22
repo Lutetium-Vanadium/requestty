@@ -1,28 +1,14 @@
-use std::fmt;
-
 use crossterm::style::Colorize;
 use ui::{widgets, Validation, Widget};
 
 use crate::{error, Answer, Answers};
 
-use super::{none, some, Options, TransformerV};
+use super::{Options, TransformerByVal as Transformer};
 
-#[derive(Default)]
+#[derive(Debug, Default)]
 pub struct Confirm<'t> {
     default: Option<bool>,
-    transformer: Option<Box<TransformerV<'t, bool>>>,
-}
-
-impl fmt::Debug for Confirm<'_> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_struct("Confirm")
-            .field("default", &self.default)
-            .field(
-                "transformer",
-                &self.transformer.as_ref().map_or_else(none, some),
-            )
-            .finish()
-    }
+    transformer: Transformer<'t, bool>,
 }
 
 struct ConfirmPrompt<'t> {
@@ -113,8 +99,8 @@ impl Confirm<'_> {
         .run(w)?;
 
         match transformer {
-            Some(transformer) => transformer(ans, answers, w)?,
-            None => {
+            Transformer::Sync(transformer) => transformer(ans, answers, w)?,
+            _ => {
                 let ans = if ans { "Yes" } else { "No" };
 
                 writeln!(w, "{}", ans.dark_cyan())?;

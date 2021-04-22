@@ -1,54 +1,24 @@
-use std::fmt;
-
 use crossterm::style::{Color, ResetColor, SetForegroundColor};
 use ui::{widgets, Validation, Widget};
 
 use crate::{error, Answer, Answers};
 
-use super::{none, some, Filter, Options, TransformerV, ValidateV};
+use super::{Filter, Options, TransformerByVal as Transformer, ValidateByVal as Validate};
 
-#[derive(Default)]
+#[derive(Debug, Default)]
 pub struct Float<'f, 'v, 't> {
     default: Option<f64>,
-    filter: Option<Box<Filter<'f, f64>>>,
-    validate: Option<Box<ValidateV<'v, f64>>>,
-    transformer: Option<Box<TransformerV<'t, f64>>>,
+    filter: Filter<'f, f64>,
+    validate: Validate<'v, f64>,
+    transformer: Transformer<'t, f64>,
 }
 
-impl fmt::Debug for Float<'_, '_, '_> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_struct("Float")
-            .field("default", &self.default)
-            .field("filter", &self.filter.as_ref().map_or_else(none, some))
-            .field("validate", &self.validate.as_ref().map_or_else(none, some))
-            .field(
-                "transformer",
-                &self.transformer.as_ref().map_or_else(none, some),
-            )
-            .finish()
-    }
-}
-
-#[derive(Default)]
+#[derive(Debug, Default)]
 pub struct Int<'f, 'v, 't> {
     default: Option<i64>,
-    filter: Option<Box<Filter<'f, i64>>>,
-    validate: Option<Box<ValidateV<'v, i64>>>,
-    transformer: Option<Box<TransformerV<'t, i64>>>,
-}
-
-impl fmt::Debug for Int<'_, '_, '_> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_struct("Int")
-            .field("default", &self.default)
-            .field("filter", &self.filter.as_ref().map_or_else(none, some))
-            .field("validate", &self.validate.as_ref().map_or_else(none, some))
-            .field(
-                "transformer",
-                &self.transformer.as_ref().map_or_else(none, some),
-            )
-            .finish()
-    }
+    filter: Filter<'f, i64>,
+    validate: Validate<'v, i64>,
+    transformer: Transformer<'t, i64>,
 }
 
 trait Number {
@@ -83,18 +53,16 @@ impl Number for Int<'_, '_, '_> {
     }
 
     fn validate(&self, i: Self::Inner, answers: &Answers) -> Result<(), String> {
-        if let Some(ref validate) = self.validate {
-            validate(i, answers)
-        } else {
-            Ok(())
+        match self.validate {
+            Validate::Sync(ref validate) => validate(i, answers),
+            _ => Ok(()),
         }
     }
 
     fn filter(self, i: Self::Inner, answers: &Answers) -> Self::Inner {
-        if let Some(filter) = self.filter {
-            filter(i, answers)
-        } else {
-            i
+        match self.filter {
+            Filter::Sync(filter) => filter(i, answers),
+            _ => i,
         }
     }
 
@@ -133,18 +101,16 @@ impl Number for Float<'_, '_, '_> {
     }
 
     fn validate(&self, f: Self::Inner, answers: &Answers) -> Result<(), String> {
-        if let Some(ref validate) = self.validate {
-            validate(f, answers)
-        } else {
-            Ok(())
+        match self.validate {
+            Validate::Sync(ref validate) => validate(f, answers),
+            _ => Ok(()),
         }
     }
 
     fn filter(self, f: Self::Inner, answers: &Answers) -> Self::Inner {
-        if let Some(filter) = self.filter {
-            filter(f, answers)
-        } else {
-            f
+        match self.filter {
+            Filter::Sync(filter) => filter(f, answers),
+            _ => f,
         }
     }
 
@@ -247,8 +213,8 @@ macro_rules! impl_ask {
                 .run(w)?;
 
                 match transformer {
-                    Some(transformer) => transformer(ans, answers, w)?,
-                    None => Self::write(ans, w)?,
+                    Transformer::Sync(transformer) => transformer(ans, answers, w)?,
+                    _ => Self::write(ans, w)?,
                 }
 
                 Ok(Self::finish(ans))

@@ -1,5 +1,3 @@
-use std::fmt;
-
 use crossterm::{
     event, queue,
     style::{Color, Colorize, ResetColor, SetForegroundColor},
@@ -13,24 +11,12 @@ use crate::{
     error, Answers,
 };
 
-use super::{none, some, Choice, Options, Transformer};
+use super::{Choice, Options, Transformer};
 
-#[derive(Default)]
+#[derive(Debug, Default)]
 pub struct Rawlist<'t> {
     choices: super::ChoiceList<(usize, String)>,
-    transformer: Option<Box<Transformer<'t, ListItem>>>,
-}
-
-impl fmt::Debug for Rawlist<'_> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_struct("Rawlist")
-            .field("choices", &self.choices)
-            .field(
-                "transformer",
-                &self.transformer.as_ref().map_or_else(none, some),
-            )
-            .finish()
-    }
+    transformer: Transformer<'t, ListItem>,
 }
 
 struct RawlistPrompt<'t> {
@@ -212,8 +198,8 @@ impl Rawlist<'_> {
         .run(w)?;
 
         match transformer {
-            Some(transformer) => transformer(&ans, answers, w)?,
-            None => writeln!(w, "{}", ans.name.as_str().dark_cyan())?,
+            Transformer::Sync(transformer) => transformer(&ans, answers, w)?,
+            _ => writeln!(w, "{}", ans.name.as_str().dark_cyan())?,
         }
 
         Ok(Answer::ListItem(ans))

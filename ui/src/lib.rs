@@ -153,6 +153,9 @@ impl<P: Prompt> Input<P> {
         stdout: &mut W,
     ) -> crossterm::Result<P::Output> {
         self.clear(prompt_len, stdout)?;
+        if self.hide_cursor {
+            queue!(stdout, cursor::Show)?;
+        }
         stdout.flush()?;
         if pressed_enter {
             Ok(self.prompt.finish())

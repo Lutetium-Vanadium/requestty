@@ -1,5 +1,3 @@
-use std::fmt;
-
 use crossterm::{
     queue,
     style::{Color, Colorize, Print, ResetColor, SetForegroundColor},
@@ -11,24 +9,12 @@ use crate::{
     error, Answers,
 };
 
-use super::{none, some, Options, Transformer};
+use super::{Options, Transformer};
 
-#[derive(Default)]
+#[derive(Debug, Default)]
 pub struct List<'t> {
     choices: super::ChoiceList<String>,
-    transformer: Option<Box<Transformer<'t, ListItem>>>,
-}
-
-impl fmt::Debug for List<'_> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_struct("List")
-            .field("choices", &self.choices)
-            .field(
-                "transformer",
-                &self.transformer.as_ref().map_or_else(none, some),
-            )
-            .finish()
-    }
+    transformer: Transformer<'t, ListItem>,
 }
 
 struct ListPrompt<'t> {
@@ -152,8 +138,8 @@ impl List<'_> {
             .run(w)?;
 
         match transformer {
-            Some(transformer) => transformer(&ans, answers, w)?,
-            None => writeln!(w, "{}", ans.name.as_str().dark_cyan())?,
+            Transformer::Sync(transformer) => transformer(&ans, answers, w)?,
+            _ => writeln!(w, "{}", ans.name.as_str().dark_cyan())?,
         }
 
         Ok(Answer::ListItem(ans))

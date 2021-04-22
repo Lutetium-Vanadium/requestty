@@ -18,21 +18,7 @@ use choice::{get_sep_str, ChoiceList};
 use options::Options;
 pub use plugin::Plugin;
 
-use std::io::prelude::*;
-
-type Filter<'a, T> = dyn FnOnce(T, &Answers) -> T + 'a;
-type Validate<'a, T> = dyn Fn(&T, &Answers) -> Result<(), String> + 'a;
-type ValidateV<'a, T> = dyn Fn(T, &Answers) -> Result<(), String> + 'a;
-type Transformer<'a, T> = dyn FnOnce(&T, &Answers, &mut dyn Write) -> error::Result<()> + 'a;
-type TransformerV<'a, T> = dyn FnOnce(T, &Answers, &mut dyn Write) -> error::Result<()> + 'a;
-
-fn some<T>(_: T) -> &'static str {
-    "Some(_)"
-}
-
-fn none() -> &'static str {
-    "None"
-}
+use std::{fmt, future::Future, io::prelude::*, pin::Pin};
 
 #[derive(Debug)]
 pub struct Question<'m, 'w, 'f, 'v, 't> {
@@ -99,6 +85,91 @@ impl Question<'_, '_, '_, '_, '_> {
     }
 }
 
+type BoxFuture<'a, T> = Pin<Box<dyn Future<Output = T> + Send + Sync + 'a>>;
+
+macro_rules! handler {
+    ($name:ident, $fn_trait:ident ( $($type:ty),* ) -> $return:ty) => {
+        pub enum $name<'a, T> {
+            Async(Box<dyn $fn_trait( $($type),* ) -> BoxFuture<'a, $return> + Send + Sync + 'a>),
+            Sync(Box<dyn $fn_trait( $($type),* ) -> $return + Send + Sync + 'a>),
+            None,
+        }
+
+        impl<'a, T> $name<'a, T> {
+            #[allow(unused)]
+            fn take(&mut self) -> Self {
+                std::mem::replace(self, Self::None)
+            }
+        }
+
+        impl<T> Default for $name<'_, T> {
+            fn default() -> Self {
+                Self::None
+            }
+        }
+
+        impl<T: fmt::Debug> fmt::Debug for $name<'_, T> {
+            fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+                match self {
+                    Self::Async(_) => f.write_str("Async(_)"),
+                    Self::Sync(_) => f.write_str("Sync(_)"),
+                    Self::None => f.write_str("None"),
+                }
+            }
+        }
+    };
+
+    // The type signature of the function must only contain &T
+    ($name:ident, unsafe ?Sized $fn_trait:ident ( $($type:ty),* ) -> $return:ty) => {
+        pub enum $name<'a, T: ?Sized> {
+            Async(Box<dyn $fn_trait( $($type),* ) -> BoxFuture<'a, $return> + Send + Sync + 'a>),
+            Sync(Box<dyn $fn_trait( $($type),* ) -> $return + Send + Sync + 'a>),
+            None,
+        }
+
+        // SAFETY: The type signature only contains &T as guaranteed by the invoker
+        unsafe impl<'a, T: ?Sized> Send for $name<'a, T> where for<'b> &'b T: Send {}
+        unsafe impl<'a, T: ?Sized> Sync for $name<'a, T> where for<'b> &'b T: Sync {}
+
+        impl<'a, T: ?Sized> $name<'a, T> {
+            #[allow(unused)]
+            fn take(&mut self) -> Self {
+                std::mem::replace(self, Self::None)
+            }
+        }
+
+        impl<T: ?Sized> Default for $name<'_, T> {
+            fn default() -> Self {
+                Self::None
+            }
+        }
+
+        impl<T: fmt::Debug + ?Sized> fmt::Debug for $name<'_, T> {
+            fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+                match self {
+                    Self::Async(_) => f.write_str("Async(_)"),
+                    Self::Sync(_) => f.write_str("Sync(_)"),
+                    Self::None => f.write_str("None"),
+                }
+            }
+        }
+    };
+}
+
+handler!(Filter, FnOnce(T, &Answers) -> T);
+// SAFETY: The type signature only contains &T
+handler!(Validate, unsafe ?Sized Fn(&T, &Answers) -> Result<(), String>);
+handler!(ValidateByVal, Fn(T, &Answers) -> Result<(), String>);
+// SAFETY: The type signature only contains &T
+handler!(
+    Transformer, unsafe ?Sized
+    FnOnce(&T, &Answers, &mut dyn Write) -> error::Result<()>
+);
+handler!(
+    TransformerByVal,
+    FnOnce(T, &Answers, &mut dyn Write) -> error::Result<()>
+);
+
 #[doc(hidden)]
 #[macro_export]
 macro_rules! impl_filter_builder {
@@ -107,10 +178,19 @@ macro_rules! impl_filter_builder {
         impl<$($pre_lifetime),*, 'f, $($post_lifetime),*> $ty<$($pre_lifetime),*, 'f, $($post_lifetime),*> {
             pub fn filter<'a, F>(self, filter: F) -> $ty<$($pre_lifetime),*, 'a, $($post_lifetime),*>
             where
-                F: FnOnce($t, &crate::Answers) -> $t + 'a,
+                F: FnOnce($t, &crate::Answers) -> $t + Send + Sync + 'a,
             {
                 let $self = self;
-                let $filter: Option<Box<crate::question::Filter<'a, $t>>> = Some(Box::new(filter));
+                let $filter = crate::question::Filter::Sync(Box::new(filter));
+                $body
+            }
+
+            pub fn filter_async<'a, F>(self, filter: F) -> $ty<$($pre_lifetime),*, 'a, $($post_lifetime),*>
+            where
+                F: FnOnce($t, &crate::Answers) -> std::pin::Pin<Box<dyn std::future::Future<Output = $t> + Send + Sync + 'a>> + Send + Sync + 'a,
+            {
+                let $self = self;
+                let $filter = crate::question::Filter::Async(Box::new(filter));
                 $body
             }
         }
@@ -125,10 +205,19 @@ macro_rules! impl_validate_builder {
         impl<$($pre_lifetime),*, 'v, $($post_lifetime),*> $ty<$($pre_lifetime),*, 'v, $($post_lifetime),*> {
             pub fn validate<'a, F>(self, validate: F) -> $ty<$($pre_lifetime),*, 'a, $($post_lifetime),*>
             where
-                F: Fn(&$t, &crate::Answers) -> Result<(), String> + 'a,
+                F: Fn(&$t, &crate::Answers) -> Result<(), String> + Send + Sync + 'a,
             {
                 let $self = self;
-                let $validate: Option<Box<crate::question::Validate<'a, $t>>> = Some(Box::new(validate));
+                let $validate = crate::question::Validate::Sync(Box::new(validate));
+                $body
+            }
+
+            pub fn validate_async<'a, F>(self, validate: F) -> $ty<$($pre_lifetime),*, 'a, $($post_lifetime),*>
+            where
+                F: Fn(&$t, &crate::Answers) -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<(), String>> + Send + Sync + 'a>> + Send + Sync + 'a,
+            {
+                let $self = self;
+                let $validate = crate::question::Validate::Async(Box::new(validate));
                 $body
             }
         }
@@ -139,10 +228,19 @@ macro_rules! impl_validate_builder {
         impl<$($pre_lifetime),*, 'v, $($post_lifetime),*> $ty<$($pre_lifetime),*, 'v, $($post_lifetime),*> {
             pub fn validate<'a, F>(self, validate: F) -> $ty<$($pre_lifetime),*, 'a, $($post_lifetime),*>
             where
-                F: Fn($t, &crate::Answers) -> Result<(), String> + 'a,
+                F: Fn($t, &crate::Answers) -> Result<(), String> + Send + Sync + 'a,
             {
                 let $self = self;
-                let $validate: Option<Box<crate::question::ValidateV<'a, $t>>> = Some(Box::new(validate));
+                let $validate = crate::question::ValidateByVal::Sync(Box::new(validate));
+                $body
+            }
+
+            pub fn validate_async<'a, F>(self, validate: F) -> $ty<$($pre_lifetime),*, 'a, $($post_lifetime),*>
+            where
+                F: Fn($t, &crate::Answers) -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<(), String>> + Send + Sync + 'a>> + Send + Sync + 'a,
+            {
+                let $self = self;
+                let $validate = crate::question::ValidateByVal::Async(Box::new(validate));
                 $body
             }
         }
@@ -157,10 +255,19 @@ macro_rules! impl_transformer_builder {
         impl<$($pre_lifetime),*, 't, $($post_lifetime),*> $ty<$($pre_lifetime),*, 't, $($post_lifetime),*> {
             pub fn transformer<'a, F>(self, transformer: F) -> $ty<$($pre_lifetime),*, 'a, $($post_lifetime),*>
             where
-                F: FnOnce(&$t, &crate::Answers, &mut dyn std::io::Write) -> crate::error::Result<()> + 'a,
+                F: FnOnce(&$t, &crate::Answers, &mut dyn std::io::Write) -> crate::error::Result<()> + Send + Sync + 'a,
             {
                 let $self = self;
-                let $transformer: Option<Box<crate::question::Transformer<'a, $t>>> = Some(Box::new(transformer));
+                let $transformer = crate::question::Transformer::Sync(Box::new(transformer));
+                $body
+            }
+
+            pub fn transformer_async<'a, F>(self, transformer: F) -> $ty<$($pre_lifetime),*, 'a, $($post_lifetime),*>
+            where
+                F: FnOnce(&$t, &crate::Answers, &mut dyn std::io::Write) -> std::pin::Pin<Box<dyn std::future::Future<Output = crate::error::Result<()>> + Send + Sync + 'a>> + Send + Sync + 'a,
+            {
+                let $self = self;
+                let $transformer = crate::question::Transformer::Async(Box::new(transformer));
                 $body
             }
         }
@@ -171,10 +278,19 @@ macro_rules! impl_transformer_builder {
         impl<$($pre_lifetime),*, 't, $($post_lifetime),*> $ty<$($pre_lifetime),*, 't, $($post_lifetime),*> {
             pub fn transformer<'a, F>(self, transformer: F) -> $ty<$($pre_lifetime),*, 'a, $($post_lifetime),*>
             where
-                F: FnOnce($t, &crate::Answers, &mut dyn std::io::Write) -> crate::error::Result<()> + 'a,
+                F: FnOnce($t, &crate::Answers, &mut dyn std::io::Write) -> crate::error::Result<()> + Send + Sync + 'a,
             {
                 let $self = self;
-                let $transformer: Option<Box<crate::question::TransformerV<'a, $t>>> = Some(Box::new(transformer));
+                let $transformer = crate::question::TransformerByVal::Sync(Box::new(transformer));
+                $body
+            }
+
+            pub fn transformer_async<'a, F>(self, transformer: F) -> $ty<$($pre_lifetime),*, 'a, $($post_lifetime),*>
+            where
+                F: FnOnce($t, &crate::Answers, &mut dyn std::io::Write) -> std::pin::Pin<Box<dyn std::future::Future<Output = crate::error::Result<()>> + Send + Sync + 'a>> + Send + Sync + 'a,
+            {
+                let $self = self;
+                let $transformer = crate::question::TransformerByVal::Async(Box::new(transformer));
                 $body
             }
         }

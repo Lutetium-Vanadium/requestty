@@ -1,7 +1,6 @@
 use std::{
     env,
     ffi::OsString,
-    fmt,
     io::{self, Read, Seek, SeekFrom, Write},
     process::Command,
 };
@@ -12,31 +11,16 @@ use ui::{Validation, Widget};
 
 use crate::{error, Answer, Answers};
 
-use super::{none, some, Filter, Options, Transformer, Validate};
+use super::{Filter, Options, Transformer, Validate};
 
+#[derive(Debug)]
 pub struct Editor<'f, 'v, 't> {
     postfix: Option<String>,
     default: Option<String>,
     editor: OsString,
-    filter: Option<Box<Filter<'f, String>>>,
-    validate: Option<Box<Validate<'v, str>>>,
-    transformer: Option<Box<Transformer<'t, str>>>,
-}
-
-impl fmt::Debug for Editor<'_, '_, '_> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_struct("Editor")
-            .field("default", &self.default)
-            .field("postfix", &self.postfix)
-            .field("editor", &self.editor)
-            .field("filter", &self.filter.as_ref().map_or_else(none, some))
-            .field("validate", &self.validate.as_ref().map_or_else(none, some))
-            .field(
-                "transformer",
-                &self.transformer.as_ref().map_or_else(none, some),
-            )
-            .finish()
-    }
+    filter: Filter<'f, String>,
+    validate: Validate<'v, str>,
+    transformer: Transformer<'t, str>,
 }
 
 impl Default for Editor<'static, 'static, 'static> {
@@ -45,9 +29,9 @@ impl Default for Editor<'static, 'static, 'static> {
             editor: get_editor(),
             postfix: None,
             default: None,
-            filter: None,
-            validate: None,
-            transformer: None,
+            filter: Filter::None,
+            validate: Validate::None,
+            transformer: Transformer::None,
         }
     }
 }
@@ -110,7 +94,7 @@ impl ui::Prompt for EditorPrompt<'_, '_, '_, '_> {
         self.file.read_to_string(&mut self.ans)?;
         self.file.seek(SeekFrom::Start(0))?;
 
-        if let Some(ref validate) = self.editor.validate {
+        if let Validate::Sync(ref validate) = self.editor.validate {
             validate(&self.ans, self.answers)
                 .map_err(|err| io::Error::new(io::ErrorKind::InvalidInput, err))?;
         }
@@ -120,8 +104,8 @@ impl ui::Prompt for EditorPrompt<'_, '_, '_, '_> {
 
     fn finish(self) -> Self::Output {
         match self.editor.filter {
-            Some(filter) => filter(self.ans, self.answers),
-            None => self.ans,
+            Filter::Sync(filter) => filter(self.ans, self.answers),
+            _ => self.ans,
         }
     }
 
@@ -163,8 +147,8 @@ impl Editor<'_, '_, '_> {
         .run(w)?;
 
         match transformer {
-            Some(transformer) => transformer(&ans, answers, w)?,
-            None => writeln!(w, "{}", "Received".dark_grey())?,
+            Transformer::Sync(transformer) => transformer(&ans, answers, w)?,
+            _ => writeln!(w, "{}", "Received".dark_grey())?,
         }
 
         Ok(Answer::String(ans))

@@ -1,4 +1,4 @@
-use std::{fmt, io};
+use std::io;
 
 use crossterm::{
     event, execute, queue,
@@ -8,30 +8,15 @@ use ui::{widgets, Validation, Widget};
 
 use crate::{error, Answer, Answers, ListItem};
 
-use super::{none, some, Choice, Filter, Options, Transformer, Validate};
+use super::{Choice, Filter, Options, Transformer, Validate};
 
-#[derive(Default)]
+#[derive(Debug, Default)]
 pub struct Checkbox<'f, 'v, 't> {
     choices: super::ChoiceList<String>,
     selected: Vec<bool>,
-    filter: Option<Box<Filter<'f, Vec<bool>>>>,
-    validate: Option<Box<Validate<'v, [bool]>>>,
-    transformer: Option<Box<Transformer<'t, [ListItem]>>>,
-}
-
-impl fmt::Debug for Checkbox<'_, '_, '_> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_struct("Checkbox")
-            .field("choices", &self.choices)
-            .field("selected", &self.selected)
-            .field("filter", &self.filter.as_ref().map_or_else(none, some))
-            .field("validate", &self.validate.as_ref().map_or_else(none, some))
-            .field(
-                "transformer",
-                &self.transformer.as_ref().map_or_else(none, some),
-            )
-            .finish()
-    }
+    filter: Filter<'f, Vec<bool>>,
+    validate: Validate<'v, [bool]>,
+    transformer: Transformer<'t, [ListItem]>,
 }
 
 struct CheckboxPrompt<'f, 'v, 't, 'a> {
@@ -53,7 +38,7 @@ impl ui::Prompt for CheckboxPrompt<'_, '_, '_, '_> {
     }
 
     fn validate(&mut self) -> Result<Validation, Self::ValidateErr> {
-        if let Some(ref validate) = self.picker.list.validate {
+        if let Validate::Sync(ref validate) = self.picker.list.validate {
             validate(&self.picker.list.selected, self.answers)?;
         }
         Ok(Validation::Finish)
@@ -67,7 +52,7 @@ impl ui::Prompt for CheckboxPrompt<'_, '_, '_, '_> {
             ..
         } = self.picker.finish();
 
-        if let Some(filter) = filter {
+        if let Filter::Sync(filter) = filter {
             selected = filter(selected, self.answers);
         }
 
@@ -194,8 +179,8 @@ impl Checkbox<'_, '_, '_> {
         .run(w)?;
 
         match transformer {
-            Some(transformer) => transformer(&ans, answers, w)?,
-            None => {
+            Transformer::Sync(transformer) => transformer(&ans, answers, w)?,
+            _ => {
                 queue!(w, SetForegroundColor(Color::DarkCyan))?;
                 print_comma_separated(ans.iter().map(|item| item.name.as_str()), w)?;
 

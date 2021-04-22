@@ -1,5 +1,3 @@
-use std::fmt;
-
 #[cfg(feature = "fast-hash")]
 use ahash::AHashSet as HashSet;
 #[cfg(not(feature = "fast-hash"))]
@@ -14,27 +12,14 @@ use ui::{widgets, Validation, Widget};
 
 use crate::{error, Answer, Answers, ExpandItem};
 
-use super::{none, some, Choice, Options, Transformer};
+use super::{Choice, Options, Transformer};
 
+#[derive(Debug)]
 pub struct Expand<'t> {
     choices: super::ChoiceList<ExpandItem>,
     selected: Option<char>,
     default: char,
-    transformer: Option<Box<Transformer<'t, ExpandItem>>>,
-}
-
-impl fmt::Debug for Expand<'_> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_struct("Expand")
-            .field("default", &self.default)
-            .field("selected", &self.selected)
-            .field("choices", &self.choices)
-            .field(
-                "transformer",
-                &self.transformer.as_ref().map_or_else(none, some),
-            )
-            .finish()
-    }
+    transformer: Transformer<'t, ExpandItem>,
 }
 
 impl Default for Expand<'static> {
@@ -43,7 +28,7 @@ impl Default for Expand<'static> {
             default: 'h',
             selected: None,
             choices: Default::default(),
-            transformer: None,
+            transformer: Transformer::None,
         }
     }
 }
@@ -294,8 +279,8 @@ impl Expand<'_> {
         .run(w)?;
 
         match transformer {
-            Some(transformer) => transformer(&ans, answers, w)?,
-            None => writeln!(w, "{}", ans.name.as_str().dark_cyan())?,
+            Transformer::Sync(transformer) => transformer(&ans, answers, w)?,
+            _ => writeln!(w, "{}", ans.name.as_str().dark_cyan())?,
         }
 
         Ok(Answer::ExpandItem(ans))

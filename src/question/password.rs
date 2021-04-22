@@ -1,32 +1,16 @@
-use std::fmt;
-
 use crossterm::style::Colorize;
 use ui::{widgets, Validation, Widget};
 
 use crate::{error, Answer, Answers};
 
-use super::{none, some, Filter, Options, Transformer, Validate};
+use super::{Filter, Options, Transformer, Validate};
 
-#[derive(Default)]
+#[derive(Debug, Default)]
 pub struct Password<'f, 'v, 't> {
     mask: Option<char>,
-    filter: Option<Box<Filter<'f, String>>>,
-    validate: Option<Box<Validate<'v, str>>>,
-    transformer: Option<Box<Transformer<'t, str>>>,
-}
-
-impl fmt::Debug for Password<'_, '_, '_> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_struct("Password")
-            .field("mask", &self.mask)
-            .field("filter", &self.filter.as_ref().map_or_else(none, some))
-            .field("validate", &self.validate.as_ref().map_or_else(none, some))
-            .field(
-                "transformer",
-                &self.transformer.as_ref().map_or_else(none, some),
-            )
-            .finish()
-    }
+    filter: Filter<'f, String>,
+    validate: Validate<'v, str>,
+    transformer: Transformer<'t, str>,
 }
 
 struct PasswordPrompt<'f, 'v, 't, 'a> {
@@ -53,7 +37,7 @@ impl ui::Prompt for PasswordPrompt<'_, '_, '_, '_> {
     }
 
     fn validate(&mut self) -> Result<Validation, Self::ValidateErr> {
-        if let Some(ref validate) = self.password.validate {
+        if let Validate::Sync(ref validate) = self.password.validate {
             validate(self.input.value(), self.answers)?;
         }
 
@@ -63,7 +47,7 @@ impl ui::Prompt for PasswordPrompt<'_, '_, '_, '_> {
     fn finish(self) -> Self::Output {
         let mut ans = self.input.finish().unwrap_or_else(String::new);
 
-        if let Some(filter) = self.password.filter {
+        if let Filter::Sync(filter) = self.password.filter {
             ans = filter(ans, self.answers)
         }
 
@@ -111,8 +95,8 @@ impl Password<'_, '_, '_> {
         .run(w)?;
 
         match transformer {
-            Some(transformer) => transformer(&ans, answers, w)?,
-            None => writeln!(w, "{}", "[hidden]".dark_grey())?,
+            Transformer::Sync(transformer) => transformer(&ans, answers, w)?,
+            _ => writeln!(w, "{}", "[hidden]".dark_grey())?,
         }
 
         Ok(Answer::String(ans))
