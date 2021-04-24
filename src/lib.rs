@@ -12,6 +12,7 @@ pub mod plugin {
     pub use ui;
 }
 
+#[derive(Debug, Clone, PartialEq)]
 pub struct PromptModule<Q> {
     questions: Q,
     answers: Answers,
@@ -72,6 +73,44 @@ where
         Ok(self.answers)
     }
 
+    cfg_async! {
+    async fn prompt_impl_async<W: std::io::Write>(
+        &mut self,
+        stdout: &mut W,
+    ) -> error::Result<Option<&mut Answer>> {
+        while let Some(question) = self.questions.next() {
+            if let Some((name, answer)) = question.ask_async(&self.answers, stdout).await? {
+                return Ok(Some(self.answers.insert(name, answer)));
+            }
+        }
+
+        Ok(None)
+    }
+
+    pub async fn prompt_async(&mut self) -> error::Result<Option<&mut Answer>> {
+        let stdout = std::io::stdout();
+        if !stdout.is_tty() {
+            return Err(error::InquirerError::NotATty);
+        }
+        let mut stdout = stdout.lock();
+        self.prompt_impl_async(&mut stdout).await
+    }
+
+    pub async fn prompt_all_async(mut self) -> error::Result<Answers> {
+        self.answers.reserve(self.questions.size_hint().0);
+
+        let stdout = std::io::stdout();
+        if !stdout.is_tty() {
+            return Err(error::InquirerError::NotATty);
+        }
+        let mut stdout = stdout.lock();
+
+        while self.prompt_impl_async(&mut stdout).await?.is_some() {}
+
+        Ok(self.answers)
+    }
+    }
+
     pub fn into_answers(self) -> Answers {
         self.answers
     }
@@ -90,4 +129,15 @@ where
 /// [`Input::run`] will return an `Err`
 pub fn set_exit_handler(handler: fn()) {
     ui::set_exit_handler(handler);
+}
+
+#[doc(hidden)]
+#[macro_export]
+macro_rules! cfg_async {
+    ($($item:item)*) => {
+        $(
+            #[cfg(any(feature = "async_tokio", feature = "async_std", feature = "async_smol"))]
+            $item
+        )*
+    };
 }

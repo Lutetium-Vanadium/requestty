@@ -4,7 +4,7 @@ use crossterm::{
     event, execute, queue,
     style::{Color, Print, ResetColor, SetForegroundColor},
 };
-use ui::{widgets, Validation, Widget};
+use ui::{widgets, Prompt, Validation, Widget};
 
 use crate::{error, Answer, Answers, ListItem};
 
@@ -25,7 +25,19 @@ struct CheckboxPrompt<'f, 'v, 't, 'a> {
     answers: &'a Answers,
 }
 
-impl ui::Prompt for CheckboxPrompt<'_, '_, '_, '_> {
+fn create_list_items(selected: Vec<bool>, choices: super::ChoiceList<String>) -> Vec<ListItem> {
+    selected
+        .into_iter()
+        .enumerate()
+        .zip(choices.choices.into_iter())
+        .filter_map(|((index, is_selected), name)| match (is_selected, name) {
+            (true, Choice::Choice(name)) => Some(ListItem { index, name }),
+            _ => None,
+        })
+        .collect()
+}
+
+impl Prompt for CheckboxPrompt<'_, '_, '_, '_> {
     type ValidateErr = String;
     type Output = Vec<ListItem>;
 
@@ -56,20 +68,50 @@ impl ui::Prompt for CheckboxPrompt<'_, '_, '_, '_> {
             selected = filter(selected, self.answers);
         }
 
-        selected
-            .into_iter()
-            .enumerate()
-            .zip(choices.choices.into_iter())
-            .filter_map(|((index, is_selected), name)| match (is_selected, name) {
-                (true, Choice::Choice(name)) => Some(ListItem { index, name }),
-                _ => None,
-            })
-            .collect()
+        create_list_items(selected, choices)
     }
 
     fn has_default(&self) -> bool {
         false
     }
+}
+
+crate::cfg_async! {
+#[async_trait::async_trait]
+impl ui::AsyncPrompt for CheckboxPrompt<'_, '_, '_, '_> {
+    async fn finish_async(self) -> Self::Output {
+        let Checkbox {
+            mut selected,
+            choices,
+            filter,
+            ..
+        } = self.picker.finish();
+
+        selected = match filter {
+            Filter::Async(filter) => filter(selected, self.answers).await,
+            Filter::Sync(filter) => filter(selected, self.answers),
+            Filter::None => selected,
+        };
+
+        create_list_items(selected, choices)
+    }
+
+    fn try_validate_sync(&mut self) -> Option<Result<Validation, Self::ValidateErr>> {
+        match self.picker.list.validate {
+            Validate::Sync(ref validate) => {
+                Some(validate(&self.picker.list.selected, self.answers).map(|_| Validation::Finish))
+            }
+            _ => None,
+        }
+    }
+
+    async fn validate_async(&mut self) -> Result<Validation, Self::ValidateErr> {
+        if let Validate::Async(ref validate) = self.picker.list.validate {
+            validate(&self.picker.list.selected, self.answers).await?;
+        }
+        Ok(Validation::Finish)
+    }
+}
 }
 
 impl Widget for CheckboxPrompt<'_, '_, '_, '_> {
@@ -162,7 +204,7 @@ impl widgets::List for Checkbox<'_, '_, '_> {
 }
 
 impl Checkbox<'_, '_, '_> {
-    pub fn ask<W: io::Write>(
+    pub(crate) fn ask<W: io::Write>(
         mut self,
         message: String,
         answers: &Answers,
@@ -190,6 +232,40 @@ impl Checkbox<'_, '_, '_> {
         }
 
         Ok(Answer::ListItems(ans))
+    }
+
+    crate::cfg_async! {
+    pub(crate) async fn ask_async<W: io::Write>(
+        mut self,
+        message: String,
+        answers: &Answers,
+        w: &mut W,
+    ) -> error::Result<Answer> {
+        let transformer = self.transformer.take();
+
+        let ans = ui::AsyncInput::new(CheckboxPrompt {
+            message,
+            picker: widgets::ListPicker::new(self),
+            answers,
+        })
+        .hide_cursor()
+        .run(w)
+        .await?;
+
+        match transformer {
+            Transformer::Async(transformer) => transformer(&ans, answers, w).await?,
+            Transformer::Sync(transformer) => transformer(&ans, answers, w)?,
+            _ => {
+                queue!(w, SetForegroundColor(Color::DarkCyan))?;
+                print_comma_separated(ans.iter().map(|item| item.name.as_str()), w)?;
+
+                w.write_all(b"\n")?;
+                execute!(w, ResetColor)?;
+            }
+        }
+
+        Ok(Answer::ListItems(ans))
+    }
     }
 }
 

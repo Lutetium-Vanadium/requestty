@@ -11,11 +11,18 @@ members = [
 ]
 
 [dependencies]
-ahash = { version = "0.7.2", optional = true }
-crossterm = "0.19.0"
+ahash = { version = "0.7", optional = true }
+async-trait = { version = "0.1", optional = true }
+crossterm = "0.19"
 tempfile = "3"
 ui = { path = "./ui" }
 
+smol = { version = "1.2", optional = true }
+tokio = { version = "1.5", optional = true, features = ["fs", "process", "io-util"] }
+async-std = { version = "1.9", optional = true, features = ["unstable"] }
+
 [features]
-default = ["fast-hash"]
-fast-hash = ["ahash"]
+default = ["ahash"]
+async_tokio = ["tokio", "async-trait", "ui/async"]
+async_smol = ["smol", "async-trait", "ui/async"]
+async_std = ["async-std", "async-trait", "ui/async"]

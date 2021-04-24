@@ -59,6 +59,38 @@ impl ui::Prompt for PasswordPrompt<'_, '_, '_, '_> {
     }
 }
 
+crate::cfg_async! {
+#[async_trait::async_trait]
+impl ui::AsyncPrompt for PasswordPrompt<'_, '_, '_, '_> {
+    async fn finish_async(self) -> Self::Output {
+        let ans = self.input.finish().unwrap_or_else(String::new);
+
+        match self.password.filter {
+            Filter::Async(filter) => filter(ans, self.answers).await,
+            Filter::Sync(filter) => filter(ans, self.answers),
+            Filter::None => ans,
+        }
+    }
+
+    fn try_validate_sync(&mut self) -> Option<Result<Validation, Self::ValidateErr>> {
+        match self.password.validate {
+            Validate::Sync(ref validate) => {
+                Some(validate(self.input.value(), self.answers).map(|_| Validation::Finish))
+            }
+            _ => None,
+        }
+    }
+
+    async fn validate_async(&mut self) -> Result<Validation, Self::ValidateErr> {
+        if let Validate::Async(ref validate) = self.password.validate {
+            validate(self.input.value(), self.answers).await?;
+        }
+
+        Ok(Validation::Finish)
+    }
+}
+}
+
 impl Widget for PasswordPrompt<'_, '_, '_, '_> {
     fn render<W: std::io::Write>(&mut self, max_width: usize, w: &mut W) -> crossterm::Result<()> {
         self.input.render(max_width, w)
@@ -78,7 +110,7 @@ impl Widget for PasswordPrompt<'_, '_, '_, '_> {
 }
 
 impl Password<'_, '_, '_> {
-    pub fn ask<W: std::io::Write>(
+    pub(crate) fn ask<W: std::io::Write>(
         mut self,
         message: String,
         answers: &Answers,
@@ -88,7 +120,7 @@ impl Password<'_, '_, '_> {
 
         let ans = ui::Input::new(PasswordPrompt {
             message,
-            input: widgets::StringInput::new(widgets::no_filter as _).password(self.mask),
+            input: widgets::StringInput::default().password(self.mask),
             password: self,
             answers,
         })
@@ -100,6 +132,34 @@ impl Password<'_, '_, '_> {
         }
 
         Ok(Answer::String(ans))
+    }
+
+    crate::cfg_async! {
+    pub(crate) async fn ask_async<W: std::io::Write>(
+        mut self,
+        message: String,
+        answers: &Answers,
+        w: &mut W,
+    ) -> error::Result<Answer> {
+        let transformer = self.transformer.take();
+
+        let ans = ui::AsyncInput::new(PasswordPrompt {
+            message,
+            input: widgets::StringInput::default().password(self.mask),
+            password: self,
+            answers,
+        })
+        .run(w)
+        .await?;
+
+        match transformer {
+            Transformer::Async(transformer) => transformer(&ans, answers, w).await?,
+            Transformer::Sync(transformer) => transformer(&ans, answers, w)?,
+            _ => writeln!(w, "{}", "[hidden]".dark_grey())?,
+        }
+
+        Ok(Answer::String(ans))
+    }
     }
 }
 

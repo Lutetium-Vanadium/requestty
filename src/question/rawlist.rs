@@ -3,7 +3,7 @@ use crossterm::{
     style::{Color, Colorize, ResetColor, SetForegroundColor},
     terminal,
 };
-use ui::{widgets, Validation, Widget};
+use ui::{widgets, Prompt, Validation, Widget};
 use widgets::List;
 
 use crate::{
@@ -41,7 +41,7 @@ impl RawlistPrompt<'_> {
     }
 }
 
-impl ui::Prompt for RawlistPrompt<'_> {
+impl Prompt for RawlistPrompt<'_> {
     type ValidateErr = &'static str;
     type Output = ListItem;
 
@@ -74,6 +74,19 @@ impl ui::Prompt for RawlistPrompt<'_> {
         let index = self.list.list.choices.default().unwrap();
         self.finish_index(index)
     }
+}
+
+crate::cfg_async! {
+#[async_trait::async_trait]
+impl ui::AsyncPrompt for RawlistPrompt<'_> {
+    async fn finish_async(self) -> Self::Output {
+        self.finish()
+    }
+
+    fn try_validate_sync(&mut self) -> Option<Result<Validation, Self::ValidateErr>> {
+        Some(self.validate())
+    }
+}
 }
 
 const ANSWER_PROMPT: &[u8] = b"  Answer: ";
@@ -177,7 +190,7 @@ impl widgets::List for Rawlist<'_> {
 }
 
 impl Rawlist<'_> {
-    pub fn ask<W: std::io::Write>(
+    pub(crate) fn ask<W: std::io::Write>(
         mut self,
         message: String,
         answers: &Answers,
@@ -203,6 +216,38 @@ impl Rawlist<'_> {
         }
 
         Ok(Answer::ListItem(ans))
+    }
+
+    crate::cfg_async! {
+    pub(crate) async fn ask_async<W: std::io::Write>(
+        mut self,
+        message: String,
+        answers: &Answers,
+        w: &mut W,
+    ) -> error::Result<Answer> {
+        let transformer = self.transformer.take();
+
+        let mut list = widgets::ListPicker::new(self);
+        if let Some(default) = list.list.choices.default() {
+            list.set_at(default);
+        }
+
+        let ans = ui::AsyncInput::new(RawlistPrompt {
+            input: widgets::StringInput::new(|c| c.is_digit(10).then(|| c)),
+            list,
+            message,
+        })
+        .run(w)
+        .await?;
+
+        match transformer {
+            Transformer::Async(transformer) => transformer(&ans, answers, w).await?,
+            Transformer::Sync(transformer) => transformer(&ans, answers, w)?,
+            _ => writeln!(w, "{}", ans.name.as_str().dark_cyan())?,
+        }
+
+        Ok(Answer::ListItem(ans))
+    }
     }
 }
 

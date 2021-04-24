@@ -49,7 +49,7 @@ enum QuestionKind<'f, 'v, 't> {
 }
 
 impl Question<'_, '_, '_, '_, '_> {
-    pub fn ask<W: Write>(
+    pub(crate) fn ask<W: Write>(
         mut self,
         answers: &Answers,
         w: &mut W,
@@ -82,6 +82,43 @@ impl Question<'_, '_, '_, '_, '_> {
         };
 
         Ok(Some((name, res)))
+    }
+
+    crate::cfg_async! {
+    pub(crate) async fn ask_async<W: Write>(
+        mut self,
+        answers: &Answers,
+        w: &mut W,
+    ) -> error::Result<Option<(String, Answer)>> {
+        if (!self.opts.ask_if_answered && answers.contains_key(&self.opts.name))
+            || !self.opts.when.get(answers)
+        {
+            return Ok(None);
+        }
+
+        let name = self.opts.name;
+        let message = self
+            .opts
+            .message
+            .map(|message| message.get(answers))
+            .unwrap_or_else(|| name.clone() + ":");
+
+        let res = match self.kind {
+            QuestionKind::Input(i) => i.ask_async(message, answers, w).await?,
+            QuestionKind::Int(i) => i.ask_async(message, answers, w).await?,
+            QuestionKind::Float(f) => f.ask_async(message, answers, w).await?,
+            QuestionKind::Confirm(c) => c.ask_async(message, answers, w).await?,
+            QuestionKind::List(l) => l.ask_async(message, answers, w).await?,
+            QuestionKind::Rawlist(r) => r.ask_async(message, answers, w).await?,
+            QuestionKind::Expand(e) => e.ask_async(message, answers, w).await?,
+            QuestionKind::Checkbox(c) => c.ask_async(message, answers, w).await?,
+            QuestionKind::Password(p) => p.ask_async(message, answers, w).await?,
+            QuestionKind::Editor(e) => e.ask_async(message, answers, w).await?,
+            QuestionKind::Plugin(ref mut o) => o.ask_async(message, answers, w).await?,
+        };
+
+        Ok(Some((name, res)))
+    }
     }
 }
 

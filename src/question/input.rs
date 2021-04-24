@@ -1,5 +1,5 @@
 use crossterm::style::Colorize;
-use ui::{widgets, Validation, Widget};
+use ui::{widgets, Prompt, Validation, Widget};
 
 use crate::{error, Answer, Answers};
 
@@ -38,7 +38,7 @@ impl Widget for InputPrompt<'_, '_, '_, '_> {
     }
 }
 
-impl ui::Prompt for InputPrompt<'_, '_, '_, '_> {
+impl Prompt for InputPrompt<'_, '_, '_, '_> {
     type ValidateErr = String;
     type Output = String;
 
@@ -86,8 +86,52 @@ impl ui::Prompt for InputPrompt<'_, '_, '_, '_> {
     }
 }
 
+crate::cfg_async! {
+#[async_trait::async_trait]
+impl ui::AsyncPrompt for InputPrompt<'_, '_, '_, '_> {
+    async fn finish_async(self) -> Self::Output {
+        let hint = self.input_opts.default;
+        let ans = self
+            .input
+            .finish()
+            .unwrap_or_else(|| remove_brackets(hint.unwrap()));
+
+        match self.input_opts.filter {
+            Filter::Sync(filter) => filter(ans, self.answers),
+            Filter::Async(filter) => filter(ans, self.answers).await,
+            Filter::None => ans,
+        }
+    }
+
+    fn try_validate_sync(&mut self) -> Option<Result<Validation, Self::ValidateErr>> {
+        if !self.input.has_value() {
+            if self.has_default() {
+                return Some(Ok(Validation::Finish));
+            } else {
+                return Some(Err("Please enter a string".into()));
+            }
+        }
+
+        match self.input_opts.validate {
+            Validate::Sync(ref validate) => {
+                Some(validate(self.input.value(), self.answers).map(|_| Validation::Finish))
+            }
+            _ => None,
+        }
+    }
+
+    async fn validate_async(&mut self) -> Result<Validation, Self::ValidateErr> {
+        if let Validate::Async(ref validate) = self.input_opts.validate {
+            validate(self.input.value(), self.answers).await?;
+        }
+
+        Ok(Validation::Finish)
+    }
+}
+}
+
 impl Input<'_, '_, '_> {
-    pub fn ask<W: std::io::Write>(
+    pub(crate) fn ask<W: std::io::Write>(
         mut self,
         message: String,
         answers: &Answers,
@@ -114,6 +158,39 @@ impl Input<'_, '_, '_> {
         }
 
         Ok(Answer::String(ans))
+    }
+
+    crate::cfg_async! {
+    pub(crate) async fn ask_async<W: std::io::Write>(
+        mut self,
+        message: String,
+        answers: &Answers,
+        w: &mut W,
+    ) -> error::Result<Answer> {
+        if let Some(ref mut default) = self.default {
+            default.insert(0, '(');
+            default.push(')');
+        }
+
+        let transformer = self.transformer.take();
+
+        let ans = ui::AsyncInput::new(InputPrompt {
+            message,
+            input_opts: self,
+            input: widgets::StringInput::default(),
+            answers,
+        })
+        .run(w)
+        .await?;
+
+        match transformer {
+            Transformer::Async(transformer) => transformer(&ans, answers, w).await?,
+            Transformer::Sync(transformer) => transformer(&ans, answers, w)?,
+            _ => writeln!(w, "{}", ans.as_str().dark_cyan())?,
+        }
+
+        Ok(Answer::String(ans))
+    }
     }
 }
 

@@ -1,6 +1,6 @@
-#[cfg(feature = "fast-hash")]
+#[cfg(feature = "ahash")]
 use ahash::AHashSet as HashSet;
-#[cfg(not(feature = "fast-hash"))]
+#[cfg(not(feature = "ahash"))]
 use std::collections::HashSet;
 
 use crossterm::{
@@ -8,7 +8,7 @@ use crossterm::{
     style::{Color, Colorize, ResetColor, SetForegroundColor},
     terminal,
 };
-use ui::{widgets, Validation, Widget};
+use ui::{widgets, Prompt, Validation, Widget};
 
 use crate::{error, Answer, Answers, ExpandItem};
 
@@ -57,7 +57,7 @@ impl<F> ExpandPrompt<'_, F> {
     }
 }
 
-impl<F: Fn(char) -> Option<char>> ui::Prompt for ExpandPrompt<'_, F> {
+impl<F: Fn(char) -> Option<char>> Prompt for ExpandPrompt<'_, F> {
     type ValidateErr = &'static str;
     type Output = ExpandItem;
 
@@ -94,6 +94,19 @@ impl<F: Fn(char) -> Option<char>> ui::Prompt for ExpandPrompt<'_, F> {
         let c = self.list.list.default;
         self.finish_with(c)
     }
+}
+
+crate::cfg_async! {
+#[async_trait::async_trait]
+impl<F: Fn(char) -> Option<char> + Send + Sync> ui::AsyncPrompt for ExpandPrompt<'_, F> {
+    async fn finish_async(self) -> Self::Output {
+        self.finish()
+    }
+
+    fn try_validate_sync(&mut self) -> Option<Result<Validation, Self::ValidateErr>> {
+        Some(self.validate())
+    }
+}
 }
 
 const ANSWER_PROMPT: &[u8] = b"  Answer: ";
@@ -233,12 +246,7 @@ impl Expand<'_> {
         Ok(())
     }
 
-    pub fn ask<W: std::io::Write>(
-        mut self,
-        message: String,
-        answers: &Answers,
-        w: &mut W,
-    ) -> error::Result<Answer> {
+    fn get_choices_and_hint(&self) -> (String, String) {
         let choices = self
             .choices
             .choices
@@ -264,6 +272,16 @@ impl Expand<'_> {
             s
         };
 
+        (choices, hint)
+    }
+
+    pub(crate) fn ask<W: std::io::Write>(
+        mut self,
+        message: String,
+        answers: &Answers,
+        w: &mut W,
+    ) -> error::Result<Answer> {
+        let (choices, hint) = self.get_choices_and_hint();
         let transformer = self.transformer.take();
 
         let ans = ui::Input::new(ExpandPrompt {
@@ -284,6 +302,39 @@ impl Expand<'_> {
         }
 
         Ok(Answer::ExpandItem(ans))
+    }
+
+    crate::cfg_async! {
+    pub(crate) async fn ask_async<W: std::io::Write>(
+        mut self,
+        message: String,
+        answers: &Answers,
+        w: &mut W,
+    ) -> error::Result<Answer> {
+        let (choices, hint) = self.get_choices_and_hint();
+        let transformer = self.transformer.take();
+
+        let ans = ui::AsyncInput::new(ExpandPrompt {
+            message,
+            input: widgets::CharInput::new(|c| {
+                let c = c.to_ascii_lowercase();
+                choices.contains(c).then(|| c)
+            }),
+            list: widgets::ListPicker::new(self),
+            hint,
+            expanded: false,
+        })
+        .run(w)
+        .await?;
+
+        match transformer {
+            Transformer::Async(transformer) => transformer(&ans, answers, w).await?,
+            Transformer::Sync(transformer) => transformer(&ans, answers, w)?,
+            _ => writeln!(w, "{}", ans.name.as_str().dark_cyan())?,
+        }
+
+        Ok(Answer::ExpandItem(ans))
+    }
     }
 }
 

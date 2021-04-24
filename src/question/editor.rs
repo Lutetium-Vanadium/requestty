@@ -1,13 +1,33 @@
 use std::{
     env,
     ffi::OsString,
+    fs::File,
     io::{self, Read, Seek, SeekFrom, Write},
     process::Command,
 };
 
 use crossterm::style::Colorize;
-use tempfile::NamedTempFile;
+use tempfile::TempPath;
 use ui::{Validation, Widget};
+
+#[cfg(feature = "async_std")]
+use async_std::{
+    fs::File as AsyncFile,
+    io::prelude::{ReadExt, SeekExt, WriteExt},
+    process::Command as AsyncCommand,
+};
+#[cfg(feature = "async_smol")]
+use smol::{
+    fs::File as AsyncFile,
+    io::{AsyncReadExt, AsyncSeekExt, AsyncWriteExt},
+    process::Command as AsyncCommand,
+};
+#[cfg(feature = "async_tokio")]
+use tokio::{
+    fs::File as AsyncFile,
+    io::{AsyncReadExt, AsyncSeekExt, AsyncWriteExt},
+    process::Command as AsyncCommand,
+};
 
 use crate::{error, Answer, Answers};
 
@@ -49,7 +69,8 @@ fn get_editor() -> OsString {
 }
 
 struct EditorPrompt<'f, 'v, 't, 'a> {
-    file: NamedTempFile,
+    file: File,
+    path: TempPath,
     ans: String,
     message: String,
     editor: Editor<'f, 'v, 't>,
@@ -80,7 +101,7 @@ impl ui::Prompt for EditorPrompt<'_, '_, '_, '_> {
 
     fn validate(&mut self) -> Result<Validation, Self::ValidateErr> {
         if !Command::new(&self.editor.editor)
-            .arg(self.file.path())
+            .arg(&self.path)
             .status()?
             .success()
         {
@@ -114,8 +135,90 @@ impl ui::Prompt for EditorPrompt<'_, '_, '_, '_> {
     }
 }
 
+crate::cfg_async! {
+struct EditorPromptAsync<'f, 'v, 't, 'a> {
+    file: AsyncFile,
+    path: TempPath,
+    ans: String,
+    message: String,
+    editor: Editor<'f, 'v, 't>,
+    answers: &'a Answers,
+}
+
+impl Widget for EditorPromptAsync<'_, '_, '_, '_> {
+    fn render<W: Write>(&mut self, _: usize, _: &mut W) -> crossterm::Result<()> {
+        Ok(())
+    }
+
+    fn height(&self) -> usize {
+        0
+    }
+}
+
+impl ui::Prompt for EditorPromptAsync<'_, '_, '_, '_> {
+    type ValidateErr = io::Error;
+    type Output = String;
+
+    fn prompt(&self) -> &str {
+        &self.message
+    }
+
+    fn hint(&self) -> Option<&str> {
+        Some("Press <enter> to launch your preferred editor.")
+    }
+
+    fn finish(self) -> Self::Output {
+        unimplemented!()
+    }
+
+    fn has_default(&self) -> bool {
+        false
+    }
+}
+
+#[async_trait::async_trait]
+impl ui::AsyncPrompt for EditorPromptAsync<'_, '_, '_, '_> {
+    async fn finish_async(self) -> Self::Output {
+        match self.editor.filter {
+            Filter::Async(filter) => filter(self.ans, self.answers).await,
+            Filter::Sync(filter) => filter(self.ans, self.answers),
+            Filter::None => self.ans,
+        }
+    }
+
+    async fn validate_async(&mut self) -> Result<Validation, Self::ValidateErr> {
+        if !AsyncCommand::new(&self.editor.editor)
+            .arg(&self.path)
+            .status()
+            .await?
+            .success()
+        {
+            return Err(io::Error::new(
+                io::ErrorKind::Other,
+                "Could not open editor",
+            ));
+        }
+
+        self.ans.clear();
+        self.file.read_to_string(&mut self.ans).await?;
+        self.file.seek(SeekFrom::Start(0)).await?;
+
+        match self.editor.validate {
+            Validate::Async(ref validate) => validate(&self.ans, self.answers).await
+                .map_err(|err| io::Error::new(io::ErrorKind::InvalidInput, err))?,
+            Validate::Sync(ref validate) => validate(&self.ans, self.answers)
+                .map_err(|err| io::Error::new(io::ErrorKind::InvalidInput, err))?,
+            Validate::None => {}
+
+        }
+
+        Ok(Validation::Finish)
+    }
+}
+}
+
 impl Editor<'_, '_, '_> {
-    pub fn ask<W: Write>(
+    pub(crate) fn ask<W: Write>(
         mut self,
         message: String,
         answers: &Answers,
@@ -137,10 +240,13 @@ impl Editor<'_, '_, '_> {
 
         let transformer = self.transformer.take();
 
+        let (file, path) = file.into_parts();
+
         let ans = ui::Input::new(EditorPrompt {
             message,
             editor: self,
             file,
+            path,
             ans: String::new(),
             answers,
         })
@@ -152,6 +258,51 @@ impl Editor<'_, '_, '_> {
         }
 
         Ok(Answer::String(ans))
+    }
+
+    crate::cfg_async! {
+    pub(crate) async fn ask_async<W: Write>(
+        mut self,
+        message: String,
+        answers: &Answers,
+        w: &mut W,
+    ) -> error::Result<Answer> {
+        let mut builder = tempfile::Builder::new();
+
+        if let Some(ref postfix) = self.postfix {
+            builder.suffix(postfix);
+        }
+
+        let (file, path) = builder.tempfile()?.into_parts();
+        let mut file = AsyncFile::from(file);
+
+        if let Some(ref default) = self.default {
+            file.write_all(default.as_bytes()).await?;
+            file.seek(SeekFrom::Start(0)).await?;
+            file.flush().await?;
+        }
+
+        let transformer = self.transformer.take();
+
+        let ans = ui::AsyncInput::new(EditorPromptAsync {
+            message,
+            editor: self,
+            file,
+            path,
+            ans: String::new(),
+            answers,
+        })
+        .run(w)
+        .await?;
+
+        match transformer {
+            Transformer::Async(transformer) => transformer(&ans, answers, w).await?,
+            Transformer::Sync(transformer) => transformer(&ans, answers, w)?,
+            Transformer::None => writeln!(w, "{}", "Received".dark_grey())?,
+        }
+
+        Ok(Answer::String(ans))
+    }
     }
 }
 

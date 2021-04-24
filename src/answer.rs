@@ -4,9 +4,9 @@ use std::{
     ops::{Deref, DerefMut},
 };
 
-#[cfg(feature = "fast-hash")]
+#[cfg(feature = "ahash")]
 use ahash::AHashMap as HashMap;
-#[cfg(not(feature = "fast-hash"))]
+#[cfg(not(feature = "ahash"))]
 use std::collections::HashMap;
 
 #[derive(Debug, Clone, PartialEq, PartialOrd)]

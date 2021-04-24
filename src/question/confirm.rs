@@ -1,5 +1,5 @@
 use crossterm::style::Colorize;
-use ui::{widgets, Validation, Widget};
+use ui::{widgets, Prompt, Validation, Widget};
 
 use crate::{error, Answer, Answers};
 
@@ -42,7 +42,7 @@ fn only_yn(c: char) -> Option<char> {
     }
 }
 
-impl ui::Prompt for ConfirmPrompt<'_> {
+impl Prompt for ConfirmPrompt<'_> {
     type ValidateErr = &'static str;
     type Output = bool;
 
@@ -82,6 +82,19 @@ impl ui::Prompt for ConfirmPrompt<'_> {
     }
 }
 
+crate::cfg_async! {
+#[async_trait::async_trait]
+impl ui::AsyncPrompt for ConfirmPrompt<'_> {
+    async fn finish_async(self) -> Self::Output {
+        self.finish()
+    }
+
+    fn try_validate_sync(&mut self) -> Option<Result<Validation, Self::ValidateErr>> {
+        Some(self.validate())
+    }
+}
+}
+
 impl Confirm<'_> {
     pub(crate) fn ask<W: std::io::Write>(
         mut self,
@@ -108,6 +121,37 @@ impl Confirm<'_> {
         }
 
         Ok(Answer::Bool(ans))
+    }
+
+    crate::cfg_async! {
+    pub(crate) async fn ask_async<W: std::io::Write>(
+        mut self,
+        message: String,
+        answers: &Answers,
+        w: &mut W,
+    ) -> error::Result<Answer> {
+        let transformer = self.transformer.take();
+
+        let ans = ui::AsyncInput::new(ConfirmPrompt {
+            confirm: self,
+            message,
+            input: widgets::CharInput::new(only_yn),
+        })
+        .run(w)
+        .await?;
+
+        match transformer {
+            Transformer::Async(transformer) => transformer(ans, answers, w).await?,
+            Transformer::Sync(transformer) => transformer(ans, answers, w)?,
+            _ => {
+                let ans = if ans { "Yes" } else { "No" };
+
+                writeln!(w, "{}", ans.dark_cyan())?;
+            }
+        }
+
+        Ok(Answer::Bool(ans))
+    }
     }
 }
 

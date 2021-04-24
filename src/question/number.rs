@@ -1,5 +1,7 @@
+use std::marker::PhantomData;
+
 use crossterm::style::{Color, ResetColor, SetForegroundColor};
-use ui::{widgets, Validation, Widget};
+use ui::{widgets, Prompt, Validation, Widget};
 
 use crate::{error, Answer, Answers};
 
@@ -21,11 +23,11 @@ pub struct Int<'f, 'v, 't> {
     transformer: Transformer<'t, i64>,
 }
 
-trait Number {
-    type Inner;
+trait Number<'f, 'v> {
+    type Inner: Send + Sync;
 
-    fn validate(&self, inner: Self::Inner, answers: &Answers) -> Result<(), String>;
-    fn filter(self, inner: Self::Inner, answers: &Answers) -> Self::Inner;
+    fn validate(&self) -> &Validate<'v, Self::Inner>;
+    fn filter(self) -> Filter<'f, Self::Inner>;
     fn filter_map_char(c: char) -> Option<char>;
     fn parse(s: &str) -> Result<Self::Inner, String>;
     fn default(&self) -> Option<Self::Inner>;
@@ -33,7 +35,7 @@ trait Number {
     fn finish(inner: Self::Inner) -> Answer;
 }
 
-impl Number for Int<'_, '_, '_> {
+impl<'f, 'v> Number<'f, 'v> for Int<'f, 'v, '_> {
     type Inner = i64;
 
     fn filter_map_char(c: char) -> Option<char> {
@@ -52,18 +54,12 @@ impl Number for Int<'_, '_, '_> {
         self.default
     }
 
-    fn validate(&self, i: Self::Inner, answers: &Answers) -> Result<(), String> {
-        match self.validate {
-            Validate::Sync(ref validate) => validate(i, answers),
-            _ => Ok(()),
-        }
+    fn validate(&self) -> &Validate<'v, i64> {
+        &self.validate
     }
 
-    fn filter(self, i: Self::Inner, answers: &Answers) -> Self::Inner {
-        match self.filter {
-            Filter::Sync(filter) => filter(i, answers),
-            _ => i,
-        }
+    fn filter(self) -> Filter<'f, i64> {
+        self.filter
     }
 
     fn write<W: std::io::Write>(i: Self::Inner, w: &mut W) -> error::Result<()> {
@@ -81,7 +77,8 @@ impl Number for Int<'_, '_, '_> {
         Answer::Int(i)
     }
 }
-impl Number for Float<'_, '_, '_> {
+
+impl<'f, 'v> Number<'f, 'v> for Float<'f, 'v, '_> {
     type Inner = f64;
 
     fn filter_map_char(c: char) -> Option<char> {
@@ -100,18 +97,12 @@ impl Number for Float<'_, '_, '_> {
         self.default
     }
 
-    fn validate(&self, f: Self::Inner, answers: &Answers) -> Result<(), String> {
-        match self.validate {
-            Validate::Sync(ref validate) => validate(f, answers),
-            _ => Ok(()),
-        }
+    fn validate(&self) -> &Validate<'v, f64> {
+        &self.validate
     }
 
-    fn filter(self, f: Self::Inner, answers: &Answers) -> Self::Inner {
-        match self.filter {
-            Filter::Sync(filter) => filter(f, answers),
-            _ => f,
-        }
+    fn filter(self) -> Filter<'f, f64> {
+        self.filter
     }
 
     fn write<W: std::io::Write>(f: Self::Inner, w: &mut W) -> error::Result<()> {
@@ -129,15 +120,16 @@ impl Number for Float<'_, '_, '_> {
     }
 }
 
-struct NumberPrompt<'a, N> {
+struct NumberPrompt<'f, 'v, 'a, N> {
     number: N,
     message: String,
     input: widgets::StringInput,
     hint: Option<String>,
     answers: &'a Answers,
+    _marker: PhantomData<(&'f (), &'v ())>,
 }
 
-impl<N: Number> Widget for NumberPrompt<'_, N> {
+impl<'f, 'v, N: Number<'f, 'v>> Widget for NumberPrompt<'f, 'v, '_, N> {
     fn render<W: std::io::Write>(&mut self, max_width: usize, w: &mut W) -> crossterm::Result<()> {
         self.input.render(max_width, w)
     }
@@ -155,7 +147,7 @@ impl<N: Number> Widget for NumberPrompt<'_, N> {
     }
 }
 
-impl<N: Number> ui::Prompt for NumberPrompt<'_, N> {
+impl<'f, 'v, N: Number<'f, 'v>> Prompt for NumberPrompt<'f, 'v, '_, N> {
     type ValidateErr = String;
     type Output = N::Inner;
 
@@ -172,16 +164,22 @@ impl<N: Number> ui::Prompt for NumberPrompt<'_, N> {
             return Ok(Validation::Finish);
         }
 
-        self.number
-            .validate(N::parse(self.input.value())?, self.answers)
-            .map(|_| Validation::Finish)
+        if let Validate::Sync(validate) = self.number.validate() {
+            validate(N::parse(self.input.value())?, self.answers)?;
+        }
+
+        Ok(Validation::Finish)
     }
     fn finish(self) -> Self::Output {
         if self.input.value().is_empty() && self.has_default() {
             return self.number.default().unwrap();
         }
-        self.number
-            .filter(N::parse(self.input.value()).unwrap(), self.answers)
+
+        let n = N::parse(self.input.value()).unwrap();
+        match self.number.filter() {
+            Filter::Sync(filter) => filter(n, self.answers),
+            _ => n,
+        }
     }
 
     fn has_default(&self) -> bool {
@@ -190,6 +188,46 @@ impl<N: Number> ui::Prompt for NumberPrompt<'_, N> {
     fn finish_default(self) -> Self::Output {
         self.number.default().unwrap()
     }
+}
+
+crate::cfg_async! {
+#[async_trait::async_trait]
+impl<'f, 'v, N: Number<'f, 'v> + Send + Sync> ui::AsyncPrompt for NumberPrompt<'f, 'v, '_, N> {
+    async fn finish_async(self) -> Self::Output {
+        if self.input.value().is_empty() && self.has_default() {
+            return self.number.default().unwrap();
+        }
+
+        let n = N::parse(self.input.value()).unwrap();
+        match self.number.filter() {
+            Filter::Async(filter) => filter(n, self.answers).await,
+            Filter::Sync(filter) => filter(n, self.answers),
+            Filter::None => n,
+        }
+    }
+
+    fn try_validate_sync(&mut self) -> Option<Result<Validation, Self::ValidateErr>> {
+        if self.input.value().is_empty() && self.has_default() {
+            return Some(Ok(Validation::Finish));
+        }
+
+        match self.number.validate() {
+            Validate::Sync(validate) => match N::parse(self.input.value()) {
+                Ok(n) => Some(validate(n, self.answers).map(|_| Validation::Finish)),
+                Err(e) => Some(Err(e)),
+            },
+            _ => None,
+        }
+    }
+
+    async fn validate_async(&mut self) -> Result<Validation, Self::ValidateErr> {
+        if let Validate::Async(ref validate) = self.number.validate() {
+            validate(N::parse(self.input.value())?, self.answers).await?;
+        }
+
+        Ok(Validation::Finish)
+    }
+}
 }
 
 macro_rules! impl_ask {
@@ -209,6 +247,7 @@ macro_rules! impl_ask {
                     number: self,
                     message,
                     answers,
+                    _marker: PhantomData,
                 })
                 .run(w)?;
 
@@ -218,6 +257,36 @@ macro_rules! impl_ask {
                 }
 
                 Ok(Self::finish(ans))
+            }
+
+            crate::cfg_async! {
+            pub(crate) async fn ask_async<W: std::io::Write>(
+                mut self,
+                message: String,
+                answers: &Answers,
+                w: &mut W,
+            ) -> error::Result<Answer> {
+                let transformer = self.transformer.take();
+
+                let ans = ui::AsyncInput::new(NumberPrompt {
+                    hint: self.default.map(|default| format!("({})", default)),
+                    input: widgets::StringInput::new(Self::filter_map_char),
+                    number: self,
+                    message,
+                    answers,
+                    _marker: PhantomData,
+                })
+                .run(w)
+                .await?;
+
+                match transformer {
+                    Transformer::Async(transformer) => transformer(ans, answers, w).await?,
+                    Transformer::Sync(transformer) => transformer(ans, answers, w)?,
+                    _ => Self::write(ans, w)?,
+                }
+
+                Ok(Self::finish(ans))
+            }
             }
         }
     };

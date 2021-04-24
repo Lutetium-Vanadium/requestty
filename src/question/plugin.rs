@@ -9,6 +9,13 @@ pub trait Plugin: std::fmt::Debug {
         answers: &Answers,
         stdout: &mut dyn std::io::Write,
     ) -> error::Result<Answer>;
+
+    fn ask_async<'future>(
+        &mut self,
+        message: String,
+        answers: &Answers,
+        stdout: &mut dyn std::io::Write,
+    ) -> super::BoxFuture<'future, error::Result<Answer>>;
 }
 
 pub struct PluginBuilder<'m, 'w, 'p> {
