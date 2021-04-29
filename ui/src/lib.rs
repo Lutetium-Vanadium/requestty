@@ -1,19 +1,14 @@
-#![deny(missing_docs, rust_2018_idioms)]
 //! A widget based cli ui rendering library
 use std::sync::Mutex;
 
-use crossterm::terminal;
-
-#[cfg(feature = "async")]
-pub use async_input::{AsyncInput, AsyncPrompt};
 pub use sync_input::{Input, Prompt};
 pub use widget::Widget;
 
 /// In build widgets
 pub mod widgets {
-    pub use crate::char_input::CharInput;
-    pub use crate::list::{List, ListPicker};
-    pub use crate::string_input::StringInput;
+    pub use super::char_input::CharInput;
+    pub use super::list::{List, ListPicker};
+    pub use super::string_input::StringInput;
 
     /// The default type for filter_map_char in [`StringInput`] and [`CharInput`]
     pub type FilterMapChar = fn(char) -> Option<char>;
@@ -24,9 +19,15 @@ pub mod widgets {
     }
 }
 
-#[cfg(feature = "async")]
+cfg_async! {
+pub use async_input::AsyncPrompt;
 mod async_input;
+}
+
+pub mod backend;
 mod char_input;
+pub mod error;
+pub mod events;
 mod list;
 mod string_input;
 mod sync_input;
@@ -65,21 +66,13 @@ fn exit() {
     }
 }
 
-/// Simple helper to make sure if the code panics in between, raw mode is disabled
-struct RawMode {
-    _private: (),
-}
-
-impl RawMode {
-    /// Enable raw mode for the terminal
-    pub fn enable() -> crossterm::Result<Self> {
-        terminal::enable_raw_mode()?;
-        Ok(Self { _private: () })
-    }
-}
-
-impl Drop for RawMode {
-    fn drop(&mut self) {
-        let _ = terminal::disable_raw_mode();
-    }
+#[doc(hidden)]
+#[macro_export]
+macro_rules! cfg_async {
+    ($($item:item)*) => {
+        $(
+            #[cfg(any(feature = "tokio", feature = "async-std", feature = "smol"))]
+            $item
+        )*
+    };
 }

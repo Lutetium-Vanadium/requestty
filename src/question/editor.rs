@@ -6,32 +6,34 @@ use std::{
     process::Command,
 };
 
-use crossterm::style::Colorize;
 use tempfile::TempPath;
-use ui::{Validation, Widget};
 
-#[cfg(feature = "async_std")]
-use async_std::{
+#[cfg(feature = "async-std")]
+use async_std_dep::{
     fs::File as AsyncFile,
     io::prelude::{ReadExt, SeekExt, WriteExt},
     process::Command as AsyncCommand,
 };
-#[cfg(feature = "async_smol")]
-use smol::{
+#[cfg(feature = "smol")]
+use smol_dep::{
     fs::File as AsyncFile,
     io::{AsyncReadExt, AsyncSeekExt, AsyncWriteExt},
     process::Command as AsyncCommand,
 };
-#[cfg(feature = "async_tokio")]
-use tokio::{
+#[cfg(feature = "tokio")]
+use tokio_dep::{
     fs::File as AsyncFile,
     io::{AsyncReadExt, AsyncSeekExt, AsyncWriteExt},
     process::Command as AsyncCommand,
 };
 
-use crate::{error, Answer, Answers};
+use ui::{
+    backend::{Backend, Stylize},
+    error, Validation, Widget,
+};
 
 use super::{Filter, Options, Transformer, Validate};
+use crate::{Answer, Answers};
 
 #[derive(Debug)]
 pub struct Editor<'f, 'v, 't> {
@@ -78,7 +80,7 @@ struct EditorPrompt<'f, 'v, 't, 'a> {
 }
 
 impl Widget for EditorPrompt<'_, '_, '_, '_> {
-    fn render<W: Write>(&mut self, _: usize, _: &mut W) -> crossterm::Result<()> {
+    fn render<B: Backend>(&mut self, _: usize, _: &mut B) -> error::Result<()> {
         Ok(())
     }
 
@@ -146,7 +148,7 @@ struct EditorPromptAsync<'f, 'v, 't, 'a> {
 }
 
 impl Widget for EditorPromptAsync<'_, '_, '_, '_> {
-    fn render<W: Write>(&mut self, _: usize, _: &mut W) -> crossterm::Result<()> {
+    fn render<B: Backend>(&mut self, _: usize, _: &mut B) -> error::Result<()> {
         Ok(())
     }
 
@@ -218,11 +220,12 @@ impl ui::AsyncPrompt for EditorPromptAsync<'_, '_, '_, '_> {
 }
 
 impl Editor<'_, '_, '_> {
-    pub(crate) fn ask<W: Write>(
+    pub(crate) fn ask<B: Backend>(
         mut self,
         message: String,
         answers: &Answers,
-        w: &mut W,
+        b: &mut B,
+        events: &mut ui::events::Events,
     ) -> error::Result<Answer> {
         let mut builder = tempfile::Builder::new();
 
@@ -242,30 +245,38 @@ impl Editor<'_, '_, '_> {
 
         let (file, path) = file.into_parts();
 
-        let ans = ui::Input::new(EditorPrompt {
-            message,
-            editor: self,
-            file,
-            path,
-            ans: String::new(),
-            answers,
-        })
-        .run(w)?;
+        let ans = ui::Input::new(
+            EditorPrompt {
+                message,
+                editor: self,
+                file,
+                path,
+                ans: String::new(),
+                answers,
+            },
+            b,
+        )
+        .run(events)?;
 
         match transformer {
-            Transformer::Sync(transformer) => transformer(&ans, answers, w)?,
-            _ => writeln!(w, "{}", "Received".dark_grey())?,
+            Transformer::Sync(transformer) => transformer(&ans, answers, b)?,
+            _ => {
+                b.write_styled("Received".dark_grey())?;
+                b.write_all(b"\n")?;
+                b.flush()?;
+            }
         }
 
         Ok(Answer::String(ans))
     }
 
     crate::cfg_async! {
-    pub(crate) async fn ask_async<W: Write>(
+    pub(crate) async fn ask_async<B: Backend>(
         mut self,
         message: String,
         answers: &Answers,
-        w: &mut W,
+        b: &mut B,
+        events: &mut ui::events::AsyncEvents,
     ) -> error::Result<Answer> {
         let mut builder = tempfile::Builder::new();
 
@@ -284,21 +295,25 @@ impl Editor<'_, '_, '_> {
 
         let transformer = self.transformer.take();
 
-        let ans = ui::AsyncInput::new(EditorPromptAsync {
+        let ans = ui::Input::new(EditorPromptAsync {
             message,
             editor: self,
             file,
             path,
             ans: String::new(),
             answers,
-        })
-        .run(w)
+        }, b)
+        .run_async(events)
         .await?;
 
         match transformer {
-            Transformer::Async(transformer) => transformer(&ans, answers, w).await?,
-            Transformer::Sync(transformer) => transformer(&ans, answers, w)?,
-            Transformer::None => writeln!(w, "{}", "Received".dark_grey())?,
+            Transformer::Async(transformer) => transformer(&ans, answers, b).await?,
+            Transformer::Sync(transformer) => transformer(&ans, answers, b)?,
+            Transformer::None => {
+                b.write_styled("Received".dark_grey())?;
+                b.write_all(b"\n")?;
+                b.flush()?;
+            },
         }
 
         Ok(Answer::String(ans))

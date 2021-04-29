@@ -4,13 +4,16 @@ use std::{
     ops::Range,
 };
 
-use crossterm::event;
 use unicode_segmentation::UnicodeSegmentation;
 
-use crate::widget::Widget;
+use crate::{
+    backend::Backend,
+    error,
+    events::{KeyCode, KeyEvent, KeyModifiers},
+};
 
 /// A widget that inputs a line of text
-pub struct StringInput<F = crate::widgets::FilterMapChar> {
+pub struct StringInput<F = super::widgets::FilterMapChar> {
     value: String,
     mask: Option<char>,
     hide_output: bool,
@@ -98,10 +101,13 @@ impl<F> StringInput<F> {
     }
 
     /// Get the word bound iterator for a given range
-    fn word_iter(&self, r: Range<usize>) -> impl DoubleEndedIterator<Item = (usize, &str)> {
-        self.value[r]
-            .split_word_bound_indices()
-            .filter(|(_, s)| !s.chars().next().map(char::is_whitespace).unwrap_or(true))
+    fn word_iter(
+        &self,
+        r: Range<usize>,
+    ) -> impl DoubleEndedIterator<Item = (usize, &str)> {
+        self.value[r].split_word_bound_indices().filter(|(_, s)| {
+            !s.chars().next().map(char::is_whitespace).unwrap_or(true)
+        })
     }
 
     /// Returns the byte index of the start of the first word to the left (< byte_i)
@@ -121,45 +127,47 @@ impl<F> StringInput<F> {
     }
 }
 
-impl<F> Widget for StringInput<F>
+impl<F> super::Widget for StringInput<F>
 where
     F: Fn(char) -> Option<char>,
 {
     /// Handles characters, backspace, delete, left arrow, right arrow, home and end.
-    fn handle_key(&mut self, key: event::KeyEvent) -> bool {
+    fn handle_key(&mut self, key: KeyEvent) -> bool {
         match key.code {
-            event::KeyCode::Left
+            KeyCode::Left
                 if self.at != 0
                     && key
                         .modifiers
-                        .intersects(event::KeyModifiers::CONTROL | event::KeyModifiers::ALT) =>
+                        .intersects(KeyModifiers::CONTROL | KeyModifiers::ALT) =>
             {
-                self.at = self.get_char_i(self.find_word_left(self.get_byte_i(self.at)));
+                self.at =
+                    self.get_char_i(self.find_word_left(self.get_byte_i(self.at)));
             }
-            event::KeyCode::Left if self.at != 0 => {
+            KeyCode::Left if self.at != 0 => {
                 self.at -= 1;
             }
 
-            event::KeyCode::Right
+            KeyCode::Right
                 if self.at != self.value_len
                     && key
                         .modifiers
-                        .intersects(event::KeyModifiers::CONTROL | event::KeyModifiers::ALT) =>
+                        .intersects(KeyModifiers::CONTROL | KeyModifiers::ALT) =>
             {
-                self.at = self.get_char_i(self.find_word_right(self.get_byte_i(self.at)));
+                self.at =
+                    self.get_char_i(self.find_word_right(self.get_byte_i(self.at)));
             }
-            event::KeyCode::Right if self.at != self.value_len => {
+            KeyCode::Right if self.at != self.value_len => {
                 self.at += 1;
             }
 
-            event::KeyCode::Home if self.at != 0 => {
+            KeyCode::Home if self.at != 0 => {
                 self.at = 0;
             }
-            event::KeyCode::End if self.at != self.value_len => {
+            KeyCode::End if self.at != self.value_len => {
                 self.at = self.value_len;
             }
 
-            event::KeyCode::Char(c) if !key.modifiers.contains(event::KeyModifiers::CONTROL) => {
+            KeyCode::Char(c) if !key.modifiers.contains(KeyModifiers::CONTROL) => {
                 if let Some(c) = (self.filter_map_char)(c) {
                     if self.at == self.value_len {
                         self.value.push(c);
@@ -175,8 +183,8 @@ where
                 }
             }
 
-            event::KeyCode::Backspace if self.at == 0 => {}
-            event::KeyCode::Backspace if key.modifiers.contains(event::KeyModifiers::ALT) => {
+            KeyCode::Backspace if self.at == 0 => {}
+            KeyCode::Backspace if key.modifiers.contains(KeyModifiers::ALT) => {
                 let was_at = self.at;
                 let byte_i = self.get_byte_i(self.at);
                 let prev_word = self.find_word_left(byte_i);
@@ -184,30 +192,30 @@ where
                 self.value_len -= was_at - self.at;
                 self.value.replace_range(prev_word..byte_i, "");
             }
-            event::KeyCode::Backspace if self.at == self.value_len => {
+            KeyCode::Backspace if self.at == self.value_len => {
                 self.at -= 1;
                 self.value_len -= 1;
                 self.value.pop();
             }
-            event::KeyCode::Backspace => {
+            KeyCode::Backspace => {
                 self.at -= 1;
                 let byte_i = self.get_byte_i(self.at);
                 self.value_len -= 1;
                 self.value.remove(byte_i);
             }
 
-            event::KeyCode::Delete if self.at == self.value_len => {}
-            event::KeyCode::Delete if key.modifiers.contains(event::KeyModifiers::ALT) => {
+            KeyCode::Delete if self.at == self.value_len => {}
+            KeyCode::Delete if key.modifiers.contains(KeyModifiers::ALT) => {
                 let byte_i = self.get_byte_i(self.at);
                 let next_word = self.find_word_right(byte_i);
                 self.value_len -= self.get_char_i(next_word) - self.at;
                 self.value.replace_range(byte_i..next_word, "");
             }
-            event::KeyCode::Delete if self.at == self.value_len - 1 => {
+            KeyCode::Delete if self.at == self.value_len - 1 => {
                 self.value_len -= 1;
                 self.value.pop();
             }
-            event::KeyCode::Delete => {
+            KeyCode::Delete => {
                 let byte_i = self.get_byte_i(self.at);
                 self.value_len -= 1;
                 self.value.remove(byte_i);
@@ -219,7 +227,11 @@ where
         true
     }
 
-    fn render<W: Write>(&mut self, max_width: usize, w: &mut W) -> crossterm::Result<()> {
+    fn render<B: Backend>(
+        &mut self,
+        max_width: usize,
+        backend: &mut B,
+    ) -> error::Result<()> {
         if self.hide_output {
             return Ok(());
         }
@@ -229,11 +241,16 @@ where
         }
 
         if self.value_len > max_width {
-            unimplemented!("Big strings");
+            unimplemented!(
+                "Big strings {} {} {}",
+                self.value_len,
+                self.value().chars().count(),
+                max_width
+            );
         } else if let Some(mask) = self.mask {
-            print_mask(self.value_len, mask, w)?;
+            print_mask(self.value_len, mask, backend)?;
         } else {
-            w.write_all(self.value.as_bytes())?;
+            backend.write_all(self.value.as_bytes())?;
         }
 
         Ok(())
@@ -254,7 +271,7 @@ where
 
 impl Default for StringInput {
     fn default() -> Self {
-        Self::new(crate::widgets::no_filter)
+        Self::new(super::widgets::no_filter)
     }
 }
 

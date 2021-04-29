@@ -1,9 +1,12 @@
-use crossterm::style::Colorize;
-use ui::{widgets, Prompt, Validation, Widget};
-
-use crate::{error, Answer, Answers};
+use ui::{
+    backend::{Backend, Stylize},
+    error,
+    events::KeyEvent,
+    widgets, Prompt, Validation, Widget,
+};
 
 use super::{Options, TransformerByVal as Transformer};
+use crate::{Answer, Answers};
 
 #[derive(Debug, Default)]
 pub struct Confirm<'t> {
@@ -18,15 +21,19 @@ struct ConfirmPrompt<'t> {
 }
 
 impl Widget for ConfirmPrompt<'_> {
-    fn render<W: std::io::Write>(&mut self, max_width: usize, w: &mut W) -> crossterm::Result<()> {
-        self.input.render(max_width, w)
+    fn render<B: Backend>(
+        &mut self,
+        max_width: usize,
+        b: &mut B,
+    ) -> error::Result<()> {
+        self.input.render(max_width, b)
     }
 
     fn height(&self) -> usize {
         self.input.height()
     }
 
-    fn handle_key(&mut self, key: crossterm::event::KeyEvent) -> bool {
+    fn handle_key(&mut self, key: KeyEvent) -> bool {
         self.input.handle_key(key)
     }
 
@@ -96,27 +103,32 @@ impl ui::AsyncPrompt for ConfirmPrompt<'_> {
 }
 
 impl Confirm<'_> {
-    pub(crate) fn ask<W: std::io::Write>(
+    pub(crate) fn ask<B: Backend>(
         mut self,
         message: String,
         answers: &Answers,
-        w: &mut W,
+        b: &mut B,
+        events: &mut ui::events::Events,
     ) -> error::Result<Answer> {
         let transformer = self.transformer.take();
 
-        let ans = ui::Input::new(ConfirmPrompt {
-            confirm: self,
-            message,
-            input: widgets::CharInput::new(only_yn),
-        })
-        .run(w)?;
+        let ans = ui::Input::new(
+            ConfirmPrompt {
+                confirm: self,
+                message,
+                input: widgets::CharInput::new(only_yn),
+            },
+            b,
+        )
+        .run(events)?;
 
         match transformer {
-            Transformer::Sync(transformer) => transformer(ans, answers, w)?,
+            Transformer::Sync(transformer) => transformer(ans, answers, b)?,
             _ => {
                 let ans = if ans { "Yes" } else { "No" };
-
-                writeln!(w, "{}", ans.dark_cyan())?;
+                b.write_styled(ans.cyan())?;
+                b.write_all(b"\n")?;
+                b.flush()?;
             }
         }
 
@@ -124,29 +136,31 @@ impl Confirm<'_> {
     }
 
     crate::cfg_async! {
-    pub(crate) async fn ask_async<W: std::io::Write>(
+    pub(crate) async fn ask_async<B: Backend>(
         mut self,
         message: String,
         answers: &Answers,
-        w: &mut W,
+        b: &mut B,
+        events: &mut ui::events::AsyncEvents,
     ) -> error::Result<Answer> {
         let transformer = self.transformer.take();
 
-        let ans = ui::AsyncInput::new(ConfirmPrompt {
+        let ans = ui::Input::new(ConfirmPrompt {
             confirm: self,
             message,
             input: widgets::CharInput::new(only_yn),
-        })
-        .run(w)
+        }, b)
+        .run_async(events)
         .await?;
 
         match transformer {
-            Transformer::Async(transformer) => transformer(ans, answers, w).await?,
-            Transformer::Sync(transformer) => transformer(ans, answers, w)?,
+            Transformer::Async(transformer) => transformer(ans, answers, b).await?,
+            Transformer::Sync(transformer) => transformer(ans, answers, b)?,
             _ => {
                 let ans = if ans { "Yes" } else { "No" };
-
-                writeln!(w, "{}", ans.dark_cyan())?;
+                b.write_styled(ans.cyan())?;
+                b.write_all(b"\n")?;
+                b.flush()?;
             }
         }
 
@@ -197,7 +211,9 @@ crate::impl_transformer_builder!(by val ConfirmBuilder<'m, 'w, t> bool; (this, t
 });
 
 impl super::Question<'static, 'static, 'static, 'static, 'static> {
-    pub fn confirm<N: Into<String>>(name: N) -> ConfirmBuilder<'static, 'static, 'static> {
+    pub fn confirm<N: Into<String>>(
+        name: N,
+    ) -> ConfirmBuilder<'static, 'static, 'static> {
         ConfirmBuilder {
             opts: Options::new(name.into()),
             confirm: Default::default(),

@@ -1,11 +1,16 @@
 use std::marker::PhantomData;
 
-use crossterm::style::{Color, ResetColor, SetForegroundColor};
-use ui::{widgets, Prompt, Validation, Widget};
+use ui::{
+    backend::{Backend, Color},
+    error,
+    events::KeyEvent,
+    widgets, Prompt, Validation, Widget,
+};
 
-use crate::{error, Answer, Answers};
-
-use super::{Filter, Options, TransformerByVal as Transformer, ValidateByVal as Validate};
+use super::{
+    Filter, Options, TransformerByVal as Transformer, ValidateByVal as Validate,
+};
+use crate::{Answer, Answers};
 
 #[derive(Debug, Default)]
 pub struct Float<'f, 'v, 't> {
@@ -31,7 +36,7 @@ trait Number<'f, 'v> {
     fn filter_map_char(c: char) -> Option<char>;
     fn parse(s: &str) -> Result<Self::Inner, String>;
     fn default(&self) -> Option<Self::Inner>;
-    fn write<W: std::io::Write>(inner: Self::Inner, w: &mut W) -> error::Result<()>;
+    fn write<B: Backend>(inner: Self::Inner, b: &mut B) -> error::Result<()>;
     fn finish(inner: Self::Inner) -> Answer;
 }
 
@@ -62,15 +67,12 @@ impl<'f, 'v> Number<'f, 'v> for Int<'f, 'v, '_> {
         self.filter
     }
 
-    fn write<W: std::io::Write>(i: Self::Inner, w: &mut W) -> error::Result<()> {
-        writeln!(
-            w,
-            "{}{}{}",
-            SetForegroundColor(Color::DarkCyan),
-            i,
-            ResetColor,
-        )
-        .map_err(Into::into)
+    fn write<B: Backend>(i: Self::Inner, b: &mut B) -> error::Result<()> {
+        b.set_fg(Color::Cyan)?;
+        write!(b, "{}", i)?;
+        b.set_fg(Color::Reset)?;
+        b.write_all(b"\n")?;
+        b.flush().map_err(Into::into)
     }
 
     fn finish(i: Self::Inner) -> Answer {
@@ -82,7 +84,8 @@ impl<'f, 'v> Number<'f, 'v> for Float<'f, 'v, '_> {
     type Inner = f64;
 
     fn filter_map_char(c: char) -> Option<char> {
-        if c.is_digit(10) || c == '.' || c == 'e' || c == 'E' || c == '+' || c == '-' {
+        if c.is_digit(10) || c == '.' || c == 'e' || c == 'E' || c == '+' || c == '-'
+        {
             Some(c)
         } else {
             None
@@ -105,14 +108,16 @@ impl<'f, 'v> Number<'f, 'v> for Float<'f, 'v, '_> {
         self.filter
     }
 
-    fn write<W: std::io::Write>(f: Self::Inner, w: &mut W) -> error::Result<()> {
-        write!(w, "{}", SetForegroundColor(Color::DarkCyan))?;
+    fn write<B: Backend>(f: Self::Inner, b: &mut B) -> error::Result<()> {
+        b.set_fg(Color::Cyan)?;
         if f.log10().abs() > 19.0 {
-            write!(w, "{:e}", f)?;
+            write!(b, "{:e}", f)?;
         } else {
-            write!(w, "{}", f)?;
+            write!(b, "{}", f)?;
         }
-        writeln!(w, "{}", ResetColor).map_err(Into::into)
+        b.set_fg(Color::Reset)?;
+        b.write_all(b"\n")?;
+        b.flush().map_err(Into::into)
     }
 
     fn finish(f: Self::Inner) -> Answer {
@@ -130,15 +135,19 @@ struct NumberPrompt<'f, 'v, 'a, N> {
 }
 
 impl<'f, 'v, N: Number<'f, 'v>> Widget for NumberPrompt<'f, 'v, '_, N> {
-    fn render<W: std::io::Write>(&mut self, max_width: usize, w: &mut W) -> crossterm::Result<()> {
-        self.input.render(max_width, w)
+    fn render<B: Backend>(
+        &mut self,
+        max_width: usize,
+        b: &mut B,
+    ) -> error::Result<()> {
+        self.input.render(max_width, b)
     }
 
     fn height(&self) -> usize {
         self.input.height()
     }
 
-    fn handle_key(&mut self, key: crossterm::event::KeyEvent) -> bool {
+    fn handle_key(&mut self, key: KeyEvent) -> bool {
         self.input.handle_key(key)
     }
 
@@ -163,9 +172,10 @@ impl<'f, 'v, N: Number<'f, 'v>> Prompt for NumberPrompt<'f, 'v, '_, N> {
         if self.input.value().is_empty() && self.has_default() {
             return Ok(Validation::Finish);
         }
+        let n = N::parse(self.input.value())?;
 
         if let Validate::Sync(validate) = self.number.validate() {
-            validate(N::parse(self.input.value())?, self.answers)?;
+            validate(n, self.answers)?;
         }
 
         Ok(Validation::Finish)
@@ -211,11 +221,14 @@ impl<'f, 'v, N: Number<'f, 'v> + Send + Sync> ui::AsyncPrompt for NumberPrompt<'
             return Some(Ok(Validation::Finish));
         }
 
+        let n = match N::parse(self.input.value()) {
+            Ok(n) => n,
+            Err(e) => return Some(Err(e)),
+        };
+
+
         match self.number.validate() {
-            Validate::Sync(validate) => match N::parse(self.input.value()) {
-                Ok(n) => Some(validate(n, self.answers).map(|_| Validation::Finish)),
-                Err(e) => Some(Err(e)),
-            },
+            Validate::Sync(validate) => Some(validate(n, self.answers).map(|_| Validation::Finish)),
             _ => None,
         }
     }
@@ -233,11 +246,43 @@ impl<'f, 'v, N: Number<'f, 'v> + Send + Sync> ui::AsyncPrompt for NumberPrompt<'
 macro_rules! impl_ask {
     ($t:ty) => {
         impl $t {
-            pub(crate) fn ask<W: std::io::Write>(
+            pub(crate) fn ask<B: Backend>(
                 mut self,
                 message: String,
                 answers: &Answers,
-                w: &mut W,
+                b: &mut B,
+                events: &mut ui::events::Events,
+            ) -> error::Result<Answer> {
+                let transformer = self.transformer.take();
+
+                let ans = ui::Input::new(
+                    NumberPrompt {
+                        hint: self.default.map(|default| format!("({})", default)),
+                        input: widgets::StringInput::new(Self::filter_map_char),
+                        number: self,
+                        message,
+                        answers,
+                        _marker: PhantomData,
+                    },
+                    b,
+                )
+                .run(events)?;
+
+                match transformer {
+                    Transformer::Sync(transformer) => transformer(ans, answers, b)?,
+                    _ => Self::write(ans, b)?,
+                }
+
+                Ok(Self::finish(ans))
+            }
+
+            crate::cfg_async! {
+            pub(crate) async fn ask_async<B: Backend>(
+                mut self,
+                message: String,
+                answers: &Answers,
+                b: &mut B,
+                events: &mut ui::events::AsyncEvents,
             ) -> error::Result<Answer> {
                 let transformer = self.transformer.take();
 
@@ -248,41 +293,14 @@ macro_rules! impl_ask {
                     message,
                     answers,
                     _marker: PhantomData,
-                })
-                .run(w)?;
-
-                match transformer {
-                    Transformer::Sync(transformer) => transformer(ans, answers, w)?,
-                    _ => Self::write(ans, w)?,
-                }
-
-                Ok(Self::finish(ans))
-            }
-
-            crate::cfg_async! {
-            pub(crate) async fn ask_async<W: std::io::Write>(
-                mut self,
-                message: String,
-                answers: &Answers,
-                w: &mut W,
-            ) -> error::Result<Answer> {
-                let transformer = self.transformer.take();
-
-                let ans = ui::AsyncInput::new(NumberPrompt {
-                    hint: self.default.map(|default| format!("({})", default)),
-                    input: widgets::StringInput::new(Self::filter_map_char),
-                    number: self,
-                    message,
-                    answers,
-                    _marker: PhantomData,
-                })
-                .run(w)
+                }, b)
+                .run_async(events)
                 .await?;
 
                 match transformer {
-                    Transformer::Async(transformer) => transformer(ans, answers, w).await?,
-                    Transformer::Sync(transformer) => transformer(ans, answers, w)?,
-                    _ => Self::write(ans, w)?,
+                    Transformer::Async(transformer) => transformer(ans, answers, b).await?,
+                    Transformer::Sync(transformer) => transformer(ans, answers, b)?,
+                    _ => Self::write(ans, b)?,
                 }
 
                 Ok(Self::finish(ans))

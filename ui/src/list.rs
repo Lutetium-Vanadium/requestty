@@ -1,23 +1,19 @@
-use std::io::Write;
-
-use crossterm::{
-    cursor, event, queue,
-    style::{Colorize, PrintStyledContent},
-    terminal,
+use crate::{
+    backend::{Backend, MoveDirection, Stylize},
+    error,
+    events::{KeyCode, KeyEvent},
 };
-
-use crate::widget::Widget;
 
 /// A trait to represent a renderable list
 pub trait List {
     /// Render a single element at some index in **only** one line
-    fn render_item<W: Write>(
+    fn render_item<B: Backend>(
         &mut self,
         index: usize,
         hovered: bool,
         max_width: usize,
-        w: &mut W,
-    ) -> crossterm::Result<()>;
+        backend: &mut B,
+    ) -> error::Result<()>;
 
     /// Whether the element at a particular index is selectable. Those that are not selectable are
     /// skipped over when the navigation keys are used
@@ -144,16 +140,22 @@ impl<L: List> ListPicker<L> {
 
     fn adjust_page_start(&mut self, moved: Direction) {
         // Check whether at is within second and second last element of the page
-        if self.at <= self.page_start || self.at >= self.page_start + self.list.page_size() - 2 {
+        if self.at <= self.page_start
+            || self.at >= self.page_start + self.list.page_size() - 2
+        {
             self.page_start = match moved {
                 // At end of the list, but shouldn't loop, so the last element should be at the end
                 // of the page
-                Direction::Down if !self.list.should_loop() && self.at == self.list.len() - 1 => {
+                Direction::Down
+                    if !self.list.should_loop()
+                        && self.at == self.list.len() - 1 =>
+                {
                     self.list.len() - self.list.page_size() + 1
                 }
                 // Make sure cursor is at second last element of the page
                 Direction::Down => {
-                    (self.list.len() + self.at + 3 - self.list.page_size()) % self.list.len()
+                    (self.list.len() + self.at + 3 - self.list.page_size())
+                        % self.list.len()
                 }
                 // At start of the list, but shouldn't loop, so the first element should be at the
                 // start of the page
@@ -165,40 +167,39 @@ impl<L: List> ListPicker<L> {
     }
 
     /// Renders the lines in a given iterator
-    fn render_in<W: Write>(
+    fn render_in<B: Backend>(
         &mut self,
         iter: impl Iterator<Item = usize>,
-        w: &mut W,
-    ) -> crossterm::Result<()> {
-        let max_width = terminal::size()?.0 as usize;
-
+        max_width: usize,
+        b: &mut B,
+    ) -> error::Result<()> {
         for i in iter {
-            self.list.render_item(i, i == self.at, max_width, w)?;
-            queue!(w, cursor::MoveToNextLine(1))?;
+            self.list.render_item(i, i == self.at, max_width, b)?;
+            b.move_cursor(MoveDirection::NextLine(1))?;
         }
 
         Ok(())
     }
 }
 
-impl<L: List> Widget for ListPicker<L> {
+impl<L: List> super::Widget for ListPicker<L> {
     /// It handles the following keys:
     /// - Up and 'k' to move up to the previous selectable element
     /// - Down and 'j' to move up to the next selectable element
     /// - Home, PageUp and 'g' to go to the first selectable element
     /// - End, PageDown and 'G' to go to the last selectable element
-    fn handle_key(&mut self, key: event::KeyEvent) -> bool {
+    fn handle_key(&mut self, key: KeyEvent) -> bool {
         let moved = match key.code {
-            event::KeyCode::Up | event::KeyCode::Char('k') => {
+            KeyCode::Up | KeyCode::Char('k') => {
                 self.at = self.prev_selectable();
                 Direction::Up
             }
-            event::KeyCode::Down | event::KeyCode::Char('j') => {
+            KeyCode::Down | KeyCode::Char('j') => {
                 self.at = self.next_selectable();
                 Direction::Down
             }
 
-            event::KeyCode::PageUp
+            KeyCode::PageUp
                 if !self.is_paginating() // No pagination, PageUp is same as Home
                     // No looping, and first item is shown in this page
                     || (!self.list.should_loop() && self.at + 2 < self.list.page_size()) =>
@@ -206,13 +207,14 @@ impl<L: List> Widget for ListPicker<L> {
                 self.at = self.first_selectable;
                 Direction::Up
             }
-            event::KeyCode::PageUp => {
-                self.at = (self.list.len() + self.at + 2 - self.list.page_size()) % self.list.len();
+            KeyCode::PageUp => {
+                self.at = (self.list.len() + self.at + 2 - self.list.page_size())
+                    % self.list.len();
                 self.at = self.next_selectable();
                 Direction::Up
             }
 
-            event::KeyCode::PageDown
+            KeyCode::PageDown
                 if !self.is_paginating() // No pagination, PageDown same as End
                     || (!self.list.should_loop() // No looping and last item is shown in this page
                         && self.at + self.list.page_size() - 2 >= self.list.len()) =>
@@ -220,17 +222,17 @@ impl<L: List> Widget for ListPicker<L> {
                 self.at = self.last_selectable;
                 Direction::Down
             }
-            event::KeyCode::PageDown => {
+            KeyCode::PageDown => {
                 self.at = (self.at + self.list.page_size() - 2) % self.list.len();
                 self.at = self.prev_selectable();
                 Direction::Down
             }
 
-            event::KeyCode::Home | event::KeyCode::Char('g') if self.at != 0 => {
+            KeyCode::Home | KeyCode::Char('g') if self.at != 0 => {
                 self.at = self.first_selectable;
                 Direction::Up
             }
-            event::KeyCode::End | event::KeyCode::Char('G') if self.at != self.list.len() - 1 => {
+            KeyCode::End | KeyCode::Char('G') if self.at != self.list.len() - 1 => {
                 self.at = self.last_selectable;
                 Direction::Down
             }
@@ -245,33 +247,35 @@ impl<L: List> Widget for ListPicker<L> {
         true
     }
 
-    fn render<W: Write>(&mut self, _: usize, w: &mut W) -> crossterm::Result<()> {
-        queue!(w, cursor::MoveToNextLine(1))?;
+    fn render<B: Backend>(
+        &mut self,
+        max_width: usize,
+        b: &mut B,
+    ) -> error::Result<()> {
+        b.move_cursor(MoveDirection::NextLine(1))?;
 
         if self.is_paginating() {
-            let end_iter =
-                self.page_start..(self.page_start + self.list.page_size() - 1).min(self.list.len());
+            let end_iter = self.page_start
+                ..(self.page_start + self.list.page_size() - 1).min(self.list.len());
 
             if self.list.should_loop() {
                 // Since we should loop, we need to chain the start of the list as well
                 let end_iter_len = end_iter.size_hint().0;
                 self.render_in(
                     end_iter.chain(0..(self.list.page_size() - end_iter_len - 1)),
-                    w,
+                    max_width,
+                    b,
                 )?;
             } else {
-                self.render_in(end_iter, w)?;
+                self.render_in(end_iter, max_width, b)?;
             }
         } else {
-            self.render_in(0..self.list.len(), w)?;
+            self.render_in(0..self.list.len(), max_width, b)?;
         };
 
         if self.is_paginating() {
-            queue!(
-                w,
-                PrintStyledContent("(Move up and down to reveal more choices)".dark_grey()),
-                cursor::MoveToNextLine(1)
-            )?;
+            b.write_styled("(Move up and down to reveal more choices)".dark_grey())?;
+            b.move_cursor(MoveDirection::NextLine(1))?;
         }
 
         Ok(())

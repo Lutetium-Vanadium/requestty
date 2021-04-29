@@ -1,9 +1,12 @@
-use crossterm::style::Colorize;
-use ui::{widgets, Prompt, Validation, Widget};
-
-use crate::{error, Answer, Answers};
+use ui::{
+    backend::{Backend, Stylize},
+    error,
+    events::KeyEvent,
+    widgets, Prompt, Validation, Widget,
+};
 
 use super::{Filter, Options, Transformer, Validate};
+use crate::{Answer, Answers};
 
 #[derive(Debug, Default)]
 pub struct Input<'f, 'v, 't> {
@@ -21,15 +24,19 @@ struct InputPrompt<'f, 'v, 't, 'a> {
 }
 
 impl Widget for InputPrompt<'_, '_, '_, '_> {
-    fn render<W: std::io::Write>(&mut self, max_width: usize, w: &mut W) -> crossterm::Result<()> {
-        self.input.render(max_width, w)
+    fn render<B: Backend>(
+        &mut self,
+        max_width: usize,
+        b: &mut B,
+    ) -> error::Result<()> {
+        self.input.render(max_width, b)
     }
 
     fn height(&self) -> usize {
         self.input.height()
     }
 
-    fn handle_key(&mut self, key: crossterm::event::KeyEvent) -> bool {
+    fn handle_key(&mut self, key: KeyEvent) -> bool {
         self.input.handle_key(key)
     }
 
@@ -131,11 +138,50 @@ impl ui::AsyncPrompt for InputPrompt<'_, '_, '_, '_> {
 }
 
 impl Input<'_, '_, '_> {
-    pub(crate) fn ask<W: std::io::Write>(
+    pub(crate) fn ask<B: Backend>(
         mut self,
         message: String,
         answers: &Answers,
-        w: &mut W,
+        b: &mut B,
+        events: &mut ui::events::Events,
+    ) -> error::Result<Answer> {
+        if let Some(ref mut default) = self.default {
+            default.insert(0, '(');
+            default.push(')');
+        }
+
+        let transformer = self.transformer.take();
+
+        let ans = ui::Input::new(
+            InputPrompt {
+                message,
+                input_opts: self,
+                input: widgets::StringInput::default(),
+                answers,
+            },
+            b,
+        )
+        .run(events)?;
+
+        match transformer {
+            Transformer::Sync(transformer) => transformer(&ans, answers, b)?,
+            _ => {
+                b.write_styled(ans.as_str().cyan())?;
+                b.write_all(b"\n")?;
+                b.flush()?;
+            }
+        }
+
+        Ok(Answer::String(ans))
+    }
+
+    crate::cfg_async! {
+    pub(crate) async fn ask_async<B: Backend>(
+        mut self,
+        message: String,
+        answers: &Answers,
+        b: &mut B,
+        events: &mut ui::events::AsyncEvents,
     ) -> error::Result<Answer> {
         if let Some(ref mut default) = self.default {
             default.insert(0, '(');
@@ -149,44 +195,18 @@ impl Input<'_, '_, '_> {
             input_opts: self,
             input: widgets::StringInput::default(),
             answers,
-        })
-        .run(w)?;
-
-        match transformer {
-            Transformer::Sync(transformer) => transformer(&ans, answers, w)?,
-            _ => writeln!(w, "{}", ans.as_str().dark_cyan())?,
-        }
-
-        Ok(Answer::String(ans))
-    }
-
-    crate::cfg_async! {
-    pub(crate) async fn ask_async<W: std::io::Write>(
-        mut self,
-        message: String,
-        answers: &Answers,
-        w: &mut W,
-    ) -> error::Result<Answer> {
-        if let Some(ref mut default) = self.default {
-            default.insert(0, '(');
-            default.push(')');
-        }
-
-        let transformer = self.transformer.take();
-
-        let ans = ui::AsyncInput::new(InputPrompt {
-            message,
-            input_opts: self,
-            input: widgets::StringInput::default(),
-            answers,
-        })
-        .run(w)
+        }, b)
+        .run_async(events)
         .await?;
 
         match transformer {
-            Transformer::Async(transformer) => transformer(&ans, answers, w).await?,
-            Transformer::Sync(transformer) => transformer(&ans, answers, w)?,
-            _ => writeln!(w, "{}", ans.as_str().dark_cyan())?,
+            Transformer::Async(transformer) => transformer(&ans, answers, b).await?,
+            Transformer::Sync(transformer) => transformer(&ans, answers, b)?,
+            _ => {
+                b.write_styled(ans.as_str().cyan())?;
+                b.write_all(b"\n")?;
+                b.flush()?;
+            }
         }
 
         Ok(Answer::String(ans))

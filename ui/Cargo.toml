@@ -1,19 +1,36 @@
 [package]
 name = "ui"
-version = "0.1.0"
+version = "0.0.1"
 authors = ["Lutetium Vanadium"]
 edition = "2018"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
 [dependencies]
-crossterm = "0.19"
+bitflags = "1.2"
 lazy_static = "1.4"
 unicode-segmentation = "1.7"
 
 async-trait = { version = "0.1", optional = true }
-futures = { version = "0.3", optional = true, default-features = false }
+futures = { version = "0.3", optional = true }
+
+crossterm = { version = "0.19", optional = true }
+# TODO: add all of these
+# termion = { version = "1.5", optional = true }
+# easycurses = { version = "0.12", optional = true }
+# pancurses = { version = "0.16", optional = true, features = ["win32a"] }
+
+# The following dependencies are renamed in the form `<dep-name>-dep` to allow
+# a feature name with the same name to be present. This is necessary since
+# these features are required to enable other dependencies
+smol-dep = { package = "smol", version = "1.2", optional = true }
+tokio-dep = { package = "tokio", version = "1.5", optional = true, features = ["fs", "rt"] }
+async-std-dep = { package = "async-std", version = "1.9", optional = true, features = ["unstable"] }
 
 [features]
 default = []
-async = ["async-trait", "futures", "crossterm/event-stream"]
+# curses = ["easycurses", "pancurses"]
+tokio = ["tokio-dep", "async-trait", "futures", "anes"]
+smol = ["smol-dep", "async-trait", "futures", "anes"]
+async-std = ["async-std-dep", "async-trait", "futures", "anes"]
+
+[target.'cfg(unix)'.dependencies]
+anes = { version = "0.1", optional = true, features = ["parser"] }

@@ -1,9 +1,12 @@
-use crossterm::style::Colorize;
-use ui::{widgets, Validation, Widget};
-
-use crate::{error, Answer, Answers};
+use ui::{
+    backend::{Backend, Stylize},
+    error,
+    events::KeyEvent,
+    widgets, Validation, Widget,
+};
 
 use super::{Filter, Options, Transformer, Validate};
+use crate::{Answer, Answers};
 
 #[derive(Debug, Default)]
 pub struct Password<'f, 'v, 't> {
@@ -92,15 +95,19 @@ impl ui::AsyncPrompt for PasswordPrompt<'_, '_, '_, '_> {
 }
 
 impl Widget for PasswordPrompt<'_, '_, '_, '_> {
-    fn render<W: std::io::Write>(&mut self, max_width: usize, w: &mut W) -> crossterm::Result<()> {
-        self.input.render(max_width, w)
+    fn render<B: Backend>(
+        &mut self,
+        max_width: usize,
+        b: &mut B,
+    ) -> error::Result<()> {
+        self.input.render(max_width, b)
     }
 
     fn height(&self) -> usize {
         self.input.height()
     }
 
-    fn handle_key(&mut self, key: crossterm::event::KeyEvent) -> bool {
+    fn handle_key(&mut self, key: KeyEvent) -> bool {
         self.input.handle_key(key)
     }
 
@@ -110,11 +117,45 @@ impl Widget for PasswordPrompt<'_, '_, '_, '_> {
 }
 
 impl Password<'_, '_, '_> {
-    pub(crate) fn ask<W: std::io::Write>(
+    pub(crate) fn ask<B: Backend>(
         mut self,
         message: String,
         answers: &Answers,
-        w: &mut W,
+        b: &mut B,
+        events: &mut ui::events::Events,
+    ) -> error::Result<Answer> {
+        let transformer = self.transformer.take();
+
+        let ans = ui::Input::new(
+            PasswordPrompt {
+                message,
+                input: widgets::StringInput::default().password(self.mask),
+                password: self,
+                answers,
+            },
+            b,
+        )
+        .run(events)?;
+
+        match transformer {
+            Transformer::Sync(transformer) => transformer(&ans, answers, b)?,
+            _ => {
+                b.write_styled("[hidden]".dark_grey())?;
+                b.write_all(b"\n")?;
+                b.flush()?;
+            }
+        }
+
+        Ok(Answer::String(ans))
+    }
+
+    crate::cfg_async! {
+    pub(crate) async fn ask_async<B: Backend>(
+        mut self,
+        message: String,
+        answers: &Answers,
+        b: &mut B,
+        events: &mut ui::events::AsyncEvents,
     ) -> error::Result<Answer> {
         let transformer = self.transformer.take();
 
@@ -123,39 +164,18 @@ impl Password<'_, '_, '_> {
             input: widgets::StringInput::default().password(self.mask),
             password: self,
             answers,
-        })
-        .run(w)?;
-
-        match transformer {
-            Transformer::Sync(transformer) => transformer(&ans, answers, w)?,
-            _ => writeln!(w, "{}", "[hidden]".dark_grey())?,
-        }
-
-        Ok(Answer::String(ans))
-    }
-
-    crate::cfg_async! {
-    pub(crate) async fn ask_async<W: std::io::Write>(
-        mut self,
-        message: String,
-        answers: &Answers,
-        w: &mut W,
-    ) -> error::Result<Answer> {
-        let transformer = self.transformer.take();
-
-        let ans = ui::AsyncInput::new(PasswordPrompt {
-            message,
-            input: widgets::StringInput::default().password(self.mask),
-            password: self,
-            answers,
-        })
-        .run(w)
+        }, b)
+        .run_async(events)
         .await?;
 
         match transformer {
-            Transformer::Async(transformer) => transformer(&ans, answers, w).await?,
-            Transformer::Sync(transformer) => transformer(&ans, answers, w)?,
-            _ => writeln!(w, "{}", "[hidden]".dark_grey())?,
+            Transformer::Async(transformer) => transformer(&ans, answers, b).await?,
+            Transformer::Sync(transformer) => transformer(&ans, answers, b)?,
+            _ => {
+                b.write_styled("[hidden]".dark_grey())?;
+                b.write_all(b"\n")?;
+                b.flush()?;
+            }
         }
 
         Ok(Answer::String(ans))

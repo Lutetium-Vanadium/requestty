@@ -1,0 +1,6 @@
+{
+  "rust-analyzer.diagnostics.disabled": [
+    "incorrect-ident-case",
+    "inactive-code"
+  ]
+}

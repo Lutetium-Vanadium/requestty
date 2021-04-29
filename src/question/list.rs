@@ -1,15 +1,12 @@
-use crossterm::{
-    queue,
-    style::{Color, Colorize, Print, ResetColor, SetForegroundColor},
-};
-use ui::{widgets, Prompt, Widget};
-
-use crate::{
-    answer::{Answer, ListItem},
-    error, Answers,
+use ui::{
+    backend::{Backend, Color, Stylize},
+    error,
+    events::KeyEvent,
+    widgets, Prompt, Widget,
 };
 
 use super::{Options, Transformer};
+use crate::{Answer, Answers, ListItem};
 
 #[derive(Debug, Default)]
 pub struct List<'t> {
@@ -77,15 +74,15 @@ impl ui::AsyncPrompt for ListPrompt<'_> {
 }
 
 impl Widget for ListPrompt<'_> {
-    fn render<W: std::io::Write>(&mut self, max_width: usize, w: &mut W) -> crossterm::Result<()> {
-        self.picker.render(max_width, w)
+    fn render<B: Backend>(&mut self, _: usize, b: &mut B) -> error::Result<()> {
+        self.picker.render(b.size()?.width as usize, b)
     }
 
     fn height(&self) -> usize {
         self.picker.height()
     }
 
-    fn handle_key(&mut self, key: crossterm::event::KeyEvent) -> bool {
+    fn handle_key(&mut self, key: KeyEvent) -> bool {
         self.picker.handle_key(key)
     }
 
@@ -95,26 +92,27 @@ impl Widget for ListPrompt<'_> {
 }
 
 impl widgets::List for List<'_> {
-    fn render_item<W: std::io::Write>(
+    fn render_item<B: Backend>(
         &mut self,
         index: usize,
         hovered: bool,
         max_width: usize,
-        w: &mut W,
-    ) -> crossterm::Result<()> {
+        b: &mut B,
+    ) -> error::Result<()> {
         if hovered {
-            queue!(w, SetForegroundColor(Color::DarkCyan), Print("❯ "))?;
+            b.set_fg(Color::Cyan)?;
+            b.write_all("❯ ".as_bytes())?;
         } else {
-            w.write_all(b"  ")?;
+            b.write_all(b"  ")?;
 
             if !self.is_selectable(index) {
-                queue!(w, SetForegroundColor(Color::DarkGrey))?;
+                b.set_fg(Color::DarkGrey)?;
             }
         }
 
-        self.choices[index].as_str().render(max_width - 2, w)?;
+        self.choices[index].as_str().render(max_width - 2, b)?;
 
-        queue!(w, ResetColor)
+        b.set_fg(Color::Reset)
     }
 
     fn is_selectable(&self, index: usize) -> bool {
@@ -135,50 +133,60 @@ impl widgets::List for List<'_> {
 }
 
 impl List<'_> {
-    pub(crate) fn ask<W: std::io::Write>(
+    pub(crate) fn ask<B: Backend>(
         mut self,
         message: String,
         answers: &Answers,
-        w: &mut W,
+        b: &mut B,
+        events: &mut ui::events::Events,
     ) -> error::Result<Answer> {
         let transformer = self.transformer.take();
         let mut picker = widgets::ListPicker::new(self);
         if let Some(default) = picker.list.choices.default() {
             picker.set_at(default);
         }
-        let ans = ui::Input::new(ListPrompt { picker, message })
+        let ans = ui::Input::new(ListPrompt { picker, message }, b)
             .hide_cursor()
-            .run(w)?;
+            .run(events)?;
 
         match transformer {
-            Transformer::Sync(transformer) => transformer(&ans, answers, w)?,
-            _ => writeln!(w, "{}", ans.name.as_str().dark_cyan())?,
+            Transformer::Sync(transformer) => transformer(&ans, answers, b)?,
+            _ => {
+                b.write_styled(ans.name.as_str().cyan())?;
+                b.write_all(b"\n")?;
+                b.flush()?;
+            }
         }
 
         Ok(Answer::ListItem(ans))
     }
 
     crate::cfg_async! {
-    pub(crate) async fn ask_async<W: std::io::Write>(
+    pub(crate) async fn ask_async<B: Backend>(
         mut self,
         message: String,
         answers: &Answers,
-        w: &mut W,
+        b: &mut B,
+        events: &mut ui::events::AsyncEvents,
     ) -> error::Result<Answer> {
         let transformer = self.transformer.take();
         let mut picker = widgets::ListPicker::new(self);
         if let Some(default) = picker.list.choices.default() {
             picker.set_at(default);
         }
-        let ans = ui::AsyncInput::new(ListPrompt { picker, message })
+        let ans = ui::Input::new(ListPrompt { picker, message }, b)
             .hide_cursor()
-            .run(w)
+            .run_async(events)
             .await?;
 
         match transformer {
-            Transformer::Async(transformer) => transformer(&ans, answers, w).await?,
-            Transformer::Sync(transformer) => transformer(&ans, answers, w)?,
-            _ => writeln!(w, "{}", ans.name.as_str().dark_cyan())?,
+            Transformer::Async(transformer) => transformer(&ans, answers, b).await?,
+            Transformer::Sync(transformer) => transformer(&ans, answers, b)?,
+            _ => {
+                b.write_styled(ans.name.as_str().cyan())?;
+                b.write_all(b"\n")?;
+                b.flush()?;
+            }
         }
 
         Ok(Answer::ListItem(ans))
@@ -248,7 +256,9 @@ impl<'m, 'w, 't> ListBuilder<'m, 'w, 't> {
     }
 }
 
-impl<'m, 'w, 't> From<ListBuilder<'m, 'w, 't>> for super::Question<'m, 'w, 'static, 'static, 't> {
+impl<'m, 'w, 't> From<ListBuilder<'m, 'w, 't>>
+    for super::Question<'m, 'w, 'static, 'static, 't>
+{
     fn from(builder: ListBuilder<'m, 'w, 't>) -> Self {
         builder.build()
     }

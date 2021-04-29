@@ -1,17 +1,13 @@
-use crossterm::{
-    event, queue,
-    style::{Color, Colorize, ResetColor, SetForegroundColor},
-    terminal,
-};
-use ui::{widgets, Prompt, Validation, Widget};
-use widgets::List;
-
-use crate::{
-    answer::{Answer, ListItem},
-    error, Answers,
+use ui::{
+    backend::{Backend, Color, Stylize},
+    error,
+    events::KeyEvent,
+    widgets::{self, List},
+    Prompt, Validation, Widget,
 };
 
 use super::{Choice, Options, Transformer};
+use crate::{Answer, Answers, ListItem};
 
 #[derive(Debug, Default)]
 pub struct Rawlist<'t> {
@@ -92,30 +88,27 @@ impl ui::AsyncPrompt for RawlistPrompt<'_> {
 const ANSWER_PROMPT: &[u8] = b"  Answer: ";
 
 impl Widget for RawlistPrompt<'_> {
-    fn render<W: std::io::Write>(&mut self, _: usize, w: &mut W) -> crossterm::Result<()> {
-        let max_width = terminal::size()?.0 as usize;
-        self.list.render(max_width, w)?;
-        w.write_all(ANSWER_PROMPT)?;
-        self.input.render(max_width - ANSWER_PROMPT.len(), w)
+    fn render<B: Backend>(&mut self, _: usize, b: &mut B) -> error::Result<()> {
+        let max_width = b.size()?.width as usize;
+        self.list.render(max_width, b)?;
+        b.write_all(ANSWER_PROMPT)?;
+        self.input.render(max_width - ANSWER_PROMPT.len(), b)
     }
 
     fn height(&self) -> usize {
         self.list.height() + 1
     }
 
-    fn handle_key(&mut self, key: event::KeyEvent) -> bool {
+    fn handle_key(&mut self, key: KeyEvent) -> bool {
         if self.input.handle_key(key) {
-            if let Ok(mut n) = self.input.value().parse::<usize>() {
+            if let Ok(n) = self.input.value().parse::<usize>() {
                 if n < self.list.list.len() && n > 0 {
-                    // Choices are 1 indexed for the user
-                    n -= 1;
-
-                    let pos = self.list.list.choices.choices[n..]
-                        .iter()
-                        .position(|choice| matches!(choice, Choice::Choice((i, _)) if *i == n));
+                    let pos = self.list.list.choices.choices[(n-1)..].iter().position(
+                        |choice| matches!(choice, Choice::Choice((i, _)) if *i == n),
+                    );
 
                     if let Some(pos) = pos {
-                        self.list.set_at(pos + n);
+                        self.list.set_at(pos + n - 1);
                         return true;
                     }
                 }
@@ -125,7 +118,7 @@ impl Widget for RawlistPrompt<'_> {
             true
         } else if self.list.handle_key(key) {
             let at = self.list.get_at();
-            let index = self.list.list.choices[at].as_ref().unwrap_choice().0 + 1;
+            let index = self.list.list.choices[at].as_ref().unwrap_choice().0;
             self.input.set_value(index.to_string());
             true
         } else {
@@ -140,32 +133,32 @@ impl Widget for RawlistPrompt<'_> {
 }
 
 impl widgets::List for Rawlist<'_> {
-    fn render_item<W: std::io::Write>(
+    fn render_item<B: Backend>(
         &mut self,
         index: usize,
         hovered: bool,
         max_width: usize,
-        w: &mut W,
-    ) -> crossterm::Result<()> {
+        b: &mut B,
+    ) -> error::Result<()> {
         match &self.choices[index] {
             Choice::Choice((index, name)) => {
                 if hovered {
-                    queue!(w, SetForegroundColor(Color::DarkCyan))?;
+                    b.set_fg(Color::Cyan)?;
                 }
 
-                write!(w, "  {}) ", index + 1)?;
+                write!(b, "  {}) ", index)?;
                 name.as_str()
-                    .render(max_width - (*index as f64).log10() as usize + 5, w)?;
+                    .render(max_width - (*index as f64).log10() as usize + 5, b)?;
 
                 if hovered {
-                    queue!(w, ResetColor)?;
+                    b.set_fg(Color::Reset)?;
                 }
             }
             Choice::Separator(s) => {
-                queue!(w, SetForegroundColor(Color::DarkGrey))?;
-                w.write_all(b"   ")?;
-                super::get_sep_str(s).render(max_width - 3, w)?;
-                queue!(w, ResetColor)?;
+                b.set_fg(Color::DarkGrey)?;
+                b.write_all(b"   ")?;
+                super::get_sep_str(s).render(max_width - 3, b)?;
+                b.set_fg(Color::Reset)?;
             }
         }
 
@@ -190,11 +183,49 @@ impl widgets::List for Rawlist<'_> {
 }
 
 impl Rawlist<'_> {
-    pub(crate) fn ask<W: std::io::Write>(
+    pub(crate) fn ask<B: Backend>(
         mut self,
         message: String,
         answers: &Answers,
-        w: &mut W,
+        b: &mut B,
+        events: &mut ui::events::Events,
+    ) -> error::Result<Answer> {
+        let transformer = self.transformer.take();
+
+        let mut list = widgets::ListPicker::new(self);
+        if let Some(default) = list.list.choices.default() {
+            list.set_at(default);
+        }
+
+        let ans = ui::Input::new(
+            RawlistPrompt {
+                input: widgets::StringInput::new(|c| c.is_digit(10).then(|| c)),
+                list,
+                message,
+            },
+            b,
+        )
+        .run(events)?;
+
+        match transformer {
+            Transformer::Sync(transformer) => transformer(&ans, answers, b)?,
+            _ => {
+                b.write_styled(ans.name.as_str().cyan())?;
+                b.write_all(b"\n")?;
+                b.flush()?;
+            }
+        }
+
+        Ok(Answer::ListItem(ans))
+    }
+
+    crate::cfg_async! {
+    pub(crate) async fn ask_async<B: Backend>(
+        mut self,
+        message: String,
+        answers: &Answers,
+        b: &mut B,
+        events: &mut ui::events::AsyncEvents,
     ) -> error::Result<Answer> {
         let transformer = self.transformer.take();
 
@@ -207,43 +238,18 @@ impl Rawlist<'_> {
             input: widgets::StringInput::new(|c| c.is_digit(10).then(|| c)),
             list,
             message,
-        })
-        .run(w)?;
-
-        match transformer {
-            Transformer::Sync(transformer) => transformer(&ans, answers, w)?,
-            _ => writeln!(w, "{}", ans.name.as_str().dark_cyan())?,
-        }
-
-        Ok(Answer::ListItem(ans))
-    }
-
-    crate::cfg_async! {
-    pub(crate) async fn ask_async<W: std::io::Write>(
-        mut self,
-        message: String,
-        answers: &Answers,
-        w: &mut W,
-    ) -> error::Result<Answer> {
-        let transformer = self.transformer.take();
-
-        let mut list = widgets::ListPicker::new(self);
-        if let Some(default) = list.list.choices.default() {
-            list.set_at(default);
-        }
-
-        let ans = ui::AsyncInput::new(RawlistPrompt {
-            input: widgets::StringInput::new(|c| c.is_digit(10).then(|| c)),
-            list,
-            message,
-        })
-        .run(w)
+        }, b)
+        .run_async(events)
         .await?;
 
         match transformer {
-            Transformer::Async(transformer) => transformer(&ans, answers, w).await?,
-            Transformer::Sync(transformer) => transformer(&ans, answers, w)?,
-            _ => writeln!(w, "{}", ans.name.as_str().dark_cyan())?,
+            Transformer::Async(transformer) => transformer(&ans, answers, b).await?,
+            Transformer::Sync(transformer) => transformer(&ans, answers, b)?,
+            _ => {
+                b.write_styled(ans.name.as_str().cyan())?;
+                b.write_all(b"\n")?;
+                b.flush()?
+            }
         }
 
         Ok(Answer::ListItem(ans))
@@ -348,11 +354,14 @@ crate::impl_transformer_builder!(RawlistBuilder<'m, 'w, t> ListItem; (this, tran
 });
 
 impl super::Question<'static, 'static, 'static, 'static, 'static> {
-    pub fn rawlist<N: Into<String>>(name: N) -> RawlistBuilder<'static, 'static, 'static> {
+    pub fn rawlist<N: Into<String>>(
+        name: N,
+    ) -> RawlistBuilder<'static, 'static, 'static> {
         RawlistBuilder {
             opts: Options::new(name.into()),
             list: Default::default(),
-            choice_count: 0,
+            // It is one indexed for the user
+            choice_count: 1,
         }
     }
 }

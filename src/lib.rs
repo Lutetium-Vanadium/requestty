@@ -1,14 +1,14 @@
 mod answer;
-mod error;
 mod question;
 
-use crossterm::tty::IsTty;
+use ui::{backend, error, events};
 
 pub use answer::{Answer, Answers, ExpandItem, ListItem};
-pub use question::{Choice::Choice, Choice::Separator, Plugin, Question};
+pub use question::{Choice::Choice, Choice::Separator, Question};
+pub use ui::error::{ErrorKind, Result};
 
 pub mod plugin {
-    pub use crate::Plugin;
+    pub use crate::question::Plugin;
     pub use ui;
 }
 
@@ -37,12 +37,15 @@ where
         self
     }
 
-    fn prompt_impl<W: std::io::Write>(
+    fn prompt_impl<B: backend::Backend>(
         &mut self,
-        stdout: &mut W,
+        stdout: &mut B,
+        events: &mut events::Events,
     ) -> error::Result<Option<&mut Answer>> {
         while let Some(question) = self.questions.next() {
-            if let Some((name, answer)) = question.ask(&self.answers, stdout)? {
+            if let Some((name, answer)) =
+                question.ask(&self.answers, stdout, events)?
+            {
                 return Ok(Some(self.answers.insert(name, answer)));
             }
         }
@@ -51,35 +54,39 @@ where
     }
 
     pub fn prompt(&mut self) -> error::Result<Option<&mut Answer>> {
-        let stdout = std::io::stdout();
-        if !stdout.is_tty() {
-            return Err(error::InquirerError::NotATty);
+        if atty::isnt(atty::Stream::Stdout) {
+            return Err(error::ErrorKind::NotATty);
         }
-        let mut stdout = stdout.lock();
-        self.prompt_impl(&mut stdout)
+        let stdout = std::io::stdout();
+        let mut stdout = backend::get_backend(stdout.lock())?;
+
+        self.prompt_impl(&mut stdout, &mut events::Events::new())
     }
 
     pub fn prompt_all(mut self) -> error::Result<Answers> {
         self.answers.reserve(self.questions.size_hint().0);
 
-        let stdout = std::io::stdout();
-        if !stdout.is_tty() {
-            return Err(error::InquirerError::NotATty);
+        if atty::isnt(atty::Stream::Stdout) {
+            return Err(error::ErrorKind::NotATty);
         }
-        let mut stdout = stdout.lock();
+        let stdout = std::io::stdout();
+        let mut stdout = backend::get_backend(stdout.lock())?;
 
-        while self.prompt_impl(&mut stdout)?.is_some() {}
+        let mut events = events::Events::new();
+
+        while self.prompt_impl(&mut stdout, &mut events)?.is_some() {}
 
         Ok(self.answers)
     }
 
     cfg_async! {
-    async fn prompt_impl_async<W: std::io::Write>(
+    async fn prompt_impl_async<B: backend::Backend>(
         &mut self,
-        stdout: &mut W,
+        stdout: &mut B,
+        events: &mut events::AsyncEvents,
     ) -> error::Result<Option<&mut Answer>> {
         while let Some(question) = self.questions.next() {
-            if let Some((name, answer)) = question.ask_async(&self.answers, stdout).await? {
+            if let Some((name, answer)) = question.ask_async(&self.answers, stdout, events).await? {
                 return Ok(Some(self.answers.insert(name, answer)));
             }
         }
@@ -88,24 +95,27 @@ where
     }
 
     pub async fn prompt_async(&mut self) -> error::Result<Option<&mut Answer>> {
-        let stdout = std::io::stdout();
-        if !stdout.is_tty() {
-            return Err(error::InquirerError::NotATty);
+        if atty::isnt(atty::Stream::Stdout) {
+            return Err(error::ErrorKind::NotATty);
         }
-        let mut stdout = stdout.lock();
-        self.prompt_impl_async(&mut stdout).await
+        let stdout = std::io::stdout();
+        let mut stdout = backend::get_backend(stdout.lock())?;
+
+        self.prompt_impl_async(&mut stdout, &mut events::AsyncEvents::new().await?).await
     }
 
     pub async fn prompt_all_async(mut self) -> error::Result<Answers> {
         self.answers.reserve(self.questions.size_hint().0);
 
-        let stdout = std::io::stdout();
-        if !stdout.is_tty() {
-            return Err(error::InquirerError::NotATty);
+        if atty::isnt(atty::Stream::Stdout) {
+            return Err(error::ErrorKind::NotATty);
         }
-        let mut stdout = stdout.lock();
+        let stdout = std::io::stdout();
+        let mut stdout = backend::get_backend(stdout.lock())?;
 
-        while self.prompt_impl_async(&mut stdout).await?.is_some() {}
+        let mut events = events::AsyncEvents::new().await?;
+
+        while self.prompt_impl_async(&mut stdout, &mut events).await?.is_some() {}
 
         Ok(self.answers)
     }
@@ -123,12 +133,21 @@ where
     PromptModule::new(questions).prompt_all()
 }
 
+cfg_async! {
+pub async fn prompt_async<'m, 'w, 'f, 'v, 't, Q>(questions: Q) -> error::Result<Answers>
+where
+    Q: IntoIterator<Item = Question<'m, 'w, 'f, 'v, 't>>,
+{
+    PromptModule::new(questions).prompt_all_async().await
+}
+}
+
 /// Sets the exit handler to call when `CTRL+C` or EOF is received
 ///
 /// By default, it exits the program, however it can be overridden to not exit. If it doesn't exit,
 /// [`Input::run`] will return an `Err`
 pub fn set_exit_handler(handler: fn()) {
-    ui::set_exit_handler(handler);
+    plugin::ui::set_exit_handler(handler);
 }
 
 #[doc(hidden)]
@@ -136,7 +155,7 @@ pub fn set_exit_handler(handler: fn()) {
 macro_rules! cfg_async {
     ($($item:item)*) => {
         $(
-            #[cfg(any(feature = "async_tokio", feature = "async_std", feature = "async_smol"))]
+            #[cfg(any(feature = "tokio", feature = "async-std", feature = "smol"))]
             $item
         )*
     };

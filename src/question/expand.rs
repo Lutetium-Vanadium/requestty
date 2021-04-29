@@ -3,16 +3,15 @@ use ahash::AHashSet as HashSet;
 #[cfg(not(feature = "ahash"))]
 use std::collections::HashSet;
 
-use crossterm::{
-    cursor, queue,
-    style::{Color, Colorize, ResetColor, SetForegroundColor},
-    terminal,
+use ui::{
+    backend::{Backend, Color, MoveDirection, Stylize},
+    error,
+    events::KeyEvent,
+    widgets, Prompt, Validation, Widget,
 };
-use ui::{widgets, Prompt, Validation, Widget};
-
-use crate::{error, Answer, Answers, ExpandItem};
 
 use super::{Choice, Options, Transformer};
+use crate::{Answer, Answers, ExpandItem};
 
 #[derive(Debug)]
 pub struct Expand<'t> {
@@ -112,14 +111,18 @@ impl<F: Fn(char) -> Option<char> + Send + Sync> ui::AsyncPrompt for ExpandPrompt
 const ANSWER_PROMPT: &[u8] = b"  Answer: ";
 
 impl<F: Fn(char) -> Option<char>> ui::Widget for ExpandPrompt<'_, F> {
-    fn render<W: std::io::Write>(&mut self, max_width: usize, w: &mut W) -> crossterm::Result<()> {
+    fn render<B: Backend>(
+        &mut self,
+        max_width: usize,
+        b: &mut B,
+    ) -> error::Result<()> {
         if self.expanded {
-            let max_width = terminal::size()?.0 as usize - ANSWER_PROMPT.len();
-            self.list.render(max_width, w)?;
-            w.write_all(ANSWER_PROMPT)?;
-            self.input.render(max_width, w)
+            let max_width = b.size()?.width as usize - ANSWER_PROMPT.len();
+            self.list.render(max_width, b)?;
+            b.write_all(ANSWER_PROMPT)?;
+            self.input.render(max_width, b)
         } else {
-            self.input.render(max_width, w)?;
+            self.input.render(max_width, b)?;
 
             if let Some(key) = self.input.value() {
                 let name = &self
@@ -136,9 +139,10 @@ impl<F: Fn(char) -> Option<char>> ui::Widget for ExpandPrompt<'_, F> {
                     .map(|item| &*item.name)
                     .unwrap_or("Help, list all options");
 
-                queue!(w, cursor::MoveToNextLine(1))?;
+                b.move_cursor(MoveDirection::NextLine(1))?;
+                b.write_styled(">>".cyan())?;
 
-                write!(w, "{} {}", ">>".dark_cyan(), name)?;
+                write!(b, " {}", name)?;
             }
 
             Ok(())
@@ -155,7 +159,7 @@ impl<F: Fn(char) -> Option<char>> ui::Widget for ExpandPrompt<'_, F> {
         }
     }
 
-    fn handle_key(&mut self, key: crossterm::event::KeyEvent) -> bool {
+    fn handle_key(&mut self, key: KeyEvent) -> bool {
         if self.input.handle_key(key) {
             self.list.list.selected = self.input.value();
             true
@@ -184,24 +188,24 @@ thread_local! {
 }
 
 impl widgets::List for Expand<'_> {
-    fn render_item<W: std::io::Write>(
+    fn render_item<B: Backend>(
         &mut self,
         index: usize,
         _: bool,
         max_width: usize,
-        w: &mut W,
-    ) -> crossterm::Result<()> {
+        b: &mut B,
+    ) -> error::Result<()> {
         if index == self.choices.len() {
-            return HELP_CHOICE.with(|h| self.render_choice(h, max_width, w));
+            return HELP_CHOICE.with(|h| self.render_choice(h, max_width, b));
         }
 
         match &self.choices[index] {
-            Choice::Choice(item) => self.render_choice(item, max_width, w),
+            Choice::Choice(item) => self.render_choice(item, max_width, b),
             Choice::Separator(s) => {
-                queue!(w, SetForegroundColor(Color::DarkGrey))?;
-                w.write_all(b"   ")?;
-                super::get_sep_str(s).render(max_width - 3, w)?;
-                queue!(w, ResetColor)
+                b.set_fg(Color::DarkGrey)?;
+                b.write_all(b"   ")?;
+                super::get_sep_str(s).render(max_width - 3, b)?;
+                b.set_fg(Color::Reset)
             }
         }
     }
@@ -224,23 +228,23 @@ impl widgets::List for Expand<'_> {
 }
 
 impl Expand<'_> {
-    fn render_choice<W: std::io::Write>(
+    fn render_choice<B: Backend>(
         &self,
         item: &ExpandItem,
         max_width: usize,
-        w: &mut W,
-    ) -> crossterm::Result<()> {
+        b: &mut B,
+    ) -> error::Result<()> {
         let hovered = self.selected.map(|c| c == item.key).unwrap_or(false);
 
         if hovered {
-            queue!(w, SetForegroundColor(Color::DarkCyan))?;
+            b.set_fg(Color::Cyan)?;
         }
 
-        write!(w, "  {}) ", item.key)?;
-        item.name.as_str().render(max_width - 5, w)?;
+        write!(b, "  {}) ", item.key)?;
+        item.name.as_str().render(max_width - 5, b)?;
 
         if hovered {
-            queue!(w, ResetColor)?;
+            b.set_fg(Color::Reset)?;
         }
 
         Ok(())
@@ -275,11 +279,50 @@ impl Expand<'_> {
         (choices, hint)
     }
 
-    pub(crate) fn ask<W: std::io::Write>(
+    pub(crate) fn ask<B: Backend>(
         mut self,
         message: String,
         answers: &Answers,
-        w: &mut W,
+        b: &mut B,
+        events: &mut ui::events::Events,
+    ) -> error::Result<Answer> {
+        let (choices, hint) = self.get_choices_and_hint();
+        let transformer = self.transformer.take();
+
+        let ans = ui::Input::new(
+            ExpandPrompt {
+                message,
+                input: widgets::CharInput::new(|c| {
+                    let c = c.to_ascii_lowercase();
+                    choices.contains(c).then(|| c)
+                }),
+                list: widgets::ListPicker::new(self),
+                hint,
+                expanded: false,
+            },
+            b,
+        )
+        .run(events)?;
+
+        match transformer {
+            Transformer::Sync(transformer) => transformer(&ans, answers, b)?,
+            _ => {
+                b.write_styled(ans.name.as_str().cyan())?;
+                b.write_all(b"\n")?;
+                b.flush()?;
+            }
+        }
+
+        Ok(Answer::ExpandItem(ans))
+    }
+
+    crate::cfg_async! {
+    pub(crate) async fn ask_async<B: Backend>(
+        mut self,
+        message: String,
+        answers: &Answers,
+        b: &mut B,
+        events: &mut ui::events::AsyncEvents,
     ) -> error::Result<Answer> {
         let (choices, hint) = self.get_choices_and_hint();
         let transformer = self.transformer.take();
@@ -293,44 +336,18 @@ impl Expand<'_> {
             list: widgets::ListPicker::new(self),
             hint,
             expanded: false,
-        })
-        .run(w)?;
-
-        match transformer {
-            Transformer::Sync(transformer) => transformer(&ans, answers, w)?,
-            _ => writeln!(w, "{}", ans.name.as_str().dark_cyan())?,
-        }
-
-        Ok(Answer::ExpandItem(ans))
-    }
-
-    crate::cfg_async! {
-    pub(crate) async fn ask_async<W: std::io::Write>(
-        mut self,
-        message: String,
-        answers: &Answers,
-        w: &mut W,
-    ) -> error::Result<Answer> {
-        let (choices, hint) = self.get_choices_and_hint();
-        let transformer = self.transformer.take();
-
-        let ans = ui::AsyncInput::new(ExpandPrompt {
-            message,
-            input: widgets::CharInput::new(|c| {
-                let c = c.to_ascii_lowercase();
-                choices.contains(c).then(|| c)
-            }),
-            list: widgets::ListPicker::new(self),
-            hint,
-            expanded: false,
-        })
-        .run(w)
+        }, b)
+        .run_async(events)
         .await?;
 
         match transformer {
-            Transformer::Async(transformer) => transformer(&ans, answers, w).await?,
-            Transformer::Sync(transformer) => transformer(&ans, answers, w)?,
-            _ => writeln!(w, "{}", ans.name.as_str().dark_cyan())?,
+            Transformer::Async(transformer) => transformer(&ans, answers, b).await?,
+            Transformer::Sync(transformer) => transformer(&ans, answers, b)?,
+            _ => {
+                b.write_styled(ans.name.as_str().cyan())?;
+                b.write_all(b"\n")?;
+                b.flush()?;
+            }
         }
 
         Ok(Answer::ExpandItem(ans))
@@ -425,7 +442,9 @@ impl<'m, 'w, 't> ExpandBuilder<'m, 'w, 't> {
     }
 }
 
-impl<'m, 'w, 't> From<ExpandBuilder<'m, 'w, 't>> for super::Question<'m, 'w, 'static, 'static, 't> {
+impl<'m, 'w, 't> From<ExpandBuilder<'m, 'w, 't>>
+    for super::Question<'m, 'w, 'static, 'static, 't>
+{
     fn from(builder: ExpandBuilder<'m, 'w, 't>) -> Self {
         builder.build()
     }
@@ -453,7 +472,9 @@ crate::impl_transformer_builder!(ExpandBuilder<'m, 'w, t> ExpandItem; (this, tra
 });
 
 impl super::Question<'static, 'static, 'static, 'static, 'static> {
-    pub fn expand<N: Into<String>>(name: N) -> ExpandBuilder<'static, 'static, 'static> {
+    pub fn expand<N: Into<String>>(
+        name: N,
+    ) -> ExpandBuilder<'static, 'static, 'static> {
         ExpandBuilder {
             opts: Options::new(name.into()),
             expand: Default::default(),

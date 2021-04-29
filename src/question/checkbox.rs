@@ -1,14 +1,14 @@
 use std::io;
 
-use crossterm::{
-    event, execute, queue,
-    style::{Color, Print, ResetColor, SetForegroundColor},
+use ui::{
+    backend::{Backend, Color},
+    error,
+    events::{KeyCode, KeyEvent},
+    widgets, Prompt, Validation, Widget,
 };
-use ui::{widgets, Prompt, Validation, Widget};
-
-use crate::{error, Answer, Answers, ListItem};
 
 use super::{Choice, Filter, Options, Transformer, Validate};
+use crate::{Answer, Answers, ListItem};
 
 #[derive(Debug, Default)]
 pub struct Checkbox<'f, 'v, 't> {
@@ -25,7 +25,10 @@ struct CheckboxPrompt<'f, 'v, 't, 'a> {
     answers: &'a Answers,
 }
 
-fn create_list_items(selected: Vec<bool>, choices: super::ChoiceList<String>) -> Vec<ListItem> {
+fn create_list_items(
+    selected: Vec<bool>,
+    choices: super::ChoiceList<String>,
+) -> Vec<ListItem> {
     selected
         .into_iter()
         .enumerate()
@@ -115,24 +118,28 @@ impl ui::AsyncPrompt for CheckboxPrompt<'_, '_, '_, '_> {
 }
 
 impl Widget for CheckboxPrompt<'_, '_, '_, '_> {
-    fn render<W: io::Write>(&mut self, max_width: usize, w: &mut W) -> crossterm::Result<()> {
-        self.picker.render(max_width, w)
+    fn render<B: Backend>(
+        &mut self,
+        max_width: usize,
+        b: &mut B,
+    ) -> error::Result<()> {
+        self.picker.render(max_width, b)
     }
 
     fn height(&self) -> usize {
         self.picker.height()
     }
 
-    fn handle_key(&mut self, key: event::KeyEvent) -> bool {
+    fn handle_key(&mut self, key: KeyEvent) -> bool {
         match key.code {
-            event::KeyCode::Char(' ') => {
+            KeyCode::Char(' ') => {
                 let index = self.picker.get_at();
                 self.picker.list.selected[index] = !self.picker.list.selected[index];
             }
-            event::KeyCode::Char('i') => {
+            KeyCode::Char('i') => {
                 self.picker.list.selected.iter_mut().for_each(|s| *s = !*s);
             }
-            event::KeyCode::Char('a') => {
+            KeyCode::Char('a') => {
                 let select_state = self.picker.list.selected.iter().any(|s| !s);
                 self.picker
                     .list
@@ -152,38 +159,40 @@ impl Widget for CheckboxPrompt<'_, '_, '_, '_> {
 }
 
 impl widgets::List for Checkbox<'_, '_, '_> {
-    fn render_item<W: io::Write>(
+    fn render_item<B: Backend>(
         &mut self,
         index: usize,
         hovered: bool,
         max_width: usize,
-        w: &mut W,
-    ) -> crossterm::Result<()> {
+        b: &mut B,
+    ) -> error::Result<()> {
         if hovered {
-            queue!(w, SetForegroundColor(Color::DarkCyan), Print("❯ "))?;
+            b.set_fg(Color::Cyan)?;
+            b.write_all("❯ ".as_bytes())?;
         } else {
-            w.write_all(b"  ")?;
+            b.write_all(b"  ")?;
         }
 
         if self.is_selectable(index) {
             if self.selected[index] {
-                queue!(w, SetForegroundColor(Color::Green), Print("◉ "),)?;
+                b.set_fg(Color::LightGreen)?;
+                b.write_all("◉ ".as_bytes())?;
 
                 if hovered {
-                    queue!(w, SetForegroundColor(Color::DarkCyan))?;
+                    b.set_fg(Color::Cyan)?;
                 } else {
-                    queue!(w, ResetColor)?;
+                    b.set_fg(Color::Reset)?;
                 }
             } else {
-                w.write_all("◯ ".as_bytes())?;
+                b.write_all("◯ ".as_bytes())?;
             }
         } else {
-            queue!(w, SetForegroundColor(Color::DarkGrey))?;
+            b.set_fg(Color::DarkGrey)?;
         }
 
-        self.choices[index].as_str().render(max_width - 4, w)?;
+        self.choices[index].as_str().render(max_width - 4, b)?;
 
-        queue!(w, ResetColor)
+        b.set_fg(Color::Reset)
     }
 
     fn is_selectable(&self, index: usize) -> bool {
@@ -204,30 +213,35 @@ impl widgets::List for Checkbox<'_, '_, '_> {
 }
 
 impl Checkbox<'_, '_, '_> {
-    pub(crate) fn ask<W: io::Write>(
+    pub(crate) fn ask<B: Backend>(
         mut self,
         message: String,
         answers: &Answers,
-        w: &mut W,
+        b: &mut B,
+        events: &mut ui::events::Events,
     ) -> error::Result<Answer> {
         let transformer = self.transformer.take();
 
-        let ans = ui::Input::new(CheckboxPrompt {
-            message,
-            picker: widgets::ListPicker::new(self),
-            answers,
-        })
+        let ans = ui::Input::new(
+            CheckboxPrompt {
+                message,
+                picker: widgets::ListPicker::new(self),
+                answers,
+            },
+            b,
+        )
         .hide_cursor()
-        .run(w)?;
+        .run(events)?;
 
         match transformer {
-            Transformer::Sync(transformer) => transformer(&ans, answers, w)?,
+            Transformer::Sync(transformer) => transformer(&ans, answers, b)?,
             _ => {
-                queue!(w, SetForegroundColor(Color::DarkCyan))?;
-                print_comma_separated(ans.iter().map(|item| item.name.as_str()), w)?;
+                b.set_fg(Color::Cyan)?;
+                print_comma_separated(ans.iter().map(|item| item.name.as_str()), b)?;
+                b.set_fg(Color::Reset)?;
 
-                w.write_all(b"\n")?;
-                execute!(w, ResetColor)?;
+                b.write_all(b"\n")?;
+                b.flush()?;
             }
         }
 
@@ -235,32 +249,37 @@ impl Checkbox<'_, '_, '_> {
     }
 
     crate::cfg_async! {
-    pub(crate) async fn ask_async<W: io::Write>(
+    pub(crate) async fn ask_async<B: Backend>(
         mut self,
         message: String,
         answers: &Answers,
-        w: &mut W,
+        b: &mut B,
+        events: &mut ui::events::AsyncEvents,
     ) -> error::Result<Answer> {
         let transformer = self.transformer.take();
 
-        let ans = ui::AsyncInput::new(CheckboxPrompt {
-            message,
-            picker: widgets::ListPicker::new(self),
-            answers,
-        })
+        let ans = ui::Input::new(
+            CheckboxPrompt {
+                message,
+                picker: widgets::ListPicker::new(self),
+                answers,
+            },
+            b,
+        )
         .hide_cursor()
-        .run(w)
+        .run_async(events)
         .await?;
 
         match transformer {
-            Transformer::Async(transformer) => transformer(&ans, answers, w).await?,
-            Transformer::Sync(transformer) => transformer(&ans, answers, w)?,
+            Transformer::Async(transformer) => transformer(&ans, answers, b).await?,
+            Transformer::Sync(transformer) => transformer(&ans, answers, b)?,
             _ => {
-                queue!(w, SetForegroundColor(Color::DarkCyan))?;
-                print_comma_separated(ans.iter().map(|item| item.name.as_str()), w)?;
+                b.set_fg(Color::Cyan)?;
+                print_comma_separated(ans.iter().map(|item| item.name.as_str()), b)?;
+                b.set_fg(Color::Reset)?;
 
-                w.write_all(b"\n")?;
-                execute!(w, ResetColor)?;
+                b.write_all(b"\n")?;
+                b.flush()?;
             }
         }
 
@@ -294,7 +313,11 @@ impl<'m, 'w, 'f, 'v, 't> CheckboxBuilder<'m, 'w, 'f, 'v, 't> {
         self.choice_with_default(choice, false)
     }
 
-    pub fn choice_with_default<I: Into<String>>(mut self, choice: I, default: bool) -> Self {
+    pub fn choice_with_default<I: Into<String>>(
+        mut self,
+        choice: I,
+        default: bool,
+    ) -> Self {
         self.checkbox
             .choices
             .choices
@@ -427,16 +450,16 @@ impl super::Question<'static, 'static, 'static, 'static, 'static> {
     }
 }
 
-fn print_comma_separated<'a, W: io::Write>(
+fn print_comma_separated<'a, B: Backend>(
     iter: impl Iterator<Item = &'a str>,
-    w: &mut W,
+    b: &mut B,
 ) -> io::Result<()> {
     let mut iter = iter.peekable();
 
     while let Some(item) = iter.next() {
-        w.write_all(item.as_bytes())?;
+        b.write_all(item.as_bytes())?;
         if iter.peek().is_some() {
-            w.write_all(b", ")?;
+            b.write_all(b", ")?;
         }
     }
 

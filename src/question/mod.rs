@@ -12,13 +12,14 @@ mod password;
 mod plugin;
 mod rawlist;
 
-use crate::{error, Answer, Answers};
+use crate::{Answer, Answers};
 pub use choice::Choice;
 use choice::{get_sep_str, ChoiceList};
 use options::Options;
 pub use plugin::Plugin;
+use ui::{backend::Backend, error};
 
-use std::{fmt, future::Future, io::prelude::*, pin::Pin};
+use std::{fmt, future::Future, pin::Pin};
 
 #[derive(Debug)]
 pub struct Question<'m, 'w, 'f, 'v, 't> {
@@ -27,13 +28,16 @@ pub struct Question<'m, 'w, 'f, 'v, 't> {
 }
 
 impl<'m, 'w, 'f, 'v, 't> Question<'m, 'w, 'f, 'v, 't> {
-    fn new(opts: Options<'m, 'w>, kind: QuestionKind<'f, 'v, 't>) -> Self {
+    pub(crate) fn new(
+        opts: Options<'m, 'w>,
+        kind: QuestionKind<'f, 'v, 't>,
+    ) -> Self {
         Self { opts, kind }
     }
 }
 
 #[derive(Debug)]
-enum QuestionKind<'f, 'v, 't> {
+pub(crate) enum QuestionKind<'f, 'v, 't> {
     Input(input::Input<'f, 'v, 't>),
     Int(number::Int<'f, 'v, 't>),
     Float(number::Float<'f, 'v, 't>),
@@ -49,10 +53,11 @@ enum QuestionKind<'f, 'v, 't> {
 }
 
 impl Question<'_, '_, '_, '_, '_> {
-    pub(crate) fn ask<W: Write>(
+    pub(crate) fn ask<B: Backend>(
         mut self,
         answers: &Answers,
-        w: &mut W,
+        b: &mut B,
+        events: &mut ui::events::Events,
     ) -> error::Result<Option<(String, Answer)>> {
         if (!self.opts.ask_if_answered && answers.contains_key(&self.opts.name))
             || !self.opts.when.get(answers)
@@ -68,27 +73,28 @@ impl Question<'_, '_, '_, '_, '_> {
             .unwrap_or_else(|| name.clone() + ":");
 
         let res = match self.kind {
-            QuestionKind::Input(i) => i.ask(message, answers, w)?,
-            QuestionKind::Int(i) => i.ask(message, answers, w)?,
-            QuestionKind::Float(f) => f.ask(message, answers, w)?,
-            QuestionKind::Confirm(c) => c.ask(message, answers, w)?,
-            QuestionKind::List(l) => l.ask(message, answers, w)?,
-            QuestionKind::Rawlist(r) => r.ask(message, answers, w)?,
-            QuestionKind::Expand(e) => e.ask(message, answers, w)?,
-            QuestionKind::Checkbox(c) => c.ask(message, answers, w)?,
-            QuestionKind::Password(p) => p.ask(message, answers, w)?,
-            QuestionKind::Editor(e) => e.ask(message, answers, w)?,
-            QuestionKind::Plugin(ref mut o) => o.ask(message, answers, w)?,
+            QuestionKind::Input(i) => i.ask(message, answers, b, events)?,
+            QuestionKind::Int(i) => i.ask(message, answers, b, events)?,
+            QuestionKind::Float(f) => f.ask(message, answers, b, events)?,
+            QuestionKind::Confirm(c) => c.ask(message, answers, b, events)?,
+            QuestionKind::List(l) => l.ask(message, answers, b, events)?,
+            QuestionKind::Rawlist(r) => r.ask(message, answers, b, events)?,
+            QuestionKind::Expand(e) => e.ask(message, answers, b, events)?,
+            QuestionKind::Checkbox(c) => c.ask(message, answers, b, events)?,
+            QuestionKind::Password(p) => p.ask(message, answers, b, events)?,
+            QuestionKind::Editor(e) => e.ask(message, answers, b, events)?,
+            QuestionKind::Plugin(ref mut o) => o.ask(message, answers, b, events)?,
         };
 
         Ok(Some((name, res)))
     }
 
     crate::cfg_async! {
-    pub(crate) async fn ask_async<W: Write>(
+    pub(crate) async fn ask_async<B: Backend>(
         mut self,
         answers: &Answers,
-        w: &mut W,
+        b: &mut B,
+        events: &mut ui::events::AsyncEvents,
     ) -> error::Result<Option<(String, Answer)>> {
         if (!self.opts.ask_if_answered && answers.contains_key(&self.opts.name))
             || !self.opts.when.get(answers)
@@ -104,17 +110,17 @@ impl Question<'_, '_, '_, '_, '_> {
             .unwrap_or_else(|| name.clone() + ":");
 
         let res = match self.kind {
-            QuestionKind::Input(i) => i.ask_async(message, answers, w).await?,
-            QuestionKind::Int(i) => i.ask_async(message, answers, w).await?,
-            QuestionKind::Float(f) => f.ask_async(message, answers, w).await?,
-            QuestionKind::Confirm(c) => c.ask_async(message, answers, w).await?,
-            QuestionKind::List(l) => l.ask_async(message, answers, w).await?,
-            QuestionKind::Rawlist(r) => r.ask_async(message, answers, w).await?,
-            QuestionKind::Expand(e) => e.ask_async(message, answers, w).await?,
-            QuestionKind::Checkbox(c) => c.ask_async(message, answers, w).await?,
-            QuestionKind::Password(p) => p.ask_async(message, answers, w).await?,
-            QuestionKind::Editor(e) => e.ask_async(message, answers, w).await?,
-            QuestionKind::Plugin(ref mut o) => o.ask_async(message, answers, w).await?,
+            QuestionKind::Input(i) => i.ask_async(message, answers, b, events).await?,
+            QuestionKind::Int(i) => i.ask_async(message, answers, b, events).await?,
+            QuestionKind::Float(f) => f.ask_async(message, answers, b, events).await?,
+            QuestionKind::Confirm(c) => c.ask_async(message, answers, b, events).await?,
+            QuestionKind::List(l) => l.ask_async(message, answers, b, events).await?,
+            QuestionKind::Rawlist(r) => r.ask_async(message, answers, b, events).await?,
+            QuestionKind::Expand(e) => e.ask_async(message, answers, b, events).await?,
+            QuestionKind::Checkbox(c) => c.ask_async(message, answers, b, events).await?,
+            QuestionKind::Password(p) => p.ask_async(message, answers, b, events).await?,
+            QuestionKind::Editor(e) => e.ask_async(message, answers, b, events).await?,
+            QuestionKind::Plugin(ref mut o) => o.ask_async(message, answers, b, events).await?,
         };
 
         Ok(Some((name, res)))
@@ -122,7 +128,8 @@ impl Question<'_, '_, '_, '_, '_> {
     }
 }
 
-type BoxFuture<'a, T> = Pin<Box<dyn Future<Output = T> + Send + Sync + 'a>>;
+pub(crate) type BoxFuture<'a, T> =
+    Pin<Box<dyn Future<Output = T> + Send + Sync + 'a>>;
 
 macro_rules! handler {
     ($name:ident, $fn_trait:ident ( $($type:ty),* ) -> $return:ty) => {
@@ -200,11 +207,11 @@ handler!(ValidateByVal, Fn(T, &Answers) -> Result<(), String>);
 // SAFETY: The type signature only contains &T
 handler!(
     Transformer, unsafe ?Sized
-    FnOnce(&T, &Answers, &mut dyn Write) -> error::Result<()>
+    FnOnce(&T, &Answers, &mut dyn Backend) -> error::Result<()>
 );
 handler!(
     TransformerByVal,
-    FnOnce(T, &Answers, &mut dyn Write) -> error::Result<()>
+    FnOnce(T, &Answers, &mut dyn Backend) -> error::Result<()>
 );
 
 #[doc(hidden)]
@@ -292,7 +299,7 @@ macro_rules! impl_transformer_builder {
         impl<$($pre_lifetime),*, 't, $($post_lifetime),*> $ty<$($pre_lifetime),*, 't, $($post_lifetime),*> {
             pub fn transformer<'a, F>(self, transformer: F) -> $ty<$($pre_lifetime),*, 'a, $($post_lifetime),*>
             where
-                F: FnOnce(&$t, &crate::Answers, &mut dyn std::io::Write) -> crate::error::Result<()> + Send + Sync + 'a,
+                F: FnOnce(&$t, &crate::Answers, &mut dyn Backend) -> ui::error::Result<()> + Send + Sync + 'a,
             {
                 let $self = self;
                 let $transformer = crate::question::Transformer::Sync(Box::new(transformer));
@@ -301,7 +308,7 @@ macro_rules! impl_transformer_builder {
 
             pub fn transformer_async<'a, F>(self, transformer: F) -> $ty<$($pre_lifetime),*, 'a, $($post_lifetime),*>
             where
-                F: FnOnce(&$t, &crate::Answers, &mut dyn std::io::Write) -> std::pin::Pin<Box<dyn std::future::Future<Output = crate::error::Result<()>> + Send + Sync + 'a>> + Send + Sync + 'a,
+                F: FnOnce(&$t, &crate::Answers, &mut dyn Backend) -> std::pin::Pin<Box<dyn std::future::Future<Output = ui::error::Result<()>> + Send + Sync + 'a>> + Send + Sync + 'a,
             {
                 let $self = self;
                 let $transformer = crate::question::Transformer::Async(Box::new(transformer));
@@ -315,7 +322,7 @@ macro_rules! impl_transformer_builder {
         impl<$($pre_lifetime),*, 't, $($post_lifetime),*> $ty<$($pre_lifetime),*, 't, $($post_lifetime),*> {
             pub fn transformer<'a, F>(self, transformer: F) -> $ty<$($pre_lifetime),*, 'a, $($post_lifetime),*>
             where
-                F: FnOnce($t, &crate::Answers, &mut dyn std::io::Write) -> crate::error::Result<()> + Send + Sync + 'a,
+                F: FnOnce($t, &crate::Answers, &mut dyn Backend) -> ui::error::Result<()> + Send + Sync + 'a,
             {
                 let $self = self;
                 let $transformer = crate::question::TransformerByVal::Sync(Box::new(transformer));
@@ -324,7 +331,7 @@ macro_rules! impl_transformer_builder {
 
             pub fn transformer_async<'a, F>(self, transformer: F) -> $ty<$($pre_lifetime),*, 'a, $($post_lifetime),*>
             where
-                F: FnOnce($t, &crate::Answers, &mut dyn std::io::Write) -> std::pin::Pin<Box<dyn std::future::Future<Output = crate::error::Result<()>> + Send + Sync + 'a>> + Send + Sync + 'a,
+                F: FnOnce($t, &crate::Answers, &mut dyn Backend) -> std::pin::Pin<Box<dyn std::future::Future<Output = ui::error::Result<()>> + Send + Sync + 'a>> + Send + Sync + 'a,
             {
                 let $self = self;
                 let $transformer = crate::question::TransformerByVal::Async(Box::new(transformer));

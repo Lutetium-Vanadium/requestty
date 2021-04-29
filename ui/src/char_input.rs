@@ -1,12 +1,12 @@
-use std::{fmt, io::Write};
-
-use crossterm::event;
-
-use crate::widget::Widget;
+use crate::{
+    backend::Backend,
+    error,
+    events::{KeyCode, KeyEvent},
+};
 
 /// A widget that inputs a single character. If multiple characters are inputted to it, it will have
 /// the last character
-pub struct CharInput<F = crate::widgets::FilterMapChar> {
+pub struct CharInput<F = super::widgets::FilterMapChar> {
     value: Option<char>,
     filter_map_char: F,
 }
@@ -40,14 +40,14 @@ where
     }
 }
 
-impl<F> Widget for CharInput<F>
+impl<F> super::Widget for CharInput<F>
 where
     F: Fn(char) -> Option<char>,
 {
     /// Handles character, backspace and delete events.
-    fn handle_key(&mut self, key: event::KeyEvent) -> bool {
+    fn handle_key(&mut self, key: KeyEvent) -> bool {
         match key.code {
-            event::KeyCode::Char(c) => {
+            KeyCode::Char(c) => {
                 if let Some(c) = (self.filter_map_char)(c) {
                     self.value = Some(c);
 
@@ -57,7 +57,7 @@ where
                 false
             }
 
-            event::KeyCode::Backspace | event::KeyCode::Delete if self.value.is_some() => {
+            KeyCode::Backspace | KeyCode::Delete if self.value.is_some() => {
                 self.value = None;
                 true
             }
@@ -66,13 +66,17 @@ where
         }
     }
 
-    fn render<W: Write>(&mut self, max_width: usize, w: &mut W) -> crossterm::Result<()> {
+    fn render<B: Backend>(
+        &mut self,
+        max_width: usize,
+        backend: &mut B,
+    ) -> error::Result<()> {
         if let Some(value) = self.value {
             if max_width == 0 {
-                return Err(fmt::Error.into());
+                return Err(std::fmt::Error.into());
             }
 
-            write!(w, "{}", value)?;
+            write!(backend, "{}", value)?;
         }
         Ok(())
     }
@@ -88,6 +92,6 @@ where
 
 impl Default for CharInput {
     fn default() -> Self {
-        Self::new(crate::widgets::no_filter)
+        Self::new(super::widgets::no_filter)
     }
 }
