@@ -2,14 +2,18 @@ use crate::error;
 
 pub fn get_backend<W: std::io::Write>(buf: W) -> error::Result<impl Backend> {
     #[cfg(feature = "crossterm")]
-    CrosstermBackend::new(buf)
+    type Backend<W> = CrosstermBackend<W>;
+    #[cfg(feature = "termion")]
+    type Backend<W> = TermionBackend<W>;
+
+    Backend::new(buf)
 }
 
 mod style;
-// #[cfg(feature = "termion")]
-// mod termion;
-// #[cfg(feature = "termion")]
-// pub use self::termion::TermionBackend;
+#[cfg(feature = "termion")]
+mod termion;
+#[cfg(feature = "termion")]
+pub use self::termion::TermionBackend;
 
 #[cfg(feature = "crossterm")]
 mod crossterm;
@@ -85,6 +89,12 @@ fn default_move_cursor<B: Backend + ?Sized>(
     backend: &mut B,
     direction: MoveDirection,
 ) -> error::Result<()> {
+    // There are a lot of `MoveDirection::NextLine(1)`, so this will slightly speed up
+    // the rendering process as the cursor doesn't need to be gotten every time
+    if let MoveDirection::NextLine(1) = direction {
+        return write!(backend, "\n\r").map_err(Into::into);
+    }
+
     let (mut x, mut y) = backend.get_cursor()?;
 
     match direction {

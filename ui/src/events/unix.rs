@@ -30,7 +30,6 @@ impl AsyncEvents {
         })
     }
 
-    // #[cfg_attr(feature = "tokio", allow(clippy::unnecessary_wraps))]
     #[cfg(feature = "tokio")]
     fn try_get_events(&mut self, cx: &mut Context<'_>) -> std::io::Result<()> {
         #[cfg(nightly)]
@@ -45,7 +44,7 @@ impl AsyncEvents {
 
         let tty = Pin::new(&mut self.tty);
 
-        if tty.poll_read(cx, &mut buf[..]).is_ready() {
+        if tty.poll_read(cx, &mut buf).is_ready() {
             self.parser.advance(buf.filled(), buf.remaining() == 0);
         }
 

@@ -1,5 +1,6 @@
-use crate::error;
 use crossterm::event;
+
+use crate::error;
 
 pub fn next_event() -> error::Result<super::KeyEvent> {
     loop {

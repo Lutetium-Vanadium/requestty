@@ -194,12 +194,16 @@ impl<P: Prompt, B: Backend> Input<P, B> {
                     if e.modifiers.contains(KeyModifiers::CONTROL) =>
                 {
                     self.exit()?;
+                    // The exit handler does not return the never (`!`) type, as a
+                    // custom exit handler does not have to exit the program
                     return Err(
                         io::Error::new(io::ErrorKind::Other, "CTRL+C").into()
                     );
                 }
                 KeyCode::Null => {
                     self.exit()?;
+                    // The exit handler does not return the never (`!`) type, as a
+                    // custom exit handler does not have to exit the program
                     return Err(
                         io::Error::new(io::ErrorKind::UnexpectedEof, "EOF").into()
                     );
@@ -234,6 +238,9 @@ impl<P, B: Backend> Input<P, B> {
     #[allow(clippy::new_ret_no_self)]
     /// Creates a new Input
     pub fn new(prompt: P, backend: &mut B) -> Input<P, &mut B> {
+        // The method doesn't return self directly, as its always used with a `&mut B`,
+        // and this tells the compiler that it doesn't need to consume the `&mut B`, but
+        // once the Input goes out of scope, it can be used again
         Input {
             prompt,
             backend,

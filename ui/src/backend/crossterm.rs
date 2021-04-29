@@ -1,4 +1,7 @@
-use std::io::{self, Write};
+use std::{
+    cmp::Ordering,
+    io::{self, Write},
+};
 
 use crossterm::{
     cursor, queue,
@@ -75,12 +78,16 @@ impl<W: Write> Backend for CrosstermBackend<W> {
     }
 
     fn scroll(&mut self, dist: i32) -> error::Result<()> {
-        if dist >= 0 {
-            queue!(self.buffer, terminal::ScrollDown(dist as u16))?;
-        } else {
-            queue!(self.buffer, terminal::ScrollUp(-dist as u16))?;
+        match dist.cmp(&0) {
+            Ordering::Greater => {
+                queue!(self.buffer, terminal::ScrollDown(dist as u16))
+            }
+            Ordering::Less => {
+                queue!(self.buffer, terminal::ScrollUp(-dist as u16))
+            }
+            Ordering::Equal => Ok(()),
         }
-        Ok(())
+        .map_err(Into::into)
     }
 
     fn set_attributes(&mut self, attributes: Attributes) -> error::Result<()> {

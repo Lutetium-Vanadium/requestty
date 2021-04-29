@@ -1,3 +1,6 @@
+#[cfg(feature = "termion")]
+use std::io::{stdin, Stdin};
+
 use crate::error;
 
 crate::cfg_async! {
@@ -14,6 +17,8 @@ pub use win::AsyncEvents;
 
 #[cfg(feature = "crossterm")]
 mod crossterm;
+#[cfg(feature = "termion")]
+mod termion;
 
 bitflags::bitflags! {
     /// Represents key modifiers (shift, control, alt).
@@ -93,20 +98,44 @@ pub enum KeyCode {
     Esc,
 }
 
-#[derive(Default)]
-pub struct Events {}
+pub struct Events {
+    #[cfg(feature = "termion")]
+    events: ::termion::input::Keys<Stdin>,
+}
 
 impl Events {
+    #[cfg(feature = "termion")]
+    pub fn new() -> Self {
+        #[rustfmt::skip]
+        use ::termion::input::TermRead;
+
+        Self {
+            events: stdin().keys(),
+        }
+    }
+
+    #[cfg(not(feature = "termion"))]
     pub fn new() -> Self {
         Self {}
+    }
+}
+
+impl Default for Events {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
 impl Iterator for Events {
     type Item = error::Result<KeyEvent>;
 
+    #[cfg(feature = "crossterm")]
     fn next(&mut self) -> Option<Self::Item> {
-        #[cfg(feature = "crossterm")]
         Some(self::crossterm::next_event())
+    }
+
+    #[cfg(feature = "termion")]
+    fn next(&mut self) -> Option<Self::Item> {
+        Some(self::termion::next_event(&mut self.events))
     }
 }
