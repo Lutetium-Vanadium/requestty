@@ -14,9 +14,6 @@ futures = { version = "0.3", optional = true }
 
 crossterm = { version = "0.19", optional = true }
 termion = { version = "1.5", optional = true }
-# TODO: add all of these
-# easycurses = { version = "0.12", optional = true }
-# pancurses = { version = "0.16", optional = true, features = ["win32a"] }
 
 # The following dependencies are renamed in the form `<dep-name>-dep` to allow
 # a feature name with the same name to be present. This is necessary since
@@ -27,7 +24,6 @@ async-std-dep = { package = "async-std", version = "1.9", optional = true, featu
 
 [features]
 default = []
-# curses = ["easycurses", "pancurses"]
 tokio = ["tokio-dep", "async-trait", "futures", "anes"]
 smol = ["smol-dep", "async-trait", "futures", "anes"]
 async-std = ["async-std-dep", "async-trait", "futures", "anes"]

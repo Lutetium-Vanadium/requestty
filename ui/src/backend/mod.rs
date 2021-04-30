@@ -20,11 +20,6 @@ mod crossterm;
 #[cfg(feature = "crossterm")]
 pub use self::crossterm::CrosstermBackend;
 
-// #[cfg(feature = "curses")]
-// mod curses;
-// #[cfg(feature = "curses")]
-// pub use self::curses::CursesBackend;
-
 pub use style::*;
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy, Hash, Default)]

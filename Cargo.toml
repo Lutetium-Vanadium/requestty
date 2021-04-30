@@ -30,7 +30,6 @@ async-std-dep = { package = "async-std", version = "1.9", optional = true, featu
 default = ["crossterm", "ahash"]
 crossterm = ["ui/crossterm"]
 termion = ["ui/termion"]
-# curses = ["ui/curses"]
 tokio = ["tokio-dep", "async-trait", "ui/tokio"]
 smol = ["smol-dep", "async-trait", "ui/smol"]
 async-std = ["async-std-dep", "async-trait", "ui/async-std"]
