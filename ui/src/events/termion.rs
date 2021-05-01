@@ -34,6 +34,10 @@ impl TryFrom<event::Key> for super::KeyEvent {
             event::Key::F(n) => super::KeyCode::F(n).into(),
             event::Key::Char('\n') => super::KeyCode::Enter.into(),
             event::Key::Char('\t') => super::KeyCode::Tab.into(),
+            event::Key::Char(c @ 'A'..='Z') => super::KeyEvent::new(
+                super::KeyCode::Char(c),
+                super::KeyModifiers::SHIFT,
+            ),
             event::Key::Char(c) => super::KeyCode::Char(c).into(),
             event::Key::Alt(c) => parse_char(c, super::KeyModifiers::ALT)?,
             event::Key::Ctrl(c) => parse_char(c, super::KeyModifiers::CONTROL)?,
@@ -85,6 +89,10 @@ fn parse_char(
             event::Key::F(n) => break super::KeyCode::F(n),
             event::Key::Char('\n') => break super::KeyCode::Enter,
             event::Key::Char('\t') => break super::KeyCode::Tab,
+            event::Key::Char(c @ 'A'..='Z') => {
+                modifiers |= super::KeyModifiers::SHIFT;
+                break super::KeyCode::Char(c);
+            }
             event::Key::Char(c) => break super::KeyCode::Char(c),
             event::Key::Alt(new_c) => {
                 modifiers |= super::KeyModifiers::ALT;

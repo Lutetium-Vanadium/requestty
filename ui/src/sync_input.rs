@@ -159,7 +159,7 @@ impl<P: Prompt, B: Backend> Input<P, B> {
 
     pub(super) fn exit(&mut self) -> error::Result<()> {
         self.backend
-            .set_cursor(0, self.base_row + self.prompt.height() as u16)?;
+            .set_cursor(0, self.base_row + 1 + self.prompt.height() as u16)?;
         self.reset_terminal()?;
         super::exit();
         Ok(())

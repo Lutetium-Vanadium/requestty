@@ -9,7 +9,7 @@ use unicode_segmentation::UnicodeSegmentation;
 use crate::{
     backend::Backend,
     error,
-    events::{KeyCode, KeyEvent, KeyModifiers},
+    events::{KeyCode, KeyEvent, KeyModifiers, Movement},
 };
 
 /// A widget that inputs a line of text
@@ -125,6 +125,45 @@ impl<F> StringInput<F> {
             .map(|(new_byte_i, _)| new_byte_i + byte_i)
             .unwrap_or_else(|| self.value.len())
     }
+
+    fn is_delete_movement(&self, key: KeyEvent) -> Option<Movement> {
+        let mov = match key.code {
+            KeyCode::Backspace if self.at == 0 => return None,
+            KeyCode::Char('u') if key.modifiers.contains(KeyModifiers::CONTROL) => {
+                Movement::Home
+            }
+            KeyCode::Backspace if key.modifiers.contains(KeyModifiers::ALT) => {
+                Movement::PrevWord
+            }
+            KeyCode::Char('w') if key.modifiers.contains(KeyModifiers::ALT) => {
+                Movement::PrevWord
+            }
+            KeyCode::Char('w') if key.modifiers.contains(KeyModifiers::CONTROL) => {
+                Movement::Left
+            }
+            KeyCode::Backspace => Movement::Left,
+
+            KeyCode::Delete if self.at == self.value_len => return None,
+            KeyCode::Char('k') if key.modifiers.contains(KeyModifiers::CONTROL) => {
+                Movement::End
+            }
+
+            KeyCode::Delete if key.modifiers.contains(KeyModifiers::ALT) => {
+                Movement::NextWord
+            }
+            KeyCode::Char('d') if key.modifiers.contains(KeyModifiers::ALT) => {
+                Movement::NextWord
+            }
+            KeyCode::Char('d') if key.modifiers.contains(KeyModifiers::CONTROL) => {
+                Movement::Right
+            }
+            KeyCode::Delete => Movement::Right,
+
+            _ => return None,
+        };
+
+        Some(mov)
+    }
 }
 
 impl<F> super::Widget for StringInput<F>
@@ -133,41 +172,73 @@ where
 {
     /// Handles characters, backspace, delete, left arrow, right arrow, home and end.
     fn handle_key(&mut self, key: KeyEvent) -> bool {
+        if let Some(movement) = self.is_delete_movement(key) {
+            match movement {
+                Movement::Home => {
+                    let byte_i = self.get_byte_i(self.at);
+                    self.value_len -= self.at;
+                    self.at = 0;
+                    self.value.replace_range(..byte_i, "");
+                    return true;
+                }
+                Movement::PrevWord => {
+                    let was_at = self.at;
+                    let byte_i = self.get_byte_i(self.at);
+                    let prev_word = self.find_word_left(byte_i);
+                    self.at = self.get_char_i(prev_word);
+                    self.value_len -= was_at - self.at;
+                    self.value.replace_range(prev_word..byte_i, "");
+                    return true;
+                }
+                Movement::Left if self.at == self.value_len => {
+                    self.at -= 1;
+                    self.value_len -= 1;
+                    self.value.pop();
+                    return true;
+                }
+                Movement::Left => {
+                    self.at -= 1;
+                    let byte_i = self.get_byte_i(self.at);
+                    self.value_len -= 1;
+                    self.value.remove(byte_i);
+                    return true;
+                }
+
+                Movement::End => {
+                    let byte_i = self.get_byte_i(self.at);
+                    self.value_len = self.at;
+                    self.value.truncate(byte_i);
+                    return true;
+                }
+                Movement::NextWord => {
+                    let byte_i = self.get_byte_i(self.at);
+                    let next_word = self.find_word_right(byte_i);
+                    self.value_len -= self.get_char_i(next_word) - self.at;
+                    self.value.replace_range(byte_i..next_word, "");
+                    return true;
+                }
+                Movement::Right if self.at == self.value_len - 1 => {
+                    self.value_len -= 1;
+                    self.value.pop();
+                    return true;
+                }
+                Movement::Right => {
+                    let byte_i = self.get_byte_i(self.at);
+                    self.value_len -= 1;
+                    self.value.remove(byte_i);
+                    return true;
+                }
+
+                _ => {}
+            }
+        }
+
         match key.code {
-            KeyCode::Left
-                if self.at != 0
-                    && key
-                        .modifiers
-                        .intersects(KeyModifiers::CONTROL | KeyModifiers::ALT) =>
+            KeyCode::Char(c)
+                if !key
+                    .modifiers
+                    .intersects(KeyModifiers::CONTROL | KeyModifiers::ALT) =>
             {
-                self.at =
-                    self.get_char_i(self.find_word_left(self.get_byte_i(self.at)));
-            }
-            KeyCode::Left if self.at != 0 => {
-                self.at -= 1;
-            }
-
-            KeyCode::Right
-                if self.at != self.value_len
-                    && key
-                        .modifiers
-                        .intersects(KeyModifiers::CONTROL | KeyModifiers::ALT) =>
-            {
-                self.at =
-                    self.get_char_i(self.find_word_right(self.get_byte_i(self.at)));
-            }
-            KeyCode::Right if self.at != self.value_len => {
-                self.at += 1;
-            }
-
-            KeyCode::Home if self.at != 0 => {
-                self.at = 0;
-            }
-            KeyCode::End if self.at != self.value_len => {
-                self.at = self.value_len;
-            }
-
-            KeyCode::Char(c) if !key.modifiers.contains(KeyModifiers::CONTROL) => {
                 if let Some(c) = (self.filter_map_char)(c) {
                     if self.at == self.value_len {
                         self.value.push(c);
@@ -178,49 +249,36 @@ where
 
                     self.at += 1;
                     self.value_len += 1;
-                } else {
-                    return false;
+                    return true;
                 }
             }
 
-            KeyCode::Backspace if self.at == 0 => {}
-            KeyCode::Backspace if key.modifiers.contains(KeyModifiers::ALT) => {
-                let was_at = self.at;
-                let byte_i = self.get_byte_i(self.at);
-                let prev_word = self.find_word_left(byte_i);
-                self.at = self.get_char_i(prev_word);
-                self.value_len -= was_at - self.at;
-                self.value.replace_range(prev_word..byte_i, "");
+            _ => {}
+        }
+
+        match Movement::try_from_key(key) {
+            Some(Movement::PrevWord) if self.at != 0 => {
+                self.at =
+                    self.get_char_i(self.find_word_left(self.get_byte_i(self.at)));
             }
-            KeyCode::Backspace if self.at == self.value_len => {
+            Some(Movement::Left) if self.at != 0 => {
                 self.at -= 1;
-                self.value_len -= 1;
-                self.value.pop();
-            }
-            KeyCode::Backspace => {
-                self.at -= 1;
-                let byte_i = self.get_byte_i(self.at);
-                self.value_len -= 1;
-                self.value.remove(byte_i);
             }
 
-            KeyCode::Delete if self.at == self.value_len => {}
-            KeyCode::Delete if key.modifiers.contains(KeyModifiers::ALT) => {
-                let byte_i = self.get_byte_i(self.at);
-                let next_word = self.find_word_right(byte_i);
-                self.value_len -= self.get_char_i(next_word) - self.at;
-                self.value.replace_range(byte_i..next_word, "");
+            Some(Movement::NextWord) if self.at != self.value_len => {
+                self.at =
+                    self.get_char_i(self.find_word_right(self.get_byte_i(self.at)));
             }
-            KeyCode::Delete if self.at == self.value_len - 1 => {
-                self.value_len -= 1;
-                self.value.pop();
-            }
-            KeyCode::Delete => {
-                let byte_i = self.get_byte_i(self.at);
-                self.value_len -= 1;
-                self.value.remove(byte_i);
+            Some(Movement::Right) if self.at != self.value_len => {
+                self.at += 1;
             }
 
+            Some(Movement::Home) if self.at != 0 => {
+                self.at = 0;
+            }
+            Some(Movement::End) if self.at != self.value_len => {
+                self.at = self.value_len;
+            }
             _ => return false,
         }
 

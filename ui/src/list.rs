@@ -1,7 +1,7 @@
 use crate::{
     backend::{Backend, MoveDirection, Stylize},
     error,
-    events::{KeyCode, KeyEvent},
+    events::{KeyEvent, Movement},
 };
 
 /// A trait to represent a renderable list
@@ -74,9 +74,9 @@ impl<L: List> ListPicker<L> {
     /// Set the index of the element that is currently being hovered
     pub fn set_at(&mut self, at: usize) {
         let dir = if self.at > self.list.len() || self.at < at {
-            Direction::Down
+            Movement::Down
         } else {
-            Direction::Up
+            Movement::Up
         };
 
         self.at = at;
@@ -138,7 +138,7 @@ impl<L: List> ListPicker<L> {
         self.list.len() > self.list.page_size()
     }
 
-    fn adjust_page_start(&mut self, moved: Direction) {
+    fn adjust_page_start(&mut self, moved: Movement) {
         // Check whether at is within second and second last element of the page
         if self.at <= self.page_start
             || self.at >= self.page_start + self.list.page_size() - 2
@@ -146,22 +146,23 @@ impl<L: List> ListPicker<L> {
             self.page_start = match moved {
                 // At end of the list, but shouldn't loop, so the last element should be at the end
                 // of the page
-                Direction::Down
+                Movement::Down
                     if !self.list.should_loop()
                         && self.at == self.list.len() - 1 =>
                 {
                     self.list.len() - self.list.page_size() + 1
                 }
                 // Make sure cursor is at second last element of the page
-                Direction::Down => {
+                Movement::Down => {
                     (self.list.len() + self.at + 3 - self.list.page_size())
                         % self.list.len()
                 }
                 // At start of the list, but shouldn't loop, so the first element should be at the
                 // start of the page
-                Direction::Up if !self.list.should_loop() && self.at == 0 => 0,
+                Movement::Up if !self.list.should_loop() && self.at == 0 => 0,
                 // Make sure cursor is at second element of the page
-                Direction::Up => (self.at + self.list.len() - 1) % self.list.len(),
+                Movement::Up => (self.at + self.list.len() - 1) % self.list.len(),
+                _ => unreachable!(),
             }
         }
     }
@@ -183,58 +184,59 @@ impl<L: List> ListPicker<L> {
 }
 
 impl<L: List> super::Widget for ListPicker<L> {
-    /// It handles the following keys:
-    /// - Up and 'k' to move up to the previous selectable element
-    /// - Down and 'j' to move up to the next selectable element
-    /// - Home, PageUp and 'g' to go to the first selectable element
-    /// - End, PageDown and 'G' to go to the last selectable element
+    /// It handles the `Up`, `Down`, `Home`, `End`, `PageUp` and `PageDown` [`Movements`].
     fn handle_key(&mut self, key: KeyEvent) -> bool {
-        let moved = match key.code {
-            KeyCode::Up | KeyCode::Char('k') => {
+        let movement = match Movement::try_from_key(key) {
+            Some(movement) => movement,
+            None => return false,
+        };
+
+        let moved = match movement {
+            Movement::Up => {
                 self.at = self.prev_selectable();
-                Direction::Up
+                Movement::Up
             }
-            KeyCode::Down | KeyCode::Char('j') => {
+            Movement::Down => {
                 self.at = self.next_selectable();
-                Direction::Down
+                Movement::Down
             }
 
-            KeyCode::PageUp
+            Movement::PageUp
                 if !self.is_paginating() // No pagination, PageUp is same as Home
                     // No looping, and first item is shown in this page
                     || (!self.list.should_loop() && self.at + 2 < self.list.page_size()) =>
             {
                 self.at = self.first_selectable;
-                Direction::Up
+                Movement::Up
             }
-            KeyCode::PageUp => {
+            Movement::PageUp => {
                 self.at = (self.list.len() + self.at + 2 - self.list.page_size())
                     % self.list.len();
                 self.at = self.next_selectable();
-                Direction::Up
+                Movement::Up
             }
 
-            KeyCode::PageDown
+            Movement::PageDown
                 if !self.is_paginating() // No pagination, PageDown same as End
                     || (!self.list.should_loop() // No looping and last item is shown in this page
                         && self.at + self.list.page_size() - 2 >= self.list.len()) =>
             {
                 self.at = self.last_selectable;
-                Direction::Down
+                Movement::Down
             }
-            KeyCode::PageDown => {
+            Movement::PageDown => {
                 self.at = (self.at + self.list.page_size() - 2) % self.list.len();
                 self.at = self.prev_selectable();
-                Direction::Down
+                Movement::Down
             }
 
-            KeyCode::Home | KeyCode::Char('g') if self.at != 0 => {
+            Movement::Home if self.at != self.first_selectable => {
                 self.at = self.first_selectable;
-                Direction::Up
+                Movement::Up
             }
-            KeyCode::End | KeyCode::Char('G') if self.at != self.list.len() - 1 => {
+            Movement::End if self.at != self.last_selectable => {
                 self.at = self.last_selectable;
-                Direction::Down
+                Movement::Down
             }
 
             _ => return false,
@@ -288,9 +290,4 @@ impl<L: List> super::Widget for ListPicker<L> {
     fn height(&self) -> usize {
         self.list.len().min(self.list.page_size())
     }
-}
-
-enum Direction {
-    Up,
-    Down,
 }

@@ -59,13 +59,18 @@ impl<P: AsyncPrompt + Send, B: Backend + Unpin> Input<P, B> {
 
         loop {
             let e = events.next().await.unwrap()?;
+
             let key_handled = match e.code {
                 KeyCode::Char('c') if e.modifiers.contains(KeyModifiers::CONTROL) => {
                     self.exit()?;
+                    // The exit handler does not return the never (`!`) type, as a
+                    // custom exit handler does not have to exit the program
                     return Err(io::Error::new(io::ErrorKind::Other, "CTRL+C").into());
                 }
                 KeyCode::Null => {
                     self.exit()?;
+                    // The exit handler does not return the never (`!`) type, as a
+                    // custom exit handler does not have to exit the program
                     return Err(io::Error::new(io::ErrorKind::UnexpectedEof, "EOF").into());
                 }
                 KeyCode::Esc if self.prompt.has_default() => {
