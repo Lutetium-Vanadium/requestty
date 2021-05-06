@@ -32,28 +32,28 @@ use ui::{
     error, Validation, Widget,
 };
 
-use super::{Filter, Options, Transformer, Validate};
+use super::{Filter, Options, Transform, Validate};
 use crate::{Answer, Answers};
 
 #[derive(Debug)]
 pub struct Editor<'f, 'v, 't> {
-    postfix: Option<String>,
+    extension: Option<String>,
     default: Option<String>,
     editor: OsString,
     filter: Filter<'f, String>,
     validate: Validate<'v, str>,
-    transformer: Transformer<'t, str>,
+    transform: Transform<'t, str>,
 }
 
 impl Default for Editor<'static, 'static, 'static> {
     fn default() -> Self {
         Self {
             editor: get_editor(),
-            postfix: None,
+            extension: None,
             default: None,
             filter: Filter::None,
             validate: Validate::None,
-            transformer: Transformer::None,
+            transform: Transform::None,
         }
     }
 }
@@ -229,8 +229,8 @@ impl Editor<'_, '_, '_> {
     ) -> error::Result<Answer> {
         let mut builder = tempfile::Builder::new();
 
-        if let Some(ref postfix) = self.postfix {
-            builder.suffix(postfix);
+        if let Some(ref extension) = self.extension {
+            builder.suffix(extension);
         }
 
         let mut file = builder.tempfile()?;
@@ -241,7 +241,7 @@ impl Editor<'_, '_, '_> {
             file.flush()?;
         }
 
-        let transformer = self.transformer.take();
+        let transform = self.transform.take();
 
         let (file, path) = file.into_parts();
 
@@ -258,8 +258,8 @@ impl Editor<'_, '_, '_> {
         )
         .run(events)?;
 
-        match transformer {
-            Transformer::Sync(transformer) => transformer(&ans, answers, b)?,
+        match transform {
+            Transform::Sync(transform) => transform(&ans, answers, b)?,
             _ => {
                 b.write_styled("Received".dark_grey())?;
                 b.write_all(b"\n")?;
@@ -280,8 +280,8 @@ impl Editor<'_, '_, '_> {
     ) -> error::Result<Answer> {
         let mut builder = tempfile::Builder::new();
 
-        if let Some(ref postfix) = self.postfix {
-            builder.suffix(postfix);
+        if let Some(ref extension) = self.extension {
+            builder.suffix(extension);
         }
 
         let (file, path) = builder.tempfile()?.into_parts();
@@ -293,7 +293,7 @@ impl Editor<'_, '_, '_> {
             file.flush().await?;
         }
 
-        let transformer = self.transformer.take();
+        let transform = self.transform.take();
 
         let ans = ui::Input::new(EditorPromptAsync {
             message,
@@ -306,10 +306,10 @@ impl Editor<'_, '_, '_> {
         .run_async(events)
         .await?;
 
-        match transformer {
-            Transformer::Async(transformer) => transformer(&ans, answers, b).await?,
-            Transformer::Sync(transformer) => transformer(&ans, answers, b)?,
-            Transformer::None => {
+        match transform {
+            Transform::Async(transform) => transform(&ans, answers, b).await?,
+            Transform::Sync(transform) => transform(&ans, answers, b)?,
+            Transform::None => {
                 b.write_styled("Received".dark_grey())?;
                 b.write_all(b"\n")?;
                 b.flush()?;
@@ -326,14 +326,23 @@ pub struct EditorBuilder<'m, 'w, 'f, 'v, 't> {
     editor: Editor<'f, 'v, 't>,
 }
 
+impl EditorBuilder<'static, 'static, 'static, 'static, 'static> {
+    pub(crate) fn new(name: String) -> Self {
+        EditorBuilder {
+            opts: Options::new(name),
+            editor: Default::default(),
+        }
+    }
+}
+
 impl<'m, 'w, 'f, 'v, 't> EditorBuilder<'m, 'w, 'f, 'v, 't> {
     pub fn default<I: Into<String>>(mut self, default: I) -> Self {
         self.editor.default = Some(default.into());
         self
     }
 
-    pub fn postfix<I: Into<String>>(mut self, postfix: I) -> Self {
-        self.editor.postfix = Some(postfix.into());
+    pub fn extension<I: Into<String>>(mut self, extension: I) -> Self {
+        self.editor.extension = Some(extension.into());
         self
     }
 
@@ -363,10 +372,10 @@ crate::impl_filter_builder!(EditorBuilder<'m, 'w, f, 'v, 't> String; (this, filt
         editor: Editor {
             filter,
             editor: this.editor.editor,
-            postfix: this.editor.postfix,
+            extension: this.editor.extension,
             default: this.editor.default,
             validate: this.editor.validate,
-            transformer: this.editor.transformer,
+            transform: this.editor.transform,
         }
     }
 });
@@ -376,34 +385,23 @@ crate::impl_validate_builder!(EditorBuilder<'m, 'w, 'f, v, 't> str; (this, valid
         editor: Editor {
             validate,
             editor: this.editor.editor,
-            postfix: this.editor.postfix,
+            extension: this.editor.extension,
             default: this.editor.default,
             filter: this.editor.filter,
-            transformer: this.editor.transformer,
+            transform: this.editor.transform,
         }
     }
 });
-crate::impl_transformer_builder!(EditorBuilder<'m, 'w, 'f, 'v, t> str; (this, transformer) => {
+crate::impl_transform_builder!(EditorBuilder<'m, 'w, 'f, 'v, t> str; (this, transform) => {
     EditorBuilder {
         opts: this.opts,
         editor: Editor {
-            transformer,
+            transform,
             editor: this.editor.editor,
-            postfix: this.editor.postfix,
+            extension: this.editor.extension,
             validate: this.editor.validate,
             default: this.editor.default,
             filter: this.editor.filter,
         }
     }
 });
-
-impl super::Question<'static, 'static, 'static, 'static, 'static> {
-    pub fn editor<N: Into<String>>(
-        name: N,
-    ) -> EditorBuilder<'static, 'static, 'static, 'static, 'static> {
-        EditorBuilder {
-            opts: Options::new(name.into()),
-            editor: Default::default(),
-        }
-    }
-}

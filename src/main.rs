@@ -1,6 +1,6 @@
 // TODO: delete
 // this is a temporary file, for testing out the prompts
-use inquisition::{Question, Separator};
+use inquisition::{DefaultSeparator, Question, Separator};
 use std::{array::IntoIter, env};
 
 fn main() {
@@ -41,7 +41,7 @@ fn main() {
                 .into(),
             Question::editor("b")
                 .message("editor 2")
-                .postfix(".rs")
+                .extension(".rs")
                 .into(),
         ],
 
@@ -50,24 +50,24 @@ fn main() {
                 .message("list 1")
                 .choices(IntoIter::new([
                     "0".into(),
-                    Separator(None),
+                    DefaultSeparator,
                     "1".into(),
                     "2".into(),
                     "3".into(),
-                    Separator(Some("== Hello separator".into())),
+                    Separator("== Hello separator".into()),
                 ]))
                 .default(3)
                 .into(),
             Question::list("b")
                 .message("list 2")
                 .choices(IntoIter::new([
-                    Separator(Some("=== TITLE BOI ===".into())),
+                    Separator("=== TITLE BOI ===".into()),
                     "hello worldssssss 1".into(),
                     "hello worldssssss 2".into(),
                     "hello worldssssss 3".into(),
                     "hello worldssssss 4".into(),
                     "hello worldssssss 5".into(),
-                    Separator(None),
+                    DefaultSeparator,
                     "hello worldssssss 6".into(),
                     "hello worldssssss 7".into(),
                     "hello worldssssss 8".into(),
@@ -91,13 +91,13 @@ fn main() {
             Question::checkbox("b")
                 .message("checkbox 2")
                 .choices(IntoIter::new([
-                    Separator(Some("=== TITLE BOI ===".into())),
+                    Separator("=== TITLE BOI ===".into()),
                     "hello worldssssss 1".into(),
                     "hello worldssssss 2".into(),
                     "hello worldssssss 3".into(),
                     "hello worldssssss 4".into(),
                     "hello worldssssss 5".into(),
-                    Separator(None),
+                    DefaultSeparator,
                     "hello worldssssss 6".into(),
                     "hello worldssssss 7".into(),
                     "hello worldssssss 8".into(),
@@ -112,24 +112,24 @@ fn main() {
                 .message("list 1")
                 .choices(IntoIter::new([
                     "0".into(),
-                    Separator(None),
+                    DefaultSeparator,
                     "1".into(),
                     "2".into(),
                     "3".into(),
-                    Separator(Some("== Hello separator".into())),
+                    Separator("== Hello separator".into()),
                 ]))
                 .default(2)
                 .into(),
             Question::rawlist("b")
                 .message("list 2")
                 .choices(IntoIter::new([
-                    Separator(Some("=== TITLE BOI ===".into())),
+                    Separator("=== TITLE BOI ===".into()),
                     "hello worldssssss 1".into(),
                     "hello worldssssss 2".into(),
                     "hello worldssssss 3".into(),
                     "hello worldssssss 4".into(),
                     "hello worldssssss 5".into(),
-                    Separator(None),
+                    DefaultSeparator,
                     "hello worldssssss 6".into(),
                     "hello worldssssss 7".into(),
                     "hello worldssssss 8".into(),
@@ -146,21 +146,18 @@ fn main() {
                     ('y', "Overwrite").into(),
                     ('a', "Overwrite this one and all next").into(),
                     ('d', "Show diff").into(),
-                    Separator(None),
+                    DefaultSeparator,
                     ('x', "Abort").into(),
                 ]))
                 .into(),
             Question::expand("b")
                 .message("expand 2")
-                .choices(IntoIter::new([
-                    ('a', "Name for a").into(),
-                    Separator(None),
-                    ('b', "Name for b").into(),
-                    ('c', "Name for c").into(),
-                    Separator(None),
-                    ('d', "Name for d").into(),
-                    Separator(Some("== Hello separator".into())),
-                ]))
+                .choice('a', "Name for a")
+                .default_separator()
+                .choices(IntoIter::new([('b', "Name for b"), ('c', "Name for c")]))
+                .default_separator()
+                .choice('d', "Name for d")
+                .separator("== Hello separator")
                 .default('b')
                 .into(),
         ],

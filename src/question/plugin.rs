@@ -34,22 +34,6 @@ impl<'p, P: Plugin + 'p> From<P> for Box<dyn Plugin + 'p> {
     }
 }
 
-impl Question<'static, 'static, 'static, 'static, 'static> {
-    pub fn plugin<'a, N, P>(
-        name: N,
-        plugin: P,
-    ) -> PluginBuilder<'static, 'static, 'a>
-    where
-        N: Into<String>,
-        P: Into<Box<dyn Plugin + 'a>>,
-    {
-        PluginBuilder {
-            opts: Options::new(name.into()),
-            plugin: plugin.into(),
-        }
-    }
-}
-
 crate::impl_options_builder!(PluginBuilder<'q>; (this, opts) => {
     PluginBuilder {
         opts,
@@ -57,8 +41,15 @@ crate::impl_options_builder!(PluginBuilder<'q>; (this, opts) => {
     }
 });
 
-impl<'m, 'w, 'q> PluginBuilder<'m, 'w, 'q> {
-    pub fn build(self) -> Question<'m, 'w, 'q, 'static, 'static> {
+impl<'m, 'w, 'p> PluginBuilder<'m, 'w, 'p> {
+    pub(crate) fn new(name: String, plugin: Box<dyn Plugin + 'p>) -> Self {
+        Self {
+            opts: Options::new(name),
+            plugin,
+        }
+    }
+
+    pub fn build(self) -> Question<'m, 'w, 'p, 'static, 'static> {
         Question::new(self.opts, QuestionKind::Plugin(self.plugin))
     }
 }

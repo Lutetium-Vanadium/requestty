@@ -7,7 +7,7 @@ use ui::{
     widgets, Prompt, Validation, Widget,
 };
 
-use super::{Choice, Filter, Options, Transformer, Validate};
+use super::{Choice, Filter, Options, Transform, Validate};
 use crate::{Answer, Answers, ListItem};
 
 #[derive(Debug, Default)]
@@ -16,7 +16,7 @@ pub struct Checkbox<'f, 'v, 't> {
     selected: Vec<bool>,
     filter: Filter<'f, Vec<bool>>,
     validate: Validate<'v, [bool]>,
-    transformer: Transformer<'t, [ListItem]>,
+    transform: Transform<'t, [ListItem]>,
 }
 
 struct CheckboxPrompt<'f, 'v, 't, 'a> {
@@ -220,7 +220,7 @@ impl Checkbox<'_, '_, '_> {
         b: &mut B,
         events: &mut ui::events::Events,
     ) -> error::Result<Answer> {
-        let transformer = self.transformer.take();
+        let transform = self.transform.take();
 
         let ans = ui::Input::new(
             CheckboxPrompt {
@@ -233,8 +233,8 @@ impl Checkbox<'_, '_, '_> {
         .hide_cursor()
         .run(events)?;
 
-        match transformer {
-            Transformer::Sync(transformer) => transformer(&ans, answers, b)?,
+        match transform {
+            Transform::Sync(transform) => transform(&ans, answers, b)?,
             _ => {
                 b.set_fg(Color::Cyan)?;
                 print_comma_separated(ans.iter().map(|item| item.name.as_str()), b)?;
@@ -256,7 +256,7 @@ impl Checkbox<'_, '_, '_> {
         b: &mut B,
         events: &mut ui::events::AsyncEvents,
     ) -> error::Result<Answer> {
-        let transformer = self.transformer.take();
+        let transform = self.transform.take();
 
         let ans = ui::Input::new(
             CheckboxPrompt {
@@ -270,9 +270,9 @@ impl Checkbox<'_, '_, '_> {
         .run_async(events)
         .await?;
 
-        match transformer {
-            Transformer::Async(transformer) => transformer(&ans, answers, b).await?,
-            Transformer::Sync(transformer) => transformer(&ans, answers, b)?,
+        match transform {
+            Transform::Async(transform) => transform(&ans, answers, b).await?,
+            Transform::Sync(transform) => transform(&ans, answers, b)?,
             _ => {
                 b.set_fg(Color::Cyan)?;
                 print_comma_separated(ans.iter().map(|item| item.name.as_str()), b)?;
@@ -294,17 +294,24 @@ pub struct CheckboxBuilder<'m, 'w, 'f, 'v, 't> {
 }
 
 impl<'m, 'w, 'f, 'v, 't> CheckboxBuilder<'m, 'w, 'f, 'v, 't> {
+    pub(crate) fn new(name: String) -> Self {
+        CheckboxBuilder {
+            opts: Options::new(name),
+            checkbox: Default::default(),
+        }
+    }
+
     pub fn separator<I: Into<String>>(mut self, text: I) -> Self {
         self.checkbox
             .choices
             .choices
-            .push(Choice::Separator(Some(text.into())));
+            .push(Choice::Separator(text.into()));
         self.checkbox.selected.push(false);
         self
     }
 
     pub fn default_separator(mut self) -> Self {
-        self.checkbox.choices.choices.push(Choice::Separator(None));
+        self.checkbox.choices.choices.push(Choice::DefaultSeparator);
         self.checkbox.selected.push(false);
         self
     }
@@ -365,6 +372,10 @@ impl<'m, 'w, 'f, 'v, 't> CheckboxBuilder<'m, 'w, 'f, 'v, 't> {
                     self.checkbox.choices.choices.push(Choice::Separator(s));
                     self.checkbox.selected.push(false);
                 }
+                Choice::DefaultSeparator => {
+                    self.checkbox.choices.choices.push(Choice::DefaultSeparator);
+                    self.checkbox.selected.push(false);
+                }
             }
         }
         self
@@ -407,7 +418,7 @@ crate::impl_filter_builder!(CheckboxBuilder<'m, 'w, f, 'v, 't> Vec<bool>; (this,
             filter,
             choices: this.checkbox.choices,
             validate: this.checkbox.validate,
-            transformer: this.checkbox.transformer,
+            transform: this.checkbox.transform,
             selected: this.checkbox.selected,
         }
     }
@@ -420,17 +431,17 @@ crate::impl_validate_builder!(CheckboxBuilder<'m, 'w, 'f, v, 't> [bool]; (this, 
             validate,
             choices: this.checkbox.choices,
             filter: this.checkbox.filter,
-            transformer: this.checkbox.transformer,
+            transform: this.checkbox.transform,
             selected: this.checkbox.selected,
         }
     }
 });
 
-crate::impl_transformer_builder!(CheckboxBuilder<'m, 'w, 'f, 'v, t> [ListItem]; (this, transformer) => {
+crate::impl_transform_builder!(CheckboxBuilder<'m, 'w, 'f, 'v, t> [ListItem]; (this, transform) => {
     CheckboxBuilder {
         opts: this.opts,
         checkbox: Checkbox {
-            transformer,
+            transform,
             choices: this.checkbox.choices,
             filter: this.checkbox.filter,
             validate: this.checkbox.validate,
@@ -438,17 +449,6 @@ crate::impl_transformer_builder!(CheckboxBuilder<'m, 'w, 'f, 'v, t> [ListItem]; 
         }
     }
 });
-
-impl super::Question<'static, 'static, 'static, 'static, 'static> {
-    pub fn checkbox<N: Into<String>>(
-        name: N,
-    ) -> CheckboxBuilder<'static, 'static, 'static, 'static, 'static> {
-        CheckboxBuilder {
-            opts: Options::new(name.into()),
-            checkbox: Default::default(),
-        }
-    }
-}
 
 fn print_comma_separated<'a, B: Backend>(
     iter: impl Iterator<Item = &'a str>,

@@ -5,7 +5,7 @@ use ui::{
     widgets, Validation, Widget,
 };
 
-use super::{Filter, Options, Transformer, Validate};
+use super::{Filter, Options, Transform, Validate};
 use crate::{Answer, Answers};
 
 #[derive(Debug, Default)]
@@ -13,7 +13,7 @@ pub struct Password<'f, 'v, 't> {
     mask: Option<char>,
     filter: Filter<'f, String>,
     validate: Validate<'v, str>,
-    transformer: Transformer<'t, str>,
+    transform: Transform<'t, str>,
 }
 
 struct PasswordPrompt<'f, 'v, 't, 'a> {
@@ -124,7 +124,7 @@ impl Password<'_, '_, '_> {
         b: &mut B,
         events: &mut ui::events::Events,
     ) -> error::Result<Answer> {
-        let transformer = self.transformer.take();
+        let transform = self.transform.take();
 
         let ans = ui::Input::new(
             PasswordPrompt {
@@ -137,8 +137,8 @@ impl Password<'_, '_, '_> {
         )
         .run(events)?;
 
-        match transformer {
-            Transformer::Sync(transformer) => transformer(&ans, answers, b)?,
+        match transform {
+            Transform::Sync(transform) => transform(&ans, answers, b)?,
             _ => {
                 b.write_styled("[hidden]".dark_grey())?;
                 b.write_all(b"\n")?;
@@ -157,7 +157,7 @@ impl Password<'_, '_, '_> {
         b: &mut B,
         events: &mut ui::events::AsyncEvents,
     ) -> error::Result<Answer> {
-        let transformer = self.transformer.take();
+        let transform = self.transform.take();
 
         let ans = ui::Input::new(PasswordPrompt {
             message,
@@ -168,9 +168,9 @@ impl Password<'_, '_, '_> {
         .run_async(events)
         .await?;
 
-        match transformer {
-            Transformer::Async(transformer) => transformer(&ans, answers, b).await?,
-            Transformer::Sync(transformer) => transformer(&ans, answers, b)?,
+        match transform {
+            Transform::Async(transform) => transform(&ans, answers, b).await?,
+            Transform::Sync(transform) => transform(&ans, answers, b)?,
             _ => {
                 b.write_styled("[hidden]".dark_grey())?;
                 b.write_all(b"\n")?;
@@ -189,6 +189,13 @@ pub struct PasswordBuilder<'m, 'w, 'f, 'v, 't> {
 }
 
 impl<'m, 'w, 'f, 'v, 't> PasswordBuilder<'m, 'w, 'f, 'v, 't> {
+    pub(crate) fn new(name: String) -> Self {
+        PasswordBuilder {
+            opts: Options::new(name),
+            password: Default::default(),
+        }
+    }
+
     pub fn mask(mut self, mask: char) -> Self {
         self.password.mask = Some(mask);
         self
@@ -221,7 +228,7 @@ crate::impl_filter_builder!(PasswordBuilder<'m, 'w, f, 'v, 't> String; (this, fi
             filter,
             mask: this.password.mask,
             validate: this.password.validate,
-            transformer: this.password.transformer,
+            transform: this.password.transform,
         }
     }
 });
@@ -232,29 +239,18 @@ crate::impl_validate_builder!(PasswordBuilder<'m, 'w, 'f, v, 't> str; (this, val
             validate,
             mask: this.password.mask,
             filter: this.password.filter,
-            transformer: this.password.transformer,
+            transform: this.password.transform,
         }
     }
 });
-crate::impl_transformer_builder!(PasswordBuilder<'m, 'w, 'f, 'v, t> str; (this, transformer) => {
+crate::impl_transform_builder!(PasswordBuilder<'m, 'w, 'f, 'v, t> str; (this, transform) => {
     PasswordBuilder {
         opts: this.opts,
         password: Password {
-            transformer,
+            transform,
             validate: this.password.validate,
             mask: this.password.mask,
             filter: this.password.filter,
         }
     }
 });
-
-impl super::Question<'static, 'static, 'static, 'static, 'static> {
-    pub fn password<N: Into<String>>(
-        name: N,
-    ) -> PasswordBuilder<'static, 'static, 'static, 'static, 'static> {
-        PasswordBuilder {
-            opts: Options::new(name.into()),
-            password: Default::default(),
-        }
-    }
-}

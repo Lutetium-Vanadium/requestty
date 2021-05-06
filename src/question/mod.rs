@@ -12,6 +12,17 @@ mod password;
 mod plugin;
 mod rawlist;
 
+pub use checkbox::CheckboxBuilder;
+pub use confirm::ConfirmBuilder;
+pub use editor::EditorBuilder;
+pub use expand::ExpandBuilder;
+pub use input::InputBuilder;
+pub use list::ListBuilder;
+pub use number::{FloatBuilder, IntBuilder};
+pub use password::PasswordBuilder;
+pub use plugin::PluginBuilder;
+pub use rawlist::RawlistBuilder;
+
 use crate::{Answer, Answers};
 pub use choice::Choice;
 use choice::{get_sep_str, ChoiceList};
@@ -33,6 +44,77 @@ impl<'m, 'w, 'f, 'v, 't> Question<'m, 'w, 'f, 'v, 't> {
         kind: QuestionKind<'f, 'v, 't>,
     ) -> Self {
         Self { opts, kind }
+    }
+}
+
+impl Question<'static, 'static, 'static, 'static, 'static> {
+    pub fn input<N: Into<String>>(
+        name: N,
+    ) -> InputBuilder<'static, 'static, 'static, 'static, 'static> {
+        InputBuilder::new(name.into())
+    }
+
+    pub fn int<N: Into<String>>(
+        name: N,
+    ) -> IntBuilder<'static, 'static, 'static, 'static, 'static> {
+        IntBuilder::new(name.into())
+    }
+
+    pub fn float<N: Into<String>>(
+        name: N,
+    ) -> FloatBuilder<'static, 'static, 'static, 'static, 'static> {
+        FloatBuilder::new(name.into())
+    }
+
+    pub fn confirm<N: Into<String>>(
+        name: N,
+    ) -> ConfirmBuilder<'static, 'static, 'static> {
+        ConfirmBuilder::new(name.into())
+    }
+
+    pub fn list<N: Into<String>>(name: N) -> ListBuilder<'static, 'static, 'static> {
+        ListBuilder::new(name.into())
+    }
+
+    pub fn rawlist<N: Into<String>>(
+        name: N,
+    ) -> RawlistBuilder<'static, 'static, 'static> {
+        RawlistBuilder::new(name.into())
+    }
+
+    pub fn expand<N: Into<String>>(
+        name: N,
+    ) -> ExpandBuilder<'static, 'static, 'static> {
+        ExpandBuilder::new(name.into())
+    }
+
+    pub fn checkbox<N: Into<String>>(
+        name: N,
+    ) -> CheckboxBuilder<'static, 'static, 'static, 'static, 'static> {
+        CheckboxBuilder::new(name.into())
+    }
+
+    pub fn password<N: Into<String>>(
+        name: N,
+    ) -> PasswordBuilder<'static, 'static, 'static, 'static, 'static> {
+        PasswordBuilder::new(name.into())
+    }
+
+    pub fn editor<N: Into<String>>(
+        name: N,
+    ) -> EditorBuilder<'static, 'static, 'static, 'static, 'static> {
+        EditorBuilder::new(name.into())
+    }
+
+    pub fn plugin<'a, N, P>(
+        name: N,
+        plugin: P,
+    ) -> PluginBuilder<'static, 'static, 'a>
+    where
+        N: Into<String>,
+        P: Into<Box<dyn Plugin + 'a>>,
+    {
+        PluginBuilder::new(name.into(), plugin.into())
     }
 }
 
@@ -133,7 +215,7 @@ pub(crate) type BoxFuture<'a, T> =
 
 macro_rules! handler {
     ($name:ident, $fn_trait:ident ( $($type:ty),* ) -> $return:ty) => {
-        pub enum $name<'a, T> {
+        pub(crate) enum $name<'a, T> {
             Async(Box<dyn $fn_trait( $($type),* ) -> BoxFuture<'a, $return> + Send + Sync + 'a>),
             Sync(Box<dyn $fn_trait( $($type),* ) -> $return + Send + Sync + 'a>),
             None,
@@ -164,16 +246,12 @@ macro_rules! handler {
     };
 
     // The type signature of the function must only contain &T
-    ($name:ident, unsafe ?Sized $fn_trait:ident ( $($type:ty),* ) -> $return:ty) => {
-        pub enum $name<'a, T: ?Sized> {
+    ($name:ident, ?Sized $fn_trait:ident ( $($type:ty),* ) -> $return:ty) => {
+        pub(crate) enum $name<'a, T: ?Sized> {
             Async(Box<dyn $fn_trait( $($type),* ) -> BoxFuture<'a, $return> + Send + Sync + 'a>),
             Sync(Box<dyn $fn_trait( $($type),* ) -> $return + Send + Sync + 'a>),
             None,
         }
-
-        // SAFETY: The type signature only contains &T as guaranteed by the invoker
-        unsafe impl<'a, T: ?Sized> Send for $name<'a, T> where for<'b> &'b T: Send {}
-        unsafe impl<'a, T: ?Sized> Sync for $name<'a, T> where for<'b> &'b T: Sync {}
 
         impl<'a, T: ?Sized> $name<'a, T> {
             #[allow(unused)]
@@ -201,16 +279,11 @@ macro_rules! handler {
 }
 
 handler!(Filter, FnOnce(T, &Answers) -> T);
-// SAFETY: The type signature only contains &T
-handler!(Validate, unsafe ?Sized Fn(&T, &Answers) -> Result<(), String>);
+handler!(Validate, ?Sized Fn(&T, &Answers) -> Result<(), String>);
 handler!(ValidateByVal, Fn(T, &Answers) -> Result<(), String>);
-// SAFETY: The type signature only contains &T
+handler!(Transform, ?Sized FnOnce(&T, &Answers, &mut dyn Backend) -> error::Result<()>);
 handler!(
-    Transformer, unsafe ?Sized
-    FnOnce(&T, &Answers, &mut dyn Backend) -> error::Result<()>
-);
-handler!(
-    TransformerByVal,
+    TransformByVal,
     FnOnce(T, &Answers, &mut dyn Backend) -> error::Result<()>
 );
 
@@ -293,48 +366,48 @@ macro_rules! impl_validate_builder {
 
 #[doc(hidden)]
 #[macro_export]
-macro_rules! impl_transformer_builder {
+macro_rules! impl_transform_builder {
     // Unwieldy macro magic -- matches over lifetimes
-    ($ty:ident < $( $pre_lifetime:lifetime ),*, t $(,)? $( $post_lifetime:lifetime ),* > $t:ty; ($self:ident, $transformer:ident) => $body:expr) => {
+    ($ty:ident < $( $pre_lifetime:lifetime ),*, t $(,)? $( $post_lifetime:lifetime ),* > $t:ty; ($self:ident, $transform:ident) => $body:expr) => {
         impl<$($pre_lifetime),*, 't, $($post_lifetime),*> $ty<$($pre_lifetime),*, 't, $($post_lifetime),*> {
-            pub fn transformer<'a, F>(self, transformer: F) -> $ty<$($pre_lifetime),*, 'a, $($post_lifetime),*>
+            pub fn transform<'a, F>(self, transform: F) -> $ty<$($pre_lifetime),*, 'a, $($post_lifetime),*>
             where
                 F: FnOnce(&$t, &crate::Answers, &mut dyn Backend) -> ui::error::Result<()> + Send + Sync + 'a,
             {
                 let $self = self;
-                let $transformer = crate::question::Transformer::Sync(Box::new(transformer));
+                let $transform = crate::question::Transform::Sync(Box::new(transform));
                 $body
             }
 
-            pub fn transformer_async<'a, F>(self, transformer: F) -> $ty<$($pre_lifetime),*, 'a, $($post_lifetime),*>
+            pub fn transform_async<'a, F>(self, transform: F) -> $ty<$($pre_lifetime),*, 'a, $($post_lifetime),*>
             where
                 F: FnOnce(&$t, &crate::Answers, &mut dyn Backend) -> std::pin::Pin<Box<dyn std::future::Future<Output = ui::error::Result<()>> + Send + Sync + 'a>> + Send + Sync + 'a,
             {
                 let $self = self;
-                let $transformer = crate::question::Transformer::Async(Box::new(transformer));
+                let $transform = crate::question::Transform::Async(Box::new(transform));
                 $body
             }
         }
     };
 
     // Unwieldy macro magic -- matches over lifetimes
-    (by val $ty:ident < $( $pre_lifetime:lifetime ),*, t $(,)? $( $post_lifetime:lifetime ),* > $t:ty; ($self:ident, $transformer:ident) => $body:expr) => {
+    (by val $ty:ident < $( $pre_lifetime:lifetime ),*, t $(,)? $( $post_lifetime:lifetime ),* > $t:ty; ($self:ident, $transform:ident) => $body:expr) => {
         impl<$($pre_lifetime),*, 't, $($post_lifetime),*> $ty<$($pre_lifetime),*, 't, $($post_lifetime),*> {
-            pub fn transformer<'a, F>(self, transformer: F) -> $ty<$($pre_lifetime),*, 'a, $($post_lifetime),*>
+            pub fn transform<'a, F>(self, transform: F) -> $ty<$($pre_lifetime),*, 'a, $($post_lifetime),*>
             where
                 F: FnOnce($t, &crate::Answers, &mut dyn Backend) -> ui::error::Result<()> + Send + Sync + 'a,
             {
                 let $self = self;
-                let $transformer = crate::question::TransformerByVal::Sync(Box::new(transformer));
+                let $transform = crate::question::TransformByVal::Sync(Box::new(transform));
                 $body
             }
 
-            pub fn transformer_async<'a, F>(self, transformer: F) -> $ty<$($pre_lifetime),*, 'a, $($post_lifetime),*>
+            pub fn transform_async<'a, F>(self, transform: F) -> $ty<$($pre_lifetime),*, 'a, $($post_lifetime),*>
             where
                 F: FnOnce($t, &crate::Answers, &mut dyn Backend) -> std::pin::Pin<Box<dyn std::future::Future<Output = ui::error::Result<()>> + Send + Sync + 'a>> + Send + Sync + 'a,
             {
                 let $self = self;
-                let $transformer = crate::question::TransformerByVal::Async(Box::new(transformer));
+                let $transform = crate::question::TransformByVal::Async(Box::new(transform));
                 $body
             }
         }

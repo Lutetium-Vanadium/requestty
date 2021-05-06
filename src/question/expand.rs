@@ -10,7 +10,7 @@ use ui::{
     widgets, Prompt, Validation, Widget,
 };
 
-use super::{Choice, Options, Transformer};
+use super::{Choice, Options, Transform};
 use crate::{Answer, Answers, ExpandItem};
 
 #[derive(Debug)]
@@ -18,7 +18,7 @@ pub struct Expand<'t> {
     choices: super::ChoiceList<ExpandItem>,
     selected: Option<char>,
     default: char,
-    transformer: Transformer<'t, ExpandItem>,
+    transform: Transform<'t, ExpandItem>,
 }
 
 impl Default for Expand<'static> {
@@ -27,7 +27,7 @@ impl Default for Expand<'static> {
             default: 'h',
             selected: None,
             choices: Default::default(),
-            transformer: Transformer::None,
+            transform: Transform::None,
         }
     }
 }
@@ -201,10 +201,10 @@ impl widgets::List for Expand<'_> {
 
         match &self.choices[index] {
             Choice::Choice(item) => self.render_choice(item, max_width, b),
-            Choice::Separator(s) => {
+            separator => {
                 b.set_fg(Color::DarkGrey)?;
                 b.write_all(b"   ")?;
-                super::get_sep_str(s).render(max_width - 3, b)?;
+                super::get_sep_str(separator).render(max_width - 3, b)?;
                 b.set_fg(Color::Reset)
             }
         }
@@ -287,7 +287,7 @@ impl Expand<'_> {
         events: &mut ui::events::Events,
     ) -> error::Result<Answer> {
         let (choices, hint) = self.get_choices_and_hint();
-        let transformer = self.transformer.take();
+        let transform = self.transform.take();
 
         let ans = ui::Input::new(
             ExpandPrompt {
@@ -304,8 +304,8 @@ impl Expand<'_> {
         )
         .run(events)?;
 
-        match transformer {
-            Transformer::Sync(transformer) => transformer(&ans, answers, b)?,
+        match transform {
+            Transform::Sync(transform) => transform(&ans, answers, b)?,
             _ => {
                 b.write_styled(ans.name.as_str().cyan())?;
                 b.write_all(b"\n")?;
@@ -325,7 +325,7 @@ impl Expand<'_> {
         events: &mut ui::events::AsyncEvents,
     ) -> error::Result<Answer> {
         let (choices, hint) = self.get_choices_and_hint();
-        let transformer = self.transformer.take();
+        let transform = self.transform.take();
 
         let ans = ui::Input::new(ExpandPrompt {
             message,
@@ -340,9 +340,9 @@ impl Expand<'_> {
         .run_async(events)
         .await?;
 
-        match transformer {
-            Transformer::Async(transformer) => transformer(&ans, answers, b).await?,
-            Transformer::Sync(transformer) => transformer(&ans, answers, b)?,
+        match transform {
+            Transform::Async(transform) => transform(&ans, answers, b).await?,
+            Transform::Sync(transform) => transform(&ans, answers, b)?,
             _ => {
                 b.write_styled(ans.name.as_str().cyan())?;
                 b.write_all(b"\n")?;
@@ -361,6 +361,16 @@ pub struct ExpandBuilder<'m, 'w, 't> {
     keys: HashSet<char>,
 }
 
+impl ExpandBuilder<'static, 'static, 'static> {
+    pub(crate) fn new(name: String) -> Self {
+        ExpandBuilder {
+            opts: Options::new(name),
+            expand: Default::default(),
+            keys: HashSet::default(),
+        }
+    }
+}
+
 impl<'m, 'w, 't> ExpandBuilder<'m, 'w, 't> {
     pub fn default(mut self, default: char) -> Self {
         self.expand.default = default;
@@ -371,16 +381,16 @@ impl<'m, 'w, 't> ExpandBuilder<'m, 'w, 't> {
         self.expand
             .choices
             .choices
-            .push(Choice::Separator(Some(text.into())));
+            .push(Choice::Separator(text.into()));
         self
     }
 
     pub fn default_separator(mut self) -> Self {
-        self.expand.choices.choices.push(Choice::Separator(None));
+        self.expand.choices.choices.push(Choice::DefaultSeparator);
         self
     }
 
-    pub fn choice(mut self, mut key: char, name: String) -> Self {
+    pub fn choice<I: Into<String>>(mut self, mut key: char, name: I) -> Self {
         key = key.to_ascii_lowercase();
         if key == 'h' {
             panic!("Reserved key 'h'");
@@ -391,10 +401,10 @@ impl<'m, 'w, 't> ExpandBuilder<'m, 'w, 't> {
 
         self.keys.insert(key);
 
-        self.expand
-            .choices
-            .choices
-            .push(Choice::Choice(ExpandItem { key, name }));
+        self.expand.choices.choices.push(Choice::Choice(ExpandItem {
+            key,
+            name: name.into(),
+        }));
 
         self
     }
@@ -458,27 +468,15 @@ crate::impl_options_builder!(ExpandBuilder<'t>; (this, opts) => {
     }
 });
 
-crate::impl_transformer_builder!(ExpandBuilder<'m, 'w, t> ExpandItem; (this, transformer) => {
+crate::impl_transform_builder!(ExpandBuilder<'m, 'w, t> ExpandItem; (this, transform) => {
     ExpandBuilder {
         opts: this.opts,
         keys: this.keys,
         expand: Expand {
-            transformer,
+            transform,
             choices: this.expand.choices,
             default: this.expand.default,
             selected: this.expand.selected,
         }
     }
 });
-
-impl super::Question<'static, 'static, 'static, 'static, 'static> {
-    pub fn expand<N: Into<String>>(
-        name: N,
-    ) -> ExpandBuilder<'static, 'static, 'static> {
-        ExpandBuilder {
-            opts: Options::new(name.into()),
-            expand: Default::default(),
-            keys: HashSet::default(),
-        }
-    }
-}

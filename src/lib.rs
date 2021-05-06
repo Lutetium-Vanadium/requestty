@@ -1,16 +1,13 @@
 mod answer;
-mod question;
+pub mod question;
 
 use ui::{backend, error, events};
 
 pub use answer::{Answer, Answers, ExpandItem, ListItem};
-pub use question::{Choice::Choice, Choice::Separator, Question};
+pub use question::{
+    Choice::Choice, Choice::DefaultSeparator, Choice::Separator, Question,
+};
 pub use ui::error::{ErrorKind, Result};
-
-pub mod plugin {
-    pub use crate::question::Plugin;
-    pub use ui;
-}
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct PromptModule<Q> {
@@ -147,7 +144,7 @@ where
 /// By default, it exits the program, however it can be overridden to not exit. If it doesn't exit,
 /// [`Input::run`] will return an `Err`
 pub fn set_exit_handler(handler: fn()) {
-    plugin::ui::set_exit_handler(handler);
+    ui::set_exit_handler(handler);
 }
 
 #[doc(hidden)]

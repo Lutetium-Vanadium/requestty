@@ -10,7 +10,7 @@ pub(crate) struct Options<'m, 'w> {
     pub(crate) ask_if_answered: bool,
 }
 
-impl Options<'static, 'static> {
+impl<'m, 'w> Options<'m, 'w> {
     pub(crate) fn new(name: String) -> Self {
         Options {
             name,

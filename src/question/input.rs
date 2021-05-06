@@ -5,7 +5,7 @@ use ui::{
     widgets, Prompt, Validation, Widget,
 };
 
-use super::{Filter, Options, Transformer, Validate};
+use super::{Filter, Options, Transform, Validate};
 use crate::{Answer, Answers};
 
 #[derive(Debug, Default)]
@@ -13,7 +13,7 @@ pub struct Input<'f, 'v, 't> {
     default: Option<String>,
     filter: Filter<'f, String>,
     validate: Validate<'v, str>,
-    transformer: Transformer<'t, str>,
+    transform: Transform<'t, str>,
 }
 
 struct InputPrompt<'f, 'v, 't, 'a> {
@@ -150,7 +150,7 @@ impl Input<'_, '_, '_> {
             default.push(')');
         }
 
-        let transformer = self.transformer.take();
+        let transform = self.transform.take();
 
         let ans = ui::Input::new(
             InputPrompt {
@@ -163,8 +163,8 @@ impl Input<'_, '_, '_> {
         )
         .run(events)?;
 
-        match transformer {
-            Transformer::Sync(transformer) => transformer(&ans, answers, b)?,
+        match transform {
+            Transform::Sync(transform) => transform(&ans, answers, b)?,
             _ => {
                 b.write_styled(ans.as_str().cyan())?;
                 b.write_all(b"\n")?;
@@ -188,7 +188,7 @@ impl Input<'_, '_, '_> {
             default.push(')');
         }
 
-        let transformer = self.transformer.take();
+        let transform = self.transform.take();
 
         let ans = ui::Input::new(InputPrompt {
             message,
@@ -199,9 +199,9 @@ impl Input<'_, '_, '_> {
         .run_async(events)
         .await?;
 
-        match transformer {
-            Transformer::Async(transformer) => transformer(&ans, answers, b).await?,
-            Transformer::Sync(transformer) => transformer(&ans, answers, b)?,
+        match transform {
+            Transform::Async(transform) => transform(&ans, answers, b).await?,
+            Transform::Sync(transform) => transform(&ans, answers, b)?,
             _ => {
                 b.write_styled(ans.as_str().cyan())?;
                 b.write_all(b"\n")?;
@@ -219,18 +219,14 @@ pub struct InputBuilder<'m, 'w, 'f, 'v, 't> {
     input: Input<'f, 'v, 't>,
 }
 
-impl super::Question<'static, 'static, 'static, 'static, 'static> {
-    pub fn input<N: Into<String>>(
-        name: N,
-    ) -> InputBuilder<'static, 'static, 'static, 'static, 'static> {
+impl<'m, 'w, 'f, 'v, 't> InputBuilder<'m, 'w, 'f, 'v, 't> {
+    pub(crate) fn new(name: String) -> Self {
         InputBuilder {
-            opts: Options::new(name.into()),
+            opts: Options::new(name),
             input: Default::default(),
         }
     }
-}
 
-impl<'m, 'w, 'f, 'v, 't> InputBuilder<'m, 'w, 'f, 'v, 't> {
     pub fn default<I: Into<String>>(mut self, default: I) -> Self {
         self.input.default = Some(default.into());
         self
@@ -248,7 +244,7 @@ crate::impl_filter_builder!(InputBuilder<'m, 'w, f, 'v, 't> String; (this, filte
             filter,
             default: this.input.default,
             validate: this.input.validate,
-            transformer: this.input.transformer,
+            transform: this.input.transform,
         }
     }
 });
@@ -259,15 +255,15 @@ crate::impl_validate_builder!(InputBuilder<'m, 'w, 'f, v, 't> str; (this, valida
             validate,
             default: this.input.default,
             filter: this.input.filter,
-            transformer: this.input.transformer,
+            transform: this.input.transform,
         }
     }
 });
-crate::impl_transformer_builder!(InputBuilder<'m, 'w, 'f, 'v, t> str; (this, transformer) => {
+crate::impl_transform_builder!(InputBuilder<'m, 'w, 'f, 'v, t> str; (this, transform) => {
     InputBuilder {
         opts: this.opts,
         input: Input {
-            transformer,
+            transform,
             validate: this.input.validate,
             default: this.input.default,
             filter: this.input.filter,

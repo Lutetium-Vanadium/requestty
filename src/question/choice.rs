@@ -78,7 +78,8 @@ impl<T> Default for ChoiceList<T> {
 #[derive(Debug)]
 pub enum Choice<T> {
     Choice(T),
-    Separator(Option<String>),
+    Separator(String),
+    DefaultSeparator,
 }
 
 impl<T> Choice<T> {
@@ -90,6 +91,7 @@ impl<T> Choice<T> {
         match self {
             Choice::Choice(t) => Choice::Choice(t),
             Choice::Separator(s) => Choice::Separator(s.clone()),
+            Choice::DefaultSeparator => Choice::DefaultSeparator,
         }
     }
 
@@ -102,18 +104,20 @@ impl<T> Choice<T> {
     }
 }
 
-pub(crate) fn get_sep_str(separator: &Option<String>) -> &str {
-    separator
-        .as_ref()
-        .map(String::as_str)
-        .unwrap_or("──────────────")
+#[inline]
+pub(crate) fn get_sep_str<T>(separator: &Choice<T>) -> &str {
+    match separator {
+        Choice::Choice(_) => unreachable!(),
+        Choice::Separator(s) => s,
+        Choice::DefaultSeparator => "──────────────",
+    }
 }
 
 impl<T: AsRef<str>> Choice<T> {
     pub(crate) fn as_str(&self) -> &str {
         match self {
             Choice::Choice(t) => t.as_ref(),
-            Choice::Separator(s) => get_sep_str(s),
+            separator => get_sep_str(separator),
         }
     }
 }

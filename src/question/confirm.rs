@@ -5,13 +5,13 @@ use ui::{
     widgets, Prompt, Validation, Widget,
 };
 
-use super::{Options, TransformerByVal as Transformer};
+use super::{Options, TransformByVal as Transform};
 use crate::{Answer, Answers};
 
 #[derive(Debug, Default)]
 pub struct Confirm<'t> {
     default: Option<bool>,
-    transformer: Transformer<'t, bool>,
+    transform: Transform<'t, bool>,
 }
 
 struct ConfirmPrompt<'t> {
@@ -110,7 +110,7 @@ impl Confirm<'_> {
         b: &mut B,
         events: &mut ui::events::Events,
     ) -> error::Result<Answer> {
-        let transformer = self.transformer.take();
+        let transform = self.transform.take();
 
         let ans = ui::Input::new(
             ConfirmPrompt {
@@ -122,8 +122,8 @@ impl Confirm<'_> {
         )
         .run(events)?;
 
-        match transformer {
-            Transformer::Sync(transformer) => transformer(ans, answers, b)?,
+        match transform {
+            Transform::Sync(transform) => transform(ans, answers, b)?,
             _ => {
                 let ans = if ans { "Yes" } else { "No" };
                 b.write_styled(ans.cyan())?;
@@ -143,7 +143,7 @@ impl Confirm<'_> {
         b: &mut B,
         events: &mut ui::events::AsyncEvents,
     ) -> error::Result<Answer> {
-        let transformer = self.transformer.take();
+        let transform = self.transform.take();
 
         let ans = ui::Input::new(ConfirmPrompt {
             confirm: self,
@@ -153,9 +153,9 @@ impl Confirm<'_> {
         .run_async(events)
         .await?;
 
-        match transformer {
-            Transformer::Async(transformer) => transformer(ans, answers, b).await?,
-            Transformer::Sync(transformer) => transformer(ans, answers, b)?,
+        match transform {
+            Transform::Async(transform) => transform(ans, answers, b).await?,
+            Transform::Sync(transform) => transform(ans, answers, b)?,
             _ => {
                 let ans = if ans { "Yes" } else { "No" };
                 b.write_styled(ans.cyan())?;
@@ -175,6 +175,13 @@ pub struct ConfirmBuilder<'m, 'w, 't> {
 }
 
 impl<'m, 'w, 't> ConfirmBuilder<'m, 'w, 't> {
+    pub(crate) fn new(name: String) -> Self {
+        ConfirmBuilder {
+            opts: Options::new(name),
+            confirm: Default::default(),
+        }
+    }
+
     pub fn default(mut self, default: bool) -> Self {
         self.confirm.default = Some(default);
         self
@@ -200,23 +207,12 @@ crate::impl_options_builder!(ConfirmBuilder<'t>; (this, opts) => {
     }
 });
 
-crate::impl_transformer_builder!(by val ConfirmBuilder<'m, 'w, t> bool; (this, transformer) => {
+crate::impl_transform_builder!(by val ConfirmBuilder<'m, 'w, t> bool; (this, transform) => {
     ConfirmBuilder {
         opts: this.opts,
         confirm: Confirm {
-            transformer,
+            transform,
             default: this.confirm.default,
         }
     }
 });
-
-impl super::Question<'static, 'static, 'static, 'static, 'static> {
-    pub fn confirm<N: Into<String>>(
-        name: N,
-    ) -> ConfirmBuilder<'static, 'static, 'static> {
-        ConfirmBuilder {
-            opts: Options::new(name.into()),
-            confirm: Default::default(),
-        }
-    }
-}

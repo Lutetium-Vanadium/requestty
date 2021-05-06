@@ -5,13 +5,13 @@ use ui::{
     widgets, Prompt, Widget,
 };
 
-use super::{Options, Transformer};
+use super::{Options, Transform};
 use crate::{Answer, Answers, ListItem};
 
 #[derive(Debug, Default)]
 pub struct List<'t> {
     choices: super::ChoiceList<String>,
-    transformer: Transformer<'t, ListItem>,
+    transform: Transform<'t, ListItem>,
 }
 
 struct ListPrompt<'t> {
@@ -140,7 +140,7 @@ impl List<'_> {
         b: &mut B,
         events: &mut ui::events::Events,
     ) -> error::Result<Answer> {
-        let transformer = self.transformer.take();
+        let transform = self.transform.take();
         let mut picker = widgets::ListPicker::new(self);
         if let Some(default) = picker.list.choices.default() {
             picker.set_at(default);
@@ -149,8 +149,8 @@ impl List<'_> {
             .hide_cursor()
             .run(events)?;
 
-        match transformer {
-            Transformer::Sync(transformer) => transformer(&ans, answers, b)?,
+        match transform {
+            Transform::Sync(transform) => transform(&ans, answers, b)?,
             _ => {
                 b.write_styled(ans.name.as_str().cyan())?;
                 b.write_all(b"\n")?;
@@ -169,7 +169,7 @@ impl List<'_> {
         b: &mut B,
         events: &mut ui::events::AsyncEvents,
     ) -> error::Result<Answer> {
-        let transformer = self.transformer.take();
+        let transform = self.transform.take();
         let mut picker = widgets::ListPicker::new(self);
         if let Some(default) = picker.list.choices.default() {
             picker.set_at(default);
@@ -179,9 +179,9 @@ impl List<'_> {
             .run_async(events)
             .await?;
 
-        match transformer {
-            Transformer::Async(transformer) => transformer(&ans, answers, b).await?,
-            Transformer::Sync(transformer) => transformer(&ans, answers, b)?,
+        match transform {
+            Transform::Async(transform) => transform(&ans, answers, b).await?,
+            Transform::Sync(transform) => transform(&ans, answers, b)?,
             _ => {
                 b.write_styled(ans.name.as_str().cyan())?;
                 b.write_all(b"\n")?;
@@ -200,6 +200,13 @@ pub struct ListBuilder<'m, 'w, 't> {
 }
 
 impl<'m, 'w, 't> ListBuilder<'m, 'w, 't> {
+    pub(crate) fn new(name: String) -> Self {
+        ListBuilder {
+            opts: Options::new(name),
+            list: Default::default(),
+        }
+    }
+
     pub fn default(mut self, default: usize) -> Self {
         self.list.choices.set_default(default);
         self
@@ -209,7 +216,7 @@ impl<'m, 'w, 't> ListBuilder<'m, 'w, 't> {
         self.list
             .choices
             .choices
-            .push(super::Choice::Separator(Some(text.into())));
+            .push(super::Choice::Separator(text.into()));
         self
     }
 
@@ -217,7 +224,7 @@ impl<'m, 'w, 't> ListBuilder<'m, 'w, 't> {
         self.list
             .choices
             .choices
-            .push(super::Choice::Separator(None));
+            .push(super::Choice::DefaultSeparator);
         self
     }
 
@@ -271,21 +278,12 @@ crate::impl_options_builder!(ListBuilder<'t>; (this, opts) => {
     }
 });
 
-crate::impl_transformer_builder!(ListBuilder<'m, 'w, t> ListItem; (this, transformer) => {
+crate::impl_transform_builder!(ListBuilder<'m, 'w, t> ListItem; (this, transform) => {
     ListBuilder {
         opts: this.opts,
         list: List {
-            transformer,
+            transform,
             choices: this.list.choices,
         }
     }
 });
-
-impl super::Question<'static, 'static, 'static, 'static, 'static> {
-    pub fn list<N: Into<String>>(name: N) -> ListBuilder<'static, 'static, 'static> {
-        ListBuilder {
-            opts: Options::new(name.into()),
-            list: Default::default(),
-        }
-    }
-}

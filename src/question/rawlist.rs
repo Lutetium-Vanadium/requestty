@@ -6,13 +6,13 @@ use ui::{
     Prompt, Validation, Widget,
 };
 
-use super::{Choice, Options, Transformer};
+use super::{Choice, Options, Transform};
 use crate::{Answer, Answers, ListItem};
 
 #[derive(Debug, Default)]
 pub struct Rawlist<'t> {
     choices: super::ChoiceList<(usize, String)>,
-    transformer: Transformer<'t, ListItem>,
+    transform: Transform<'t, ListItem>,
 }
 
 struct RawlistPrompt<'t> {
@@ -154,10 +154,10 @@ impl widgets::List for Rawlist<'_> {
                     b.set_fg(Color::Reset)?;
                 }
             }
-            Choice::Separator(s) => {
+            separator => {
                 b.set_fg(Color::DarkGrey)?;
                 b.write_all(b"   ")?;
-                super::get_sep_str(s).render(max_width - 3, b)?;
+                super::get_sep_str(separator).render(max_width - 3, b)?;
                 b.set_fg(Color::Reset)?;
             }
         }
@@ -190,7 +190,7 @@ impl Rawlist<'_> {
         b: &mut B,
         events: &mut ui::events::Events,
     ) -> error::Result<Answer> {
-        let transformer = self.transformer.take();
+        let transform = self.transform.take();
 
         let mut list = widgets::ListPicker::new(self);
         if let Some(default) = list.list.choices.default() {
@@ -207,8 +207,8 @@ impl Rawlist<'_> {
         )
         .run(events)?;
 
-        match transformer {
-            Transformer::Sync(transformer) => transformer(&ans, answers, b)?,
+        match transform {
+            Transform::Sync(transform) => transform(&ans, answers, b)?,
             _ => {
                 b.write_styled(ans.name.as_str().cyan())?;
                 b.write_all(b"\n")?;
@@ -227,7 +227,7 @@ impl Rawlist<'_> {
         b: &mut B,
         events: &mut ui::events::AsyncEvents,
     ) -> error::Result<Answer> {
-        let transformer = self.transformer.take();
+        let transform = self.transform.take();
 
         let mut list = widgets::ListPicker::new(self);
         if let Some(default) = list.list.choices.default() {
@@ -242,9 +242,9 @@ impl Rawlist<'_> {
         .run_async(events)
         .await?;
 
-        match transformer {
-            Transformer::Async(transformer) => transformer(&ans, answers, b).await?,
-            Transformer::Sync(transformer) => transformer(&ans, answers, b)?,
+        match transform {
+            Transform::Async(transform) => transform(&ans, answers, b).await?,
+            Transform::Sync(transform) => transform(&ans, answers, b)?,
             _ => {
                 b.write_styled(ans.name.as_str().cyan())?;
                 b.write_all(b"\n")?;
@@ -264,6 +264,15 @@ pub struct RawlistBuilder<'m, 'w, 't> {
 }
 
 impl<'m, 'w, 't> RawlistBuilder<'m, 'w, 't> {
+    pub(crate) fn new(name: String) -> Self {
+        RawlistBuilder {
+            opts: Options::new(name.into()),
+            list: Default::default(),
+            // It is one indexed for the user
+            choice_count: 1,
+        }
+    }
+
     pub fn default(mut self, default: usize) -> Self {
         self.list.choices.set_default(default);
         self
@@ -273,12 +282,12 @@ impl<'m, 'w, 't> RawlistBuilder<'m, 'w, 't> {
         self.list
             .choices
             .choices
-            .push(Choice::Separator(Some(text.into())));
+            .push(Choice::Separator(text.into()));
         self
     }
 
     pub fn default_separator(mut self) -> Self {
-        self.list.choices.choices.push(Choice::Separator(None));
+        self.list.choices.choices.push(Choice::DefaultSeparator);
         self
     }
 
@@ -307,6 +316,7 @@ impl<'m, 'w, 't> RawlistBuilder<'m, 'w, 't> {
                     choice
                 }
                 Choice::Separator(s) => Choice::Separator(s),
+                Choice::DefaultSeparator => Choice::DefaultSeparator,
             }));
         self
     }
@@ -342,26 +352,13 @@ crate::impl_options_builder!(RawlistBuilder<'t>; (this, opts) => {
     }
 });
 
-crate::impl_transformer_builder!(RawlistBuilder<'m, 'w, t> ListItem; (this, transformer) => {
+crate::impl_transform_builder!(RawlistBuilder<'m, 'w, t> ListItem; (this, transform) => {
     RawlistBuilder {
         opts: this.opts,
         choice_count: this.choice_count,
         list: Rawlist {
-            transformer,
+            transform,
             choices: this.list.choices,
         }
     }
 });
-
-impl super::Question<'static, 'static, 'static, 'static, 'static> {
-    pub fn rawlist<N: Into<String>>(
-        name: N,
-    ) -> RawlistBuilder<'static, 'static, 'static> {
-        RawlistBuilder {
-            opts: Options::new(name.into()),
-            list: Default::default(),
-            // It is one indexed for the user
-            choice_count: 1,
-        }
-    }
-}

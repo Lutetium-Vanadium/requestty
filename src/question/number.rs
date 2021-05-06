@@ -8,7 +8,7 @@ use ui::{
 };
 
 use super::{
-    Filter, Options, TransformerByVal as Transformer, ValidateByVal as Validate,
+    Filter, Options, TransformByVal as Transform, ValidateByVal as Validate,
 };
 use crate::{Answer, Answers};
 
@@ -17,7 +17,7 @@ pub struct Float<'f, 'v, 't> {
     default: Option<f64>,
     filter: Filter<'f, f64>,
     validate: Validate<'v, f64>,
-    transformer: Transformer<'t, f64>,
+    transform: Transform<'t, f64>,
 }
 
 #[derive(Debug, Default)]
@@ -25,7 +25,7 @@ pub struct Int<'f, 'v, 't> {
     default: Option<i64>,
     filter: Filter<'f, i64>,
     validate: Validate<'v, i64>,
-    transformer: Transformer<'t, i64>,
+    transform: Transform<'t, i64>,
 }
 
 trait Number<'f, 'v> {
@@ -253,7 +253,7 @@ macro_rules! impl_ask {
                 b: &mut B,
                 events: &mut ui::events::Events,
             ) -> error::Result<Answer> {
-                let transformer = self.transformer.take();
+                let transform = self.transform.take();
 
                 let ans = ui::Input::new(
                     NumberPrompt {
@@ -268,8 +268,8 @@ macro_rules! impl_ask {
                 )
                 .run(events)?;
 
-                match transformer {
-                    Transformer::Sync(transformer) => transformer(ans, answers, b)?,
+                match transform {
+                    Transform::Sync(transform) => transform(ans, answers, b)?,
                     _ => Self::write(ans, b)?,
                 }
 
@@ -284,7 +284,7 @@ macro_rules! impl_ask {
                 b: &mut B,
                 events: &mut ui::events::AsyncEvents,
             ) -> error::Result<Answer> {
-                let transformer = self.transformer.take();
+                let transform = self.transform.take();
 
                 let ans = ui::Input::new(NumberPrompt {
                     hint: self.default.map(|default| format!("({})", default)),
@@ -297,9 +297,9 @@ macro_rules! impl_ask {
                 .run_async(events)
                 .await?;
 
-                match transformer {
-                    Transformer::Async(transformer) => transformer(ans, answers, b).await?,
-                    Transformer::Sync(transformer) => transformer(ans, answers, b)?,
+                match transform {
+                    Transform::Async(transform) => transform(ans, answers, b).await?,
+                    Transform::Sync(transform) => transform(ans, answers, b)?,
                     _ => Self::write(ans, b)?,
                 }
 
@@ -321,6 +321,13 @@ macro_rules! builder {
         }
 
         impl<'m, 'w, 'f, 'v, 't> $builder_name<'m, 'w, 'f, 'v, 't> {
+            pub(crate) fn new(name: String) -> Self {
+                $builder_name {
+                    opts: Options::new(name),
+                    inner: Default::default(),
+                }
+            }
+
             pub fn default(mut self, default: $inner_ty) -> Self {
                 self.inner.default = Some(default);
                 self
@@ -351,7 +358,7 @@ macro_rules! builder {
                     filter,
                     default: this.inner.default,
                     validate: this.inner.validate,
-                    transformer: this.inner.transformer,
+                    transform: this.inner.transform,
                 }
             }
         });
@@ -363,16 +370,16 @@ macro_rules! builder {
                     validate,
                     default: this.inner.default,
                     filter: this.inner.filter,
-                    transformer: this.inner.transformer,
+                    transform: this.inner.transform,
                 }
             }
         });
 
-        crate::impl_transformer_builder!(by val $builder_name<'m, 'w, 'f, 'v, t> $inner_ty; (this, transformer) => {
+        crate::impl_transform_builder!(by val $builder_name<'m, 'w, 'f, 'v, t> $inner_ty; (this, transform) => {
             $builder_name {
                 opts: this.opts,
                 inner: $type {
-                    transformer,
+                    transform,
                     validate: this.inner.validate,
                     default: this.inner.default,
                     filter: this.inner.filter,
@@ -384,23 +391,3 @@ macro_rules! builder {
 
 builder!(IntBuilder, Int, i64, super::QuestionKind::Int);
 builder!(FloatBuilder, Float, f64, super::QuestionKind::Float);
-
-impl super::Question<'static, 'static, 'static, 'static, 'static> {
-    pub fn int<N: Into<String>>(
-        name: N,
-    ) -> IntBuilder<'static, 'static, 'static, 'static, 'static> {
-        IntBuilder {
-            opts: Options::new(name.into()),
-            inner: Default::default(),
-        }
-    }
-
-    pub fn float<N: Into<String>>(
-        name: N,
-    ) -> FloatBuilder<'static, 'static, 'static, 'static, 'static> {
-        FloatBuilder {
-            opts: Options::new(name.into()),
-            inner: Default::default(),
-        }
-    }
-}
