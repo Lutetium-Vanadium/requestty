@@ -19,7 +19,11 @@ impl<T> ChoiceList<T> {
 
     /// Get a reference to the choice list's default.
     pub(crate) fn default(&self) -> Option<usize> {
-        self.has_default.then(|| self.default)
+        if self.has_default {
+            Some(self.default)
+        } else {
+            None
+        }
     }
 
     /// Get a reference to the choice list's page size.

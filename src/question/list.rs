@@ -145,7 +145,7 @@ impl List<'_> {
         if let Some(default) = picker.list.choices.default() {
             picker.set_at(default);
         }
-        let ans = ui::Input::new(ListPrompt { picker, message }, b)
+        let ans = ui::Input::new(ListPrompt { message, picker }, b)
             .hide_cursor()
             .run(events)?;
 

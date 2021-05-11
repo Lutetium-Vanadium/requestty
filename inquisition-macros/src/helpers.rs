@@ -84,8 +84,8 @@ impl ToTokens for Choices {
                     choices.extend(quote! { , })
                 }
 
-                tokens.extend(quote_spanned! {
-                    elems.span() => ::std::array::IntoIter::new([ #choices ])
+                tokens.extend(iter! {
+                    elems.span() => #choices
                 });
             }
             Choices::Expr(ref choices) => {

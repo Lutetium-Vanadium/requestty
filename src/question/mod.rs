@@ -43,7 +43,7 @@ impl<'m, 'w, 'f, 'v, 't> Question<'m, 'w, 'f, 'v, 't> {
         opts: Options<'m, 'w>,
         kind: QuestionKind<'f, 'v, 't>,
     ) -> Self {
-        Self { opts, kind }
+        Self { kind, opts }
     }
 }
 

@@ -294,7 +294,11 @@ impl Expand<'_> {
                 message,
                 input: widgets::CharInput::new(|c| {
                     let c = c.to_ascii_lowercase();
-                    choices.contains(c).then(|| c)
+                    if choices.contains(c) {
+                        Some(c)
+                    } else {
+                        None
+                    }
                 }),
                 list: widgets::ListPicker::new(self),
                 hint,

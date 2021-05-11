@@ -80,7 +80,11 @@ impl<F> StringInput<F> {
     /// note: it can return Some(""), if a character was added and then deleted. It will only return
     /// None when no character was ever received
     pub fn finish(self) -> Option<String> {
-        self.has_value().then(|| self.value)
+        if self.has_value() {
+            Some(self.value)
+        } else {
+            None
+        }
     }
 
     /// Gets the byte index of a given char index

@@ -12,3 +12,4 @@ proc-macro2 = "1"
 syn = { version = "1", features = ["full"] }
 quote = "1"
 bitflags = "1.2"
+rustversion = "1.0"

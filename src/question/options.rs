@@ -101,14 +101,23 @@ macro_rules! impl_getter_from_val {
             }
         }
     };
+
+    ($T:ty, $I:ty, $value:ident => $body:expr) => {
+        impl From<$I> for Getter<'static, $T> {
+            fn from(value: $I) -> Self {
+                let $value = value;
+                Self::Value($body)
+            }
+        }
+    };
 }
 
 impl_getter_from_val!(String, String);
 impl_getter_from_val!(String, &String);
 impl_getter_from_val!(String, &str);
-impl_getter_from_val!(String, &mut str);
+impl_getter_from_val!(String, &mut str, s => s.to_owned());
 impl_getter_from_val!(String, Box<str>);
-impl_getter_from_val!(String, char);
+impl_getter_from_val!(String, char, c => c.to_string());
 
 impl<'a, F> From<F> for Getter<'a, String>
 where

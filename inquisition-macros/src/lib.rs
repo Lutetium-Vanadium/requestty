@@ -1,6 +1,19 @@
 extern crate proc_macro;
 use proc_macro::TokenStream;
 
+#[rustversion::since(1.51)]
+macro_rules! iter {
+    ($span:expr => $($tt:tt)*) => {
+        quote! { ::std::array::IntoIter::new([ $($tt)* ]) }
+    };
+}
+#[rustversion::before(1.51)]
+macro_rules! iter {
+    ($span:expr => $($tt:tt)*) => {
+        quote! { ::std::vec![ $($tt)* ] }
+    };
+}
+
 mod helpers;
 mod question;
 
@@ -14,11 +27,7 @@ pub fn questions(item: TokenStream) -> TokenStream {
 
     let questions = p.questions.into_iter();
 
-    let ts = quote! {
-        ::std::array::IntoIter::new([
-            #(#questions),*
-        ])
-    };
+    let ts = iter! { proc_macro2::Span::call_site() => #(#questions),* };
 
     ts.into()
 }

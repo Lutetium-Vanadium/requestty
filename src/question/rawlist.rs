@@ -199,7 +199,13 @@ impl Rawlist<'_> {
 
         let ans = ui::Input::new(
             RawlistPrompt {
-                input: widgets::StringInput::new(|c| c.is_digit(10).then(|| c)),
+                input: widgets::StringInput::new(|c| {
+                    if c.is_digit(10) {
+                        Some(c)
+                    } else {
+                        None
+                    }
+                }),
                 list,
                 message,
             },

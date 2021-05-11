@@ -37,7 +37,7 @@ where
 {
     pub fn new<I>(questions: I) -> Self
     where
-        I: IntoIterator<IntoIter = Q>,
+        I: IntoIterator<IntoIter = Q, Item = Question<'m, 'w, 'f, 'v, 't>>,
     {
         Self {
             answers: Answers::default(),

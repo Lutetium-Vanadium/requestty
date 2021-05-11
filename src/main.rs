@@ -1,7 +1,7 @@
 // TODO: delete
 // this is a temporary file, for testing out the prompts
 use inquisition::{DefaultSeparator, Question, Separator};
-use std::{array::IntoIter, env};
+use std::env;
 
 fn main() {
     let q = match env::args().nth(1).as_deref() {
@@ -48,19 +48,19 @@ fn main() {
         Some("l") => vec![
             Question::list("a")
                 .message("list 1")
-                .choices(IntoIter::new([
+                .choices(vec![
                     "0".into(),
                     DefaultSeparator,
                     "1".into(),
                     "2".into(),
                     "3".into(),
                     Separator("== Hello separator".into()),
-                ]))
+                ])
                 .default(3)
                 .into(),
             Question::list("b")
                 .message("list 2")
-                .choices(IntoIter::new([
+                .choices(vec![
                     Separator("=== TITLE BOI ===".into()),
                     "hello worldssssss 1".into(),
                     "hello worldssssss 2".into(),
@@ -71,7 +71,7 @@ fn main() {
                     "hello worldssssss 6".into(),
                     "hello worldssssss 7".into(),
                     "hello worldssssss 8".into(),
-                ]))
+                ])
                 .page_size(6)
                 .into(),
         ],
@@ -81,16 +81,16 @@ fn main() {
                 .message("checkbox 1")
                 .choice_with_default("0", true)
                 .default_separator()
-                .choices_with_default(IntoIter::new([
+                .choices_with_default(vec![
                     ("1".into(), false),
                     ("2".into(), true),
                     ("3".into(), false),
-                ]))
+                ])
                 .separator("== Hello separator")
                 .into(),
             Question::checkbox("b")
                 .message("checkbox 2")
-                .choices(IntoIter::new([
+                .choices(vec![
                     Separator("=== TITLE BOI ===".into()),
                     "hello worldssssss 1".into(),
                     "hello worldssssss 2".into(),
@@ -101,7 +101,7 @@ fn main() {
                     "hello worldssssss 6".into(),
                     "hello worldssssss 7".into(),
                     "hello worldssssss 8".into(),
-                ]))
+                ])
                 .page_size(6)
                 .should_loop(false)
                 .into(),
@@ -110,19 +110,19 @@ fn main() {
         Some("r") => vec![
             Question::rawlist("a")
                 .message("list 1")
-                .choices(IntoIter::new([
+                .choices(vec![
                     "0".into(),
                     DefaultSeparator,
                     "1".into(),
                     "2".into(),
                     "3".into(),
                     Separator("== Hello separator".into()),
-                ]))
+                ])
                 .default(2)
                 .into(),
             Question::rawlist("b")
                 .message("list 2")
-                .choices(IntoIter::new([
+                .choices(vec![
                     Separator("=== TITLE BOI ===".into()),
                     "hello worldssssss 1".into(),
                     "hello worldssssss 2".into(),
@@ -133,7 +133,7 @@ fn main() {
                     "hello worldssssss 6".into(),
                     "hello worldssssss 7".into(),
                     "hello worldssssss 8".into(),
-                ]))
+                ])
                 .page_size(6)
                 // .should_loop(false)
                 .into(),
@@ -142,19 +142,19 @@ fn main() {
         Some("x") => vec![
             Question::expand("a")
                 .message("expand 1")
-                .choices(IntoIter::new([
+                .choices(vec![
                     ('y', "Overwrite").into(),
                     ('a', "Overwrite this one and all next").into(),
                     ('d', "Show diff").into(),
                     DefaultSeparator,
                     ('x', "Abort").into(),
-                ]))
+                ])
                 .into(),
             Question::expand("b")
                 .message("expand 2")
                 .choice('a', "Name for a")
                 .default_separator()
-                .choices(IntoIter::new([('b', "Name for b"), ('c', "Name for c")]))
+                .choices(vec![('b', "Name for b"), ('c', "Name for c")])
                 .default_separator()
                 .choice('d', "Name for d")
                 .separator("== Hello separator")
