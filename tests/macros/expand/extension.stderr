@@ -1,0 +1,5 @@
+error: option `extension` does not exist for kind `expand`
+ --> $DIR/extension.rs:2:46
+  |
+2 |     let q = inquisition::questions![expand { extension: todo!() }];
+  |                                              ^^^^^^^^^

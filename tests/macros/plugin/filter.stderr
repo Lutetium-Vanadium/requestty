@@ -1,0 +1,5 @@
+error: option `filter` does not exist for kind `plugin`
+ --> $DIR/filter.rs:2:46
+  |
+2 |     let q = inquisition::questions![plugin { filter: todo!() }];
+  |                                              ^^^^^^

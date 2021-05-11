@@ -1,0 +1,5 @@
+error: option `choices` does not exist for kind `password`
+ --> $DIR/choices.rs:2:40
+  |
+2 |     inquisition::questions![password { choices: todo!() }];
+  |                                        ^^^^^^^

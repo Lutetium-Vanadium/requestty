@@ -1,0 +1,5 @@
+error: option `validate` does not exist for kind `confirm`
+ --> $DIR/validate.rs:2:47
+  |
+2 |     let q = inquisition::questions![confirm { validate: todo!() }];
+  |                                               ^^^^^^^^

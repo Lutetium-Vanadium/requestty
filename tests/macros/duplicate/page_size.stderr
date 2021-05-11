@@ -1,0 +1,5 @@
+error: duplicate option `page_size`
+ --> $DIR/page_size.rs:4:9
+  |
+4 |         page_size: todo!(),
+  |         ^^^^^^^^^

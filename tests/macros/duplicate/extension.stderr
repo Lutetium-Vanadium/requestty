@@ -1,0 +1,5 @@
+error: duplicate option `extension`
+ --> $DIR/extension.rs:4:9
+  |
+4 |         extension: todo!(),
+  |         ^^^^^^^^^

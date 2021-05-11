@@ -1,0 +1,5 @@
+error: expected `,`
+ --> $DIR/default_with_sep.rs:6:33
+  |
+6 |                 sep "separator" default true,
+  |                                 ^^^^^^^

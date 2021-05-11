@@ -124,9 +124,12 @@ pub struct ExpandItem {
     pub name: String,
 }
 
-impl From<(char, String)> for ExpandItem {
-    fn from((key, name): (char, String)) -> Self {
-        Self { key, name }
+impl<I: Into<String>> From<(char, I)> for ExpandItem {
+    fn from((key, name): (char, I)) -> Self {
+        Self {
+            key,
+            name: name.into(),
+        }
     }
 }
 

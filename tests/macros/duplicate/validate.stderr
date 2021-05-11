@@ -1,0 +1,5 @@
+error: duplicate option `validate`
+ --> $DIR/validate.rs:4:9
+  |
+4 |         validate: todo!(),
+  |         ^^^^^^^^

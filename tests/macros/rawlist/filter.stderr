@@ -1,0 +1,5 @@
+error: option `filter` does not exist for kind `rawlist`
+ --> $DIR/filter.rs:2:47
+  |
+2 |     let q = inquisition::questions![rawlist { filter: todo!() }];
+  |                                               ^^^^^^

@@ -84,7 +84,7 @@ pub enum Choice<T> {
 
 impl<T> Choice<T> {
     pub(crate) fn is_separator(&self) -> bool {
-        matches!(self, Choice::Separator(_))
+        matches!(self, Choice::Separator(_) | Choice::DefaultSeparator)
     }
 
     pub(crate) fn as_ref(&self) -> Choice<&T> {
@@ -96,10 +96,9 @@ impl<T> Choice<T> {
     }
 
     pub(crate) fn unwrap_choice(self) -> T {
-        if let Choice::Choice(c) = self {
-            c
-        } else {
-            panic!("Called unwrap_choice on separator")
+        match self {
+            Choice::Choice(c) => c,
+            _ => panic!("Called unwrap_choice on separator"),
         }
     }
 }

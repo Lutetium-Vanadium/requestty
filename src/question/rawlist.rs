@@ -266,7 +266,7 @@ pub struct RawlistBuilder<'m, 'w, 't> {
 impl<'m, 'w, 't> RawlistBuilder<'m, 'w, 't> {
     pub(crate) fn new(name: String) -> Self {
         RawlistBuilder {
-            opts: Options::new(name.into()),
+            opts: Options::new(name),
             list: Default::default(),
             // It is one indexed for the user
             choice_count: 1,

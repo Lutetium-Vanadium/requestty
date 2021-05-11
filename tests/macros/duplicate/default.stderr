@@ -1,0 +1,5 @@
+error: duplicate option `default`
+ --> $DIR/default.rs:4:9
+  |
+4 |         default: todo!(),
+  |         ^^^^^^^

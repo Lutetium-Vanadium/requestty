@@ -1,0 +1,5 @@
+error: duplicate option `ask_if_answered`
+ --> $DIR/ask_if_answered.rs:4:9
+  |
+4 |         ask_if_answered: todo!(),
+  |         ^^^^^^^^^^^^^^^

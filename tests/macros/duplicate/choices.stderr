@@ -1,0 +1,5 @@
+error: duplicate option `choices`
+ --> $DIR/choices.rs:4:9
+  |
+4 |         choices: todo!(),
+  |         ^^^^^^^

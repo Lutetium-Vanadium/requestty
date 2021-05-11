@@ -1,0 +1,5 @@
+error: option `mask` does not exist for kind `confirm`
+ --> $DIR/mask.rs:2:47
+  |
+2 |     let q = inquisition::questions![confirm { mask: todo!() }];
+  |                                               ^^^^

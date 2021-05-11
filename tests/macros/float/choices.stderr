@@ -1,0 +1,5 @@
+error: option `choices` does not exist for kind `float`
+ --> $DIR/choices.rs:2:37
+  |
+2 |     inquisition::questions![float { choices: todo!() }];
+  |                                     ^^^^^^^

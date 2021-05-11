@@ -1,0 +1,5 @@
+error: duplicate option `name`
+ --> $DIR/name.rs:4:9
+  |
+4 |         name: todo!(),
+  |         ^^^^

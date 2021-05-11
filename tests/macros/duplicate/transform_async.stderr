@@ -1,0 +1,5 @@
+error: unknown question option `transform_async`
+ --> $DIR/transform_async.rs:3:9
+  |
+3 |         transform_async: todo!(),
+  |         ^^^^^^^^^^^^^^^

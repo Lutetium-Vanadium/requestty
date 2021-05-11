@@ -4,10 +4,26 @@ pub mod question;
 use ui::{backend, error, events};
 
 pub use answer::{Answer, Answers, ExpandItem, ListItem};
+pub use macros::questions;
 pub use question::{
     Choice::Choice, Choice::DefaultSeparator, Choice::Separator, Question,
 };
 pub use ui::error::{ErrorKind, Result};
+
+#[macro_export]
+macro_rules! prompt_module {
+    ($($tt:tt)*) => {
+        $crate::PromptModule::new($crate::questions! [ $($tt)* ])
+    };
+}
+
+pub mod plugin {
+    pub use crate::{question::Plugin, Answer, Answers};
+    pub use ui::{backend::Backend, events::Events};
+    crate::cfg_async! {
+    pub use ui::events::AsyncEvents;
+    }
+}
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct PromptModule<Q> {

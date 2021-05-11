@@ -7,13 +7,15 @@ edition = "2018"
 [workspace]
 members = [
     ".",
-    "inquisition-ui"
+    "inquisition-ui",
+    "inquisition-macros",
 ]
 
 [dependencies]
 tempfile = "3"
 atty = "0.2"
 ui = { package = "inquisition-ui", path = "./inquisition-ui" }
+macros = { package = "inquisition-macros", path = "./inquisition-macros" }
 
 ahash = { version = "0.7", optional = true }
 async-trait = { version = "0.1", optional = true }
@@ -25,6 +27,9 @@ futures = { version = "0.3", optional = true }
 smol-dep = { package = "smol", version = "1.2", optional = true }
 tokio-dep = { package = "tokio", version = "1.5", optional = true, features = ["fs", "process", "io-util"] }
 async-std-dep = { package = "async-std", version = "1.9", optional = true, features = ["unstable"] }
+
+[dev-dependencies]
+trybuild = "1.0.42"
 
 [features]
 default = ["crossterm", "ahash"]

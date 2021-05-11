@@ -1,0 +1,5 @@
+error: option `default` does not exist for kind `password`
+ --> $DIR/default.rs:2:48
+  |
+2 |     let q = inquisition::questions![password { default: todo!() }];
+  |                                                ^^^^^^^

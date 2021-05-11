@@ -1,0 +1,5 @@
+error: duplicate option `mask`
+ --> $DIR/mask.rs:4:9
+  |
+4 |         mask: todo!(),
+  |         ^^^^

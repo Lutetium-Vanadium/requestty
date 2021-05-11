@@ -1,0 +1,5 @@
+error: option `mask` does not exist for kind `input`
+ --> $DIR/mask.rs:2:45
+  |
+2 |     let q = inquisition::questions![input { mask: todo!() }];
+  |                                             ^^^^

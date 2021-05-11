@@ -1,0 +1,5 @@
+error: option `should_loop` does not exist for kind `plugin`
+ --> $DIR/should_loop.rs:3:9
+  |
+3 |         should_loop: todo!()
+  |         ^^^^^^^^^^^

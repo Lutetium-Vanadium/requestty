@@ -1,0 +1,5 @@
+error: duplicate option `when`
+ --> $DIR/when.rs:4:9
+  |
+4 |         when: todo!(),
+  |         ^^^^

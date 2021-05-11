@@ -1,0 +1,5 @@
+error: duplicate option `should_loop`
+ --> $DIR/should_loop.rs:4:9
+  |
+4 |         should_loop: todo!(),
+  |         ^^^^^^^^^^^

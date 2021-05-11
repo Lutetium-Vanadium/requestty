@@ -1,0 +1,5 @@
+error: duplicate option `message`
+ --> $DIR/message.rs:4:9
+  |
+4 |         message: todo!(),
+  |         ^^^^^^^

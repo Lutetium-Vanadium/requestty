@@ -1,0 +1,5 @@
+error: duplicate option `transform`
+ --> $DIR/transform.rs:4:9
+  |
+4 |         transform: todo!(),
+  |         ^^^^^^^^^

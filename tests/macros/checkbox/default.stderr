@@ -1,0 +1,5 @@
+error: missing required option `name`
+ --> $DIR/default.rs:2:38
+  |
+2 |     inquisition::questions![checkbox { default: todo!() }];
+  |                                      ^^^^^^^^^^^^^^^^^^^^

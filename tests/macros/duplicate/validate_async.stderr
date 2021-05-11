@@ -1,0 +1,5 @@
+error: unknown question option `validate_async`
+ --> $DIR/validate_async.rs:3:9
+  |
+3 |         validate_async: todo!(),
+  |         ^^^^^^^^^^^^^^

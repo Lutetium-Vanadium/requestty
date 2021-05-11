@@ -1,0 +1,5 @@
+error: option `filter_async` does not exist for kind `expand`
+ --> $DIR/filter_async.rs:2:52
+  |
+2 |     let q = inquisition::questions![expand { async filter: todo!() }];
+  |                                                    ^^^^^^

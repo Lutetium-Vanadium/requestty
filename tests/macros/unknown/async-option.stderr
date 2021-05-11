@@ -1,0 +1,5 @@
+error: unknown question option `name_async`
+ --> $DIR/async-option.rs:2:51
+  |
+2 |     let q = inquisition::questions![input { async name: 0 }];
+  |                                                   ^^^^
