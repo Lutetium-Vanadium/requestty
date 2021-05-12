@@ -1,5 +1,3 @@
-use std::marker::PhantomData;
-
 use ui::{
     backend::{Backend, Color},
     error,
@@ -28,20 +26,14 @@ pub struct Int<'f, 'v, 't> {
     transform: Transform<'t, i64>,
 }
 
-trait Number<'f, 'v> {
-    type Inner: Send + Sync;
-
-    fn validate(&self) -> &Validate<'v, Self::Inner>;
-    fn filter(self) -> Filter<'f, Self::Inner>;
-    fn filter_map_char(c: char) -> Option<char>;
-    fn parse(s: &str) -> Result<Self::Inner, String>;
-    fn default(&self) -> Option<Self::Inner>;
-    fn write<B: Backend>(inner: Self::Inner, b: &mut B) -> error::Result<()>;
-    fn finish(inner: Self::Inner) -> Answer;
-}
-
-impl<'f, 'v> Number<'f, 'v> for Int<'f, 'v, '_> {
-    type Inner = i64;
+impl Int<'_, '_, '_> {
+    fn write<B: Backend>(i: i64, b: &mut B) -> error::Result<()> {
+        b.set_fg(Color::Cyan)?;
+        write!(b, "{}", i)?;
+        b.set_fg(Color::Reset)?;
+        b.write_all(b"\n")?;
+        b.flush().map_err(Into::into)
+    }
 
     fn filter_map_char(c: char) -> Option<char> {
         if c.is_digit(10) || c == '-' || c == '+' {
@@ -50,65 +42,10 @@ impl<'f, 'v> Number<'f, 'v> for Int<'f, 'v, '_> {
             None
         }
     }
-
-    fn parse(s: &str) -> Result<i64, String> {
-        s.parse::<i64>().map_err(|e| e.to_string())
-    }
-
-    fn default(&self) -> Option<Self::Inner> {
-        self.default
-    }
-
-    fn validate(&self) -> &Validate<'v, i64> {
-        &self.validate
-    }
-
-    fn filter(self) -> Filter<'f, i64> {
-        self.filter
-    }
-
-    fn write<B: Backend>(i: Self::Inner, b: &mut B) -> error::Result<()> {
-        b.set_fg(Color::Cyan)?;
-        write!(b, "{}", i)?;
-        b.set_fg(Color::Reset)?;
-        b.write_all(b"\n")?;
-        b.flush().map_err(Into::into)
-    }
-
-    fn finish(i: Self::Inner) -> Answer {
-        Answer::Int(i)
-    }
 }
 
-impl<'f, 'v> Number<'f, 'v> for Float<'f, 'v, '_> {
-    type Inner = f64;
-
-    fn filter_map_char(c: char) -> Option<char> {
-        if c.is_digit(10) || c == '.' || c == 'e' || c == 'E' || c == '+' || c == '-'
-        {
-            Some(c)
-        } else {
-            None
-        }
-    }
-
-    fn parse(s: &str) -> Result<f64, String> {
-        s.parse::<f64>().map_err(|e| e.to_string())
-    }
-
-    fn default(&self) -> Option<Self::Inner> {
-        self.default
-    }
-
-    fn validate(&self) -> &Validate<'v, f64> {
-        &self.validate
-    }
-
-    fn filter(self) -> Filter<'f, f64> {
-        self.filter
-    }
-
-    fn write<B: Backend>(f: Self::Inner, b: &mut B) -> error::Result<()> {
+impl Float<'_, '_, '_> {
+    fn write<B: Backend>(f: f64, b: &mut B) -> error::Result<()> {
         b.set_fg(Color::Cyan)?;
         if f.log10().abs() > 19.0 {
             write!(b, "{:e}", f)?;
@@ -120,132 +57,152 @@ impl<'f, 'v> Number<'f, 'v> for Float<'f, 'v, '_> {
         b.flush().map_err(Into::into)
     }
 
-    fn finish(f: Self::Inner) -> Answer {
-        Answer::Float(f)
+    fn filter_map_char(c: char) -> Option<char> {
+        if c.is_digit(10) || c == '.' || c == 'e' || c == 'E' || c == '+' || c == '-'
+        {
+            Some(c)
+        } else {
+            None
+        }
     }
 }
 
-struct NumberPrompt<'f, 'v, 'a, N> {
-    number: N,
-    message: String,
-    input: widgets::StringInput,
-    hint: Option<String>,
-    answers: &'a Answers,
-    _marker: PhantomData<(&'f (), &'v ())>,
+macro_rules! impl_number_prompt {
+    ($prompt_name:ident, $type:ident, $inner_ty:ty) => {
+        struct $prompt_name<'f, 'v, 't, 'a> {
+            number: $type<'f, 'v, 't>,
+            message: String,
+            input: widgets::StringInput,
+            hint: Option<String>,
+            answers: &'a Answers,
+        }
+
+        impl $prompt_name<'_, '_, '_, '_> {
+            fn parse(&self) -> Result<$inner_ty, String> {
+                self.input.value().parse::<$inner_ty>().map_err(|e| e.to_string())
+            }
+        }
+
+        impl Widget for $prompt_name<'_, '_, '_, '_> {
+            fn render<B: Backend>(
+                &mut self,
+                max_width: usize,
+                b: &mut B,
+            ) -> error::Result<()> {
+                self.input.render(max_width, b)
+            }
+
+            fn height(&self) -> usize {
+                self.input.height()
+            }
+
+            fn handle_key(&mut self, key: KeyEvent) -> bool {
+                self.input.handle_key(key)
+            }
+
+            fn cursor_pos(&self, prompt_len: u16) -> (u16, u16) {
+                self.input.cursor_pos(prompt_len)
+            }
+        }
+
+        impl Prompt for $prompt_name<'_, '_, '_, '_> {
+            type ValidateErr = String;
+            type Output = $inner_ty;
+
+            fn prompt(&self) -> &str {
+                &self.message
+            }
+
+            fn hint(&self) -> Option<&str> {
+                self.hint.as_ref().map(String::as_ref)
+            }
+
+            fn validate(&mut self) -> Result<Validation, Self::ValidateErr> {
+                if self.input.value().is_empty() && self.has_default() {
+                    return Ok(Validation::Finish);
+                }
+                let n = self.parse()?;
+
+                if let Validate::Sync(ref validate) = self.number.validate {
+                    validate(n, self.answers)?;
+                }
+
+                Ok(Validation::Finish)
+            }
+
+            fn finish(self) -> Self::Output {
+                if self.input.value().is_empty() && self.has_default() {
+                    return self.number.default.unwrap();
+                }
+
+                let n = self.parse().unwrap();
+                match self.number.filter {
+                    Filter::Sync(filter) => filter(n, self.answers),
+                    _ => n,
+                }
+            }
+
+            fn has_default(&self) -> bool {
+                self.number.default.is_some()
+            }
+            fn finish_default(self) -> Self::Output {
+                self.number.default.unwrap()
+            }
+        }
+
+        crate::cfg_async! {
+        #[async_trait::async_trait]
+        impl ui::AsyncPrompt for $prompt_name<'_, '_, '_, '_> {
+            async fn finish_async(self) -> Self::Output {
+                if self.input.value().is_empty() && self.has_default() {
+                    return self.number.default.unwrap();
+                }
+
+                let n = self.parse().unwrap();
+                match self.number.filter {
+                    Filter::Async(filter) => filter(n, self.answers).await,
+                    Filter::Sync(filter) => filter(n, self.answers),
+                    Filter::None => n,
+                }
+            }
+
+            fn try_validate_sync(&mut self) -> Option<Result<Validation, Self::ValidateErr>> {
+                if self.input.value().is_empty() && self.has_default() {
+                    return Some(Ok(Validation::Finish));
+                }
+
+                let n = match self.parse() {
+                    Ok(n) => n,
+                    Err(e) => return Some(Err(e)),
+                };
+
+
+                match self.number.validate {
+                    Validate::Sync(ref validate) => {
+                        Some(validate(n, self.answers).map(|_| Validation::Finish))
+                    }
+                    _ => None,
+                }
+            }
+
+            async fn validate_async(&mut self) -> Result<Validation, Self::ValidateErr> {
+                if let Validate::Async(ref validate) = self.number.validate {
+                    validate(self.parse().unwrap(), self.answers).await?;
+                }
+
+                Ok(Validation::Finish)
+            }
+        }
+        }
+    };
 }
 
-impl<'f, 'v, N: Number<'f, 'v>> Widget for NumberPrompt<'f, 'v, '_, N> {
-    fn render<B: Backend>(
-        &mut self,
-        max_width: usize,
-        b: &mut B,
-    ) -> error::Result<()> {
-        self.input.render(max_width, b)
-    }
-
-    fn height(&self) -> usize {
-        self.input.height()
-    }
-
-    fn handle_key(&mut self, key: KeyEvent) -> bool {
-        self.input.handle_key(key)
-    }
-
-    fn cursor_pos(&self, prompt_len: u16) -> (u16, u16) {
-        self.input.cursor_pos(prompt_len)
-    }
-}
-
-impl<'f, 'v, N: Number<'f, 'v>> Prompt for NumberPrompt<'f, 'v, '_, N> {
-    type ValidateErr = String;
-    type Output = N::Inner;
-
-    fn prompt(&self) -> &str {
-        &self.message
-    }
-
-    fn hint(&self) -> Option<&str> {
-        self.hint.as_ref().map(String::as_ref)
-    }
-
-    fn validate(&mut self) -> Result<Validation, Self::ValidateErr> {
-        if self.input.value().is_empty() && self.has_default() {
-            return Ok(Validation::Finish);
-        }
-        let n = N::parse(self.input.value())?;
-
-        if let Validate::Sync(validate) = self.number.validate() {
-            validate(n, self.answers)?;
-        }
-
-        Ok(Validation::Finish)
-    }
-    fn finish(self) -> Self::Output {
-        if self.input.value().is_empty() && self.has_default() {
-            return self.number.default().unwrap();
-        }
-
-        let n = N::parse(self.input.value()).unwrap();
-        match self.number.filter() {
-            Filter::Sync(filter) => filter(n, self.answers),
-            _ => n,
-        }
-    }
-
-    fn has_default(&self) -> bool {
-        self.number.default().is_some()
-    }
-    fn finish_default(self) -> Self::Output {
-        self.number.default().unwrap()
-    }
-}
-
-crate::cfg_async! {
-#[async_trait::async_trait]
-impl<'f, 'v, N: Number<'f, 'v> + Send + Sync> ui::AsyncPrompt for NumberPrompt<'f, 'v, '_, N> {
-    async fn finish_async(self) -> Self::Output {
-        if self.input.value().is_empty() && self.has_default() {
-            return self.number.default().unwrap();
-        }
-
-        let n = N::parse(self.input.value()).unwrap();
-        match self.number.filter() {
-            Filter::Async(filter) => filter(n, self.answers).await,
-            Filter::Sync(filter) => filter(n, self.answers),
-            Filter::None => n,
-        }
-    }
-
-    fn try_validate_sync(&mut self) -> Option<Result<Validation, Self::ValidateErr>> {
-        if self.input.value().is_empty() && self.has_default() {
-            return Some(Ok(Validation::Finish));
-        }
-
-        let n = match N::parse(self.input.value()) {
-            Ok(n) => n,
-            Err(e) => return Some(Err(e)),
-        };
-
-
-        match self.number.validate() {
-            Validate::Sync(validate) => Some(validate(n, self.answers).map(|_| Validation::Finish)),
-            _ => None,
-        }
-    }
-
-    async fn validate_async(&mut self) -> Result<Validation, Self::ValidateErr> {
-        if let Validate::Async(ref validate) = self.number.validate() {
-            validate(N::parse(self.input.value())?, self.answers).await?;
-        }
-
-        Ok(Validation::Finish)
-    }
-}
-}
+impl_number_prompt!(IntPrompt, Int, i64);
+impl_number_prompt!(FloatPrompt, Float, f64);
 
 macro_rules! impl_ask {
-    ($t:ty) => {
-        impl $t {
+    ($t:ident, $prompt_name:ident) => {
+        impl $t<'_, '_, '_> {
             pub(crate) fn ask<B: Backend>(
                 mut self,
                 message: String,
@@ -256,13 +213,12 @@ macro_rules! impl_ask {
                 let transform = self.transform.take();
 
                 let ans = ui::Input::new(
-                    NumberPrompt {
+                    $prompt_name {
                         hint: self.default.map(|default| format!("({})", default)),
                         input: widgets::StringInput::new(Self::filter_map_char),
                         number: self,
                         message,
                         answers,
-                        _marker: PhantomData,
                     },
                     b,
                 )
@@ -273,7 +229,7 @@ macro_rules! impl_ask {
                     _ => Self::write(ans, b)?,
                 }
 
-                Ok(Self::finish(ans))
+                Ok(Answer::$t(ans))
             }
 
             crate::cfg_async! {
@@ -286,13 +242,12 @@ macro_rules! impl_ask {
             ) -> error::Result<Answer> {
                 let transform = self.transform.take();
 
-                let ans = ui::Input::new(NumberPrompt {
+                let ans = ui::Input::new($prompt_name {
                     hint: self.default.map(|default| format!("({})", default)),
                     input: widgets::StringInput::new(Self::filter_map_char),
                     number: self,
                     message,
                     answers,
-                    _marker: PhantomData,
                 }, b)
                 .run_async(events)
                 .await?;
@@ -303,15 +258,15 @@ macro_rules! impl_ask {
                     _ => Self::write(ans, b)?,
                 }
 
-                Ok(Self::finish(ans))
+                Ok(Answer::$t(ans))
             }
             }
         }
     };
 }
 
-impl_ask!(Int<'_, '_, '_>);
-impl_ask!(Float<'_, '_, '_>);
+impl_ask!(Int, IntPrompt);
+impl_ask!(Float, FloatPrompt);
 
 macro_rules! builder {
     ($builder_name:ident, $type:ident, $inner_ty:ty, $kind:expr) => {

@@ -19,7 +19,6 @@ macros = { package = "inquisition-macros", path = "./inquisition-macros" }
 
 ahash = { version = "0.7", optional = true }
 async-trait = { version = "0.1", optional = true }
-futures = { version = "0.3", optional = true }
 
 # The following dependencies are renamed in the form `<dep-name>-dep` to allow
 # a feature name with the same name to be present. This is necessary since
