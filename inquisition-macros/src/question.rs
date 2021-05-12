@@ -66,8 +66,7 @@ impl QuestionKind {
                     | BuilderMethods::LIST
             }
             QuestionKind::Checkbox => {
-                BuilderMethods::DEFAULT
-                    | BuilderMethods::TRANSFORM
+                BuilderMethods::TRANSFORM
                     | BuilderMethods::VAL_FIL
                     | BuilderMethods::LIST
             }

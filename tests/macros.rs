@@ -54,6 +54,13 @@ fn unknown() {
 }
 
 #[test]
+fn missing() {
+    let t = Runner::new("missing");
+    t.compile_fail("name");
+    t.compile_fail("plugin");
+}
+
+#[test]
 fn checkbox() {
     let t = Runner::new("checkbox");
 

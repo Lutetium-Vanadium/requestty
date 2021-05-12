@@ -1,5 +1,5 @@
-error: missing required option `name`
- --> $DIR/default.rs:2:38
+error: option `default` does not exist for kind `checkbox`
+ --> $DIR/default.rs:2:40
   |
 2 |     inquisition::questions![checkbox { default: todo!() }];
-  |                                      ^^^^^^^^^^^^^^^^^^^^
+  |                                        ^^^^^^^
