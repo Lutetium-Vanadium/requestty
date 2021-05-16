@@ -1,6 +1,4 @@
 //! A widget based cli ui rendering library
-use std::sync::Mutex;
-
 pub use sync_input::{Input, Prompt};
 pub use widget::Widget;
 
@@ -41,29 +39,6 @@ pub enum Validation {
     /// Unlike returning an Err, this will not print anything unique, and is a way for the prompt to
     /// say that it internally has processed the `Enter` key, but is not complete.
     Continue,
-}
-
-lazy_static::lazy_static! {
-    static ref EXIT_HANDLER: Mutex<fn()> = Mutex::new(default_exit);
-}
-
-/// Sets the exit handler to call when `CTRL+C` or EOF is received
-///
-/// By default, it exits the program, however it can be overridden to not exit. If it doesn't exit,
-/// [`Input::run`] will return an `Err`
-pub fn set_exit_handler(handler: fn()) {
-    *EXIT_HANDLER.lock().unwrap() = handler;
-}
-
-fn default_exit() {
-    std::process::exit(130);
-}
-
-fn exit() {
-    match EXIT_HANDLER.lock() {
-        Ok(exit) => exit(),
-        Err(_) => default_exit(),
-    }
 }
 
 #[doc(hidden)]

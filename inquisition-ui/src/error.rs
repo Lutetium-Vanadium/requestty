@@ -10,6 +10,8 @@ pub enum ErrorKind {
     Utf8Error(std::string::FromUtf8Error),
     ParseIntError(std::num::ParseIntError),
     NotATty,
+    Interrupted,
+    Eof,
 }
 
 impl std::error::Error for ErrorKind {
@@ -19,6 +21,8 @@ impl std::error::Error for ErrorKind {
             ErrorKind::FmtError(e) => Some(e),
             ErrorKind::Utf8Error(e) => Some(e),
             ErrorKind::ParseIntError(e) => Some(e),
+            ErrorKind::Interrupted => None,
+            ErrorKind::Eof => None,
             ErrorKind::NotATty => None,
         }
     }
@@ -31,6 +35,8 @@ impl fmt::Display for ErrorKind {
             ErrorKind::FmtError(e) => write!(fmt, "FmtError: {}", e),
             ErrorKind::Utf8Error(e) => write!(fmt, "Utf8Error: {}", e),
             ErrorKind::ParseIntError(e) => write!(fmt, "ParseIntError: {}", e),
+            ErrorKind::Interrupted => write!(fmt, "CTRL+C"),
+            ErrorKind::Eof => write!(fmt, "EOF"),
             ErrorKind::NotATty => write!(fmt, "Not a tty"),
         }
     }

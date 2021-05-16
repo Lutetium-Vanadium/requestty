@@ -1,5 +1,3 @@
-use std::io;
-
 use async_trait::async_trait;
 use futures::StreamExt;
 
@@ -43,7 +41,7 @@ impl<P: AsyncPrompt + Send, B: Backend + Unpin> Input<P, B> {
         prompt_len: u16,
     ) -> error::Result<P::Output> {
         self.clear(prompt_len)?;
-        self.reset_terminal()?;
+        self.backend.reset()?;
 
         if pressed_enter {
             Ok(self.prompt.finish_async().await)
@@ -63,15 +61,11 @@ impl<P: AsyncPrompt + Send, B: Backend + Unpin> Input<P, B> {
             let key_handled = match e.code {
                 KeyCode::Char('c') if e.modifiers.contains(KeyModifiers::CONTROL) => {
                     self.exit()?;
-                    // The exit handler does not return the never (`!`) type, as a
-                    // custom exit handler does not have to exit the program
-                    return Err(io::Error::new(io::ErrorKind::Other, "CTRL+C").into());
+                    return Err(error::ErrorKind::Interrupted);
                 }
                 KeyCode::Null => {
                     self.exit()?;
-                    // The exit handler does not return the never (`!`) type, as a
-                    // custom exit handler does not have to exit the program
-                    return Err(io::Error::new(io::ErrorKind::UnexpectedEof, "EOF").into());
+                    return Err(error::ErrorKind::Eof);
                 }
                 KeyCode::Esc if self.prompt.has_default() => {
                     return self.finish_async(false, prompt_len).await;

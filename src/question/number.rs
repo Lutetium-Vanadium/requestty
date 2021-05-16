@@ -58,8 +58,7 @@ impl Float<'_, '_, '_> {
     }
 
     fn filter_map_char(c: char) -> Option<char> {
-        if c.is_digit(10) || c == '.' || c == 'e' || c == 'E' || c == '+' || c == '-'
-        {
+        if Int::filter_map_char(c).is_some() || c == '.' || c == 'e' || c == 'E' {
             Some(c)
         } else {
             None

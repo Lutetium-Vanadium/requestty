@@ -170,7 +170,7 @@ impl ui::Prompt for EditorPromptAsync<'_, '_, '_, '_> {
     }
 
     fn finish(self) -> Self::Output {
-        unimplemented!()
+        unreachable!("EditorPromptAsync should only be called through async api");
     }
 
     fn has_default(&self) -> bool {

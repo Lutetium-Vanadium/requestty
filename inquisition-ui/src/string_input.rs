@@ -130,9 +130,8 @@ impl<F> StringInput<F> {
             .unwrap_or_else(|| self.value.len())
     }
 
-    fn is_delete_movement(&self, key: KeyEvent) -> Option<Movement> {
+    fn get_delete_movement(&self, key: KeyEvent) -> Option<Movement> {
         let mov = match key.code {
-            KeyCode::Backspace if self.at == 0 => return None,
             KeyCode::Char('u') if key.modifiers.contains(KeyModifiers::CONTROL) => {
                 Movement::Home
             }
@@ -147,7 +146,6 @@ impl<F> StringInput<F> {
             }
             KeyCode::Backspace => Movement::Left,
 
-            KeyCode::Delete if self.at == self.value_len => return None,
             KeyCode::Char('k') if key.modifiers.contains(KeyModifiers::CONTROL) => {
                 Movement::End
             }
@@ -166,7 +164,17 @@ impl<F> StringInput<F> {
             _ => return None,
         };
 
-        Some(mov)
+        match mov {
+            Movement::Home | Movement::PrevWord | Movement::Left if self.at != 0 => {
+                Some(mov)
+            }
+            Movement::End | Movement::NextWord | Movement::Right
+                if self.at != self.value_len =>
+            {
+                Some(mov)
+            }
+            _ => None,
+        }
     }
 }
 
@@ -176,7 +184,7 @@ where
 {
     /// Handles characters, backspace, delete, left arrow, right arrow, home and end.
     fn handle_key(&mut self, key: KeyEvent) -> bool {
-        if let Some(movement) = self.is_delete_movement(key) {
+        if let Some(movement) = self.get_delete_movement(key) {
             match movement {
                 Movement::Home => {
                     let byte_i = self.get_byte_i(self.at);
@@ -238,6 +246,8 @@ where
         }
 
         match key.code {
+            // FIXME: all chars with ctrl and alt are ignored, even though only some
+            // need to be ignored
             KeyCode::Char(c)
                 if !key
                     .modifiers

@@ -1,4 +1,7 @@
-use std::{convert::TryFrom, io};
+use std::{
+    convert::TryFrom,
+    ops::{Deref, DerefMut},
+};
 
 use super::{Validation, Widget};
 use crate::{
@@ -47,17 +50,14 @@ pub trait Prompt: Widget {
     }
 }
 
-// TODO: disable_raw_mode is not called when a panic occurs
-
 /// The ui runner. It renders and processes events with the help of a type that implements [`Prompt`]
 ///
 /// See [`run`](Input::run) for more information
 pub struct Input<P, B: Backend> {
     pub(super) prompt: P,
-    pub(super) backend: B,
+    pub(super) backend: TerminalState<B>,
     pub(super) base_row: u16,
     pub(super) base_col: u16,
-    pub(super) hide_cursor: bool,
     pub(super) size: Size,
 }
 
@@ -68,10 +68,7 @@ impl<P: Prompt, B: Backend> Input<P, B> {
             u16::try_from(prompt.chars().count() + 3).expect("really big prompt");
 
         self.size = self.backend.size()?;
-        self.backend.enable_raw_mode()?;
-        if self.hide_cursor {
-            self.backend.hide_cursor()?;
-        };
+        self.backend.init()?;
 
         self.backend.write_styled("? ".light_green())?;
         self.backend.write_styled(prompt.bold())?;
@@ -124,7 +121,7 @@ impl<P: Prompt, B: Backend> Input<P, B> {
 
         self.prompt.render(
             (self.size.width - self.base_col) as usize,
-            &mut self.backend,
+            &mut *self.backend,
         )?;
 
         self.set_cursor_pos()
@@ -150,18 +147,11 @@ impl<P: Prompt, B: Backend> Input<P, B> {
         self.set_cursor_pos()
     }
 
-    pub(super) fn reset_terminal(&mut self) -> error::Result<()> {
-        if self.hide_cursor {
-            self.backend.show_cursor()?;
-        }
-        self.backend.disable_raw_mode()
-    }
-
     pub(super) fn exit(&mut self) -> error::Result<()> {
-        self.backend
-            .set_cursor(0, self.base_row + 1 + self.prompt.height() as u16)?;
-        self.reset_terminal()?;
-        super::exit();
+        let height = self.prompt.height() + 1;
+        self.base_row = self.adjust_scrollback(height)?;
+        self.backend.set_cursor(0, self.base_row + height as u16)?;
+        self.backend.reset()?;
         Ok(())
     }
 
@@ -172,7 +162,7 @@ impl<P: Prompt, B: Backend> Input<P, B> {
         prompt_len: u16,
     ) -> error::Result<P::Output> {
         self.clear(prompt_len)?;
-        self.reset_terminal()?;
+        self.backend.reset()?;
 
         if pressed_enter {
             Ok(self.prompt.finish())
@@ -194,19 +184,11 @@ impl<P: Prompt, B: Backend> Input<P, B> {
                     if e.modifiers.contains(KeyModifiers::CONTROL) =>
                 {
                     self.exit()?;
-                    // The exit handler does not return the never (`!`) type, as a
-                    // custom exit handler does not have to exit the program
-                    return Err(
-                        io::Error::new(io::ErrorKind::Other, "CTRL+C").into()
-                    );
+                    return Err(error::ErrorKind::Interrupted);
                 }
                 KeyCode::Null => {
                     self.exit()?;
-                    // The exit handler does not return the never (`!`) type, as a
-                    // custom exit handler does not have to exit the program
-                    return Err(
-                        io::Error::new(io::ErrorKind::UnexpectedEof, "EOF").into()
-                    );
+                    return Err(error::ErrorKind::Eof);
                 }
                 KeyCode::Esc if self.prompt.has_default() => {
                     return self.finish(false, prompt_len);
@@ -243,17 +225,70 @@ impl<P, B: Backend> Input<P, B> {
         // once the Input goes out of scope, it can be used again
         Input {
             prompt,
-            backend,
+            backend: TerminalState::new(backend, false),
             base_row: 0,
             base_col: 0,
-            hide_cursor: false,
             size: Size::default(),
         }
     }
 
     /// Hides the cursor while running the input
     pub fn hide_cursor(mut self) -> Self {
-        self.hide_cursor = true;
+        self.backend.hide_cursor = true;
         self
+    }
+}
+
+pub(super) struct TerminalState<B: Backend> {
+    backend: B,
+    hide_cursor: bool,
+    enabled: bool,
+}
+
+impl<B: Backend> TerminalState<B> {
+    pub(crate) fn new(backend: B, hide_cursor: bool) -> Self {
+        Self {
+            backend,
+            enabled: false,
+            hide_cursor,
+        }
+    }
+
+    pub(crate) fn init(&mut self) -> error::Result<()> {
+        self.enabled = true;
+        if self.hide_cursor {
+            self.backend.hide_cursor()?;
+        }
+        self.backend.enable_raw_mode()
+    }
+
+    pub(crate) fn reset(&mut self) -> error::Result<()> {
+        self.enabled = false;
+        if self.hide_cursor {
+            self.backend.show_cursor()?;
+        }
+        self.backend.disable_raw_mode()
+    }
+}
+
+impl<B: Backend> Drop for TerminalState<B> {
+    fn drop(&mut self) {
+        if self.enabled {
+            let _ = self.reset();
+        }
+    }
+}
+
+impl<B: Backend> Deref for TerminalState<B> {
+    type Target = B;
+
+    fn deref(&self) -> &Self::Target {
+        &self.backend
+    }
+}
+
+impl<B: Backend> DerefMut for TerminalState<B> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.backend
     }
 }
