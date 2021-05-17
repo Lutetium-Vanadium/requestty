@@ -1,13 +1,11 @@
-use std::{
-    convert::TryFrom,
-    ops::{Deref, DerefMut},
-};
+use std::convert::TryFrom;
 
-use super::{Validation, Widget};
+use super::{TerminalState, Validation, Widget};
 use crate::{
     backend::{Backend, ClearType, MoveDirection, Size, Stylize},
     error,
     events::{Events, KeyCode, KeyModifiers},
+    Layout,
 };
 
 /// This trait should be implemented by all 'root' widgets.
@@ -62,6 +60,10 @@ pub struct Input<P, B: Backend> {
 }
 
 impl<P: Prompt, B: Backend> Input<P, B> {
+    pub(super) fn layout(&self) -> Layout {
+        Layout::new(self.base_col, self.size).with_offset(0, self.base_row)
+    }
+
     pub(super) fn init(&mut self) -> error::Result<u16> {
         let prompt = self.prompt.prompt();
         let prompt_len =
@@ -84,7 +86,8 @@ impl<P: Prompt, B: Backend> Input<P, B> {
         };
 
         self.base_row = self.backend.get_cursor()?.1;
-        self.base_row = self.adjust_scrollback(self.prompt.height())?;
+        let height = self.prompt.height(self.layout());
+        self.base_row = self.adjust_scrollback(height)?;
         self.base_col = prompt_len + hint_len;
 
         self.render()?;
@@ -92,13 +95,13 @@ impl<P: Prompt, B: Backend> Input<P, B> {
         Ok(prompt_len)
     }
 
-    pub(super) fn adjust_scrollback(&mut self, height: usize) -> error::Result<u16> {
-        let th = self.size.height as usize;
+    pub(super) fn adjust_scrollback(&mut self, height: u16) -> error::Result<u16> {
+        let th = self.size.height;
 
         let mut base_row = self.base_row;
 
-        if self.base_row as usize >= th - height {
-            let dist = (self.base_row as usize + height - th + 1) as u16;
+        if self.base_row >= th - height {
+            let dist = self.base_row + height - th + 1;
             base_row -= dist;
             self.backend.scroll(-(dist as i32))?;
             self.backend.move_cursor(MoveDirection::Up(dist))?;
@@ -108,21 +111,18 @@ impl<P: Prompt, B: Backend> Input<P, B> {
     }
 
     pub(super) fn set_cursor_pos(&mut self) -> error::Result<()> {
-        let (dcw, dch) = self.prompt.cursor_pos(self.base_col);
+        let (dcw, dch) = self.prompt.cursor_pos(self.layout());
         self.backend.set_cursor(dcw, self.base_row + dch)?;
         self.backend.flush().map_err(Into::into)
     }
 
     pub(super) fn render(&mut self) -> error::Result<()> {
-        let height = self.prompt.height();
+        let height = self.prompt.height(self.layout());
         self.base_row = self.adjust_scrollback(height)?;
         self.clear(self.base_col)?;
         self.backend.set_cursor(self.base_col, self.base_row)?;
 
-        self.prompt.render(
-            (self.size.width - self.base_col) as usize,
-            &mut *self.backend,
-        )?;
+        self.prompt.render(self.layout(), &mut *self.backend)?;
 
         self.set_cursor_pos()
     }
@@ -137,20 +137,23 @@ impl<P: Prompt, B: Backend> Input<P, B> {
         self.backend.clear(ClearType::UntilNewLine)
     }
 
+    pub(super) fn goto_last_line(&mut self) -> error::Result<()> {
+        let height = self.prompt.height(self.layout()) + 1;
+        self.base_row = self.adjust_scrollback(height)?;
+        self.backend.set_cursor(0, self.base_row + height as u16)
+    }
+
     pub(super) fn print_error(&mut self, e: P::ValidateErr) -> error::Result<()> {
         self.size = self.backend.size()?;
-        let height = self.prompt.height() + 1;
-        self.base_row = self.adjust_scrollback(height)?;
-        self.backend.set_cursor(0, self.base_row + height as u16)?;
+        self.goto_last_line()?;
         self.backend.write_styled(">>".red())?;
         write!(self.backend, " {}", e)?;
         self.set_cursor_pos()
     }
 
     pub(super) fn exit(&mut self) -> error::Result<()> {
-        let height = self.prompt.height() + 1;
-        self.base_row = self.adjust_scrollback(height)?;
-        self.backend.set_cursor(0, self.base_row + height as u16)?;
+        self.size = self.backend.size()?;
+        self.goto_last_line()?;
         self.backend.reset()?;
         Ok(())
     }
@@ -236,59 +239,5 @@ impl<P, B: Backend> Input<P, B> {
     pub fn hide_cursor(mut self) -> Self {
         self.backend.hide_cursor = true;
         self
-    }
-}
-
-pub(super) struct TerminalState<B: Backend> {
-    backend: B,
-    hide_cursor: bool,
-    enabled: bool,
-}
-
-impl<B: Backend> TerminalState<B> {
-    pub(crate) fn new(backend: B, hide_cursor: bool) -> Self {
-        Self {
-            backend,
-            enabled: false,
-            hide_cursor,
-        }
-    }
-
-    pub(crate) fn init(&mut self) -> error::Result<()> {
-        self.enabled = true;
-        if self.hide_cursor {
-            self.backend.hide_cursor()?;
-        }
-        self.backend.enable_raw_mode()
-    }
-
-    pub(crate) fn reset(&mut self) -> error::Result<()> {
-        self.enabled = false;
-        if self.hide_cursor {
-            self.backend.show_cursor()?;
-        }
-        self.backend.disable_raw_mode()
-    }
-}
-
-impl<B: Backend> Drop for TerminalState<B> {
-    fn drop(&mut self) {
-        if self.enabled {
-            let _ = self.reset();
-        }
-    }
-}
-
-impl<B: Backend> Deref for TerminalState<B> {
-    type Target = B;
-
-    fn deref(&self) -> &Self::Target {
-        &self.backend
-    }
-}
-
-impl<B: Backend> DerefMut for TerminalState<B> {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.backend
     }
 }

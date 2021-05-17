@@ -88,15 +88,19 @@ impl ui::AsyncPrompt for RawlistPrompt<'_> {
 const ANSWER_PROMPT: &[u8] = b"  Answer: ";
 
 impl Widget for RawlistPrompt<'_> {
-    fn render<B: Backend>(&mut self, _: usize, b: &mut B) -> error::Result<()> {
-        let max_width = b.size()?.width as usize;
-        self.list.render(max_width, b)?;
+    fn render<B: Backend>(
+        &mut self,
+        mut layout: ui::Layout,
+        b: &mut B,
+    ) -> error::Result<()> {
+        self.list.render(layout, b)?;
         b.write_all(ANSWER_PROMPT)?;
-        self.input.render(max_width - ANSWER_PROMPT.len(), b)
+        layout.line_offset += ANSWER_PROMPT.len() as u16;
+        self.input.render(layout, b)
     }
 
-    fn height(&self) -> usize {
-        self.list.height() + 1
+    fn height(&mut self, layout: ui::Layout) -> u16 {
+        self.list.height(layout) + 1
     }
 
     fn handle_key(&mut self, key: KeyEvent) -> bool {
@@ -126,9 +130,12 @@ impl Widget for RawlistPrompt<'_> {
         }
     }
 
-    fn cursor_pos(&self, _: u16) -> (u16, u16) {
-        let w = self.input.cursor_pos(ANSWER_PROMPT.len() as u16).0;
-        (w, self.height() as u16)
+    fn cursor_pos(&mut self, layout: ui::Layout) -> (u16, u16) {
+        let w = self
+            .input
+            .cursor_pos(layout.with_line_offset(ANSWER_PROMPT.len() as u16))
+            .0;
+        (w, self.height(layout) as u16)
     }
 }
 
@@ -137,7 +144,7 @@ impl widgets::List for Rawlist<'_> {
         &mut self,
         index: usize,
         hovered: bool,
-        max_width: usize,
+        layout: ui::Layout,
         b: &mut B,
     ) -> error::Result<()> {
         match &self.choices[index] {
@@ -147,8 +154,10 @@ impl widgets::List for Rawlist<'_> {
                 }
 
                 write!(b, "  {}) ", index)?;
-                name.as_str()
-                    .render(max_width - (*index as f64).log10() as usize + 5, b)?;
+                name.as_str().render(
+                    layout.with_line_offset((*index as f64).log10() as u16 + 5),
+                    b,
+                )?;
 
                 if hovered {
                     b.set_fg(Color::Reset)?;
@@ -157,7 +166,8 @@ impl widgets::List for Rawlist<'_> {
             separator => {
                 b.set_fg(Color::DarkGrey)?;
                 b.write_all(b"   ")?;
-                super::get_sep_str(separator).render(max_width - 3, b)?;
+                super::get_sep_str(separator)
+                    .render(layout.with_line_offset(3), b)?;
                 b.set_fg(Color::Reset)?;
             }
         }

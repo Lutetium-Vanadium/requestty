@@ -120,14 +120,14 @@ impl ui::AsyncPrompt for CheckboxPrompt<'_, '_, '_, '_> {
 impl Widget for CheckboxPrompt<'_, '_, '_, '_> {
     fn render<B: Backend>(
         &mut self,
-        max_width: usize,
+        layout: ui::Layout,
         b: &mut B,
     ) -> error::Result<()> {
-        self.picker.render(max_width, b)
+        self.picker.render(layout, b)
     }
 
-    fn height(&self) -> usize {
-        self.picker.height()
+    fn height(&mut self, layout: ui::Layout) -> u16 {
+        self.picker.height(layout)
     }
 
     fn handle_key(&mut self, key: KeyEvent) -> bool {
@@ -153,8 +153,8 @@ impl Widget for CheckboxPrompt<'_, '_, '_, '_> {
         true
     }
 
-    fn cursor_pos(&self, prompt_len: u16) -> (u16, u16) {
-        self.picker.cursor_pos(prompt_len)
+    fn cursor_pos(&mut self, layout: ui::Layout) -> (u16, u16) {
+        self.picker.cursor_pos(layout)
     }
 }
 
@@ -163,7 +163,7 @@ impl widgets::List for Checkbox<'_, '_, '_> {
         &mut self,
         index: usize,
         hovered: bool,
-        max_width: usize,
+        layout: ui::Layout,
         b: &mut B,
     ) -> error::Result<()> {
         if hovered {
@@ -190,7 +190,9 @@ impl widgets::List for Checkbox<'_, '_, '_> {
             b.set_fg(Color::DarkGrey)?;
         }
 
-        self.choices[index].as_str().render(max_width - 4, b)?;
+        self.choices[index]
+            .as_str()
+            .render(layout.with_line_offset(4), b)?;
 
         b.set_fg(Color::Reset)
     }

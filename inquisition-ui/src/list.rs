@@ -2,16 +2,18 @@ use crate::{
     backend::{Backend, MoveDirection, Stylize},
     error,
     events::{KeyEvent, Movement},
+    Layout,
 };
 
 /// A trait to represent a renderable list
 pub trait List {
+    // FIXME: allow multi-line
     /// Render a single element at some index in **only** one line
     fn render_item<B: Backend>(
         &mut self,
         index: usize,
         hovered: bool,
-        max_width: usize,
+        layout: Layout,
         backend: &mut B,
     ) -> error::Result<()>;
 
@@ -171,11 +173,12 @@ impl<L: List> ListPicker<L> {
     fn render_in<B: Backend>(
         &mut self,
         iter: impl Iterator<Item = usize>,
-        max_width: usize,
+        mut layout: Layout,
         b: &mut B,
     ) -> error::Result<()> {
         for i in iter {
-            self.list.render_item(i, i == self.at, max_width, b)?;
+            layout.offset_y += 1;
+            self.list.render_item(i, i == self.at, layout, b)?;
             b.move_cursor(MoveDirection::NextLine(1))?;
         }
 
@@ -251,10 +254,13 @@ impl<L: List> super::Widget for ListPicker<L> {
 
     fn render<B: Backend>(
         &mut self,
-        max_width: usize,
+        mut layout: Layout,
         b: &mut B,
     ) -> error::Result<()> {
+        // TODO: allow multi-line options
         b.move_cursor(MoveDirection::NextLine(1))?;
+        layout.line_offset = 0;
+        layout.offset_y += 1;
 
         if self.is_paginating() {
             let end_iter = self.page_start
@@ -265,14 +271,14 @@ impl<L: List> super::Widget for ListPicker<L> {
                 let end_iter_len = end_iter.size_hint().0;
                 self.render_in(
                     end_iter.chain(0..(self.list.page_size() - end_iter_len - 1)),
-                    max_width,
+                    layout,
                     b,
                 )?;
             } else {
-                self.render_in(end_iter, max_width, b)?;
+                self.render_in(end_iter, layout, b)?;
             }
         } else {
-            self.render_in(0..self.list.len(), max_width, b)?;
+            self.render_in(0..self.list.len(), layout, b)?;
         };
 
         if self.is_paginating() {
@@ -283,11 +289,11 @@ impl<L: List> super::Widget for ListPicker<L> {
         Ok(())
     }
 
-    fn cursor_pos(&self, _: u16) -> (u16, u16) {
+    fn cursor_pos(&mut self, _: Layout) -> (u16, u16) {
         (0, 1 + self.at as u16)
     }
 
-    fn height(&self) -> usize {
-        self.list.len().min(self.list.page_size())
+    fn height(&mut self, _: Layout) -> u16 {
+        self.list.len().min(self.list.page_size()) as u16
     }
 }

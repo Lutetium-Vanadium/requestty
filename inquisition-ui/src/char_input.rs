@@ -2,6 +2,7 @@ use crate::{
     backend::Backend,
     error,
     events::{KeyCode, KeyEvent},
+    Layout,
 };
 
 /// A widget that inputs a single character. If multiple characters are inputted to it, it will have
@@ -68,11 +69,11 @@ where
 
     fn render<B: Backend>(
         &mut self,
-        max_width: usize,
+        layout: Layout,
         backend: &mut B,
     ) -> error::Result<()> {
         if let Some(value) = self.value {
-            if max_width == 0 {
+            if layout.line_width() == 0 {
                 return Err(std::fmt::Error.into());
             }
 
@@ -81,12 +82,12 @@ where
         Ok(())
     }
 
-    fn cursor_pos(&self, prompt_len: u16) -> (u16, u16) {
-        (self.value.map(|_| 1).unwrap_or(0) + prompt_len, 0)
+    fn height(&mut self, _: Layout) -> u16 {
+        0
     }
 
-    fn height(&self) -> usize {
-        0
+    fn cursor_pos(&mut self, layout: Layout) -> (u16, u16) {
+        (self.value.map(|_| 1).unwrap_or(0) + layout.line_offset, 0)
     }
 }
 

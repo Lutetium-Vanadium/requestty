@@ -74,20 +74,24 @@ impl ui::AsyncPrompt for ListPrompt<'_> {
 }
 
 impl Widget for ListPrompt<'_> {
-    fn render<B: Backend>(&mut self, _: usize, b: &mut B) -> error::Result<()> {
-        self.picker.render(b.size()?.width as usize, b)
+    fn render<B: Backend>(
+        &mut self,
+        layout: ui::Layout,
+        b: &mut B,
+    ) -> error::Result<()> {
+        self.picker.render(layout, b)
     }
 
-    fn height(&self) -> usize {
-        self.picker.height()
+    fn height(&mut self, layout: ui::Layout) -> u16 {
+        self.picker.height(layout)
     }
 
     fn handle_key(&mut self, key: KeyEvent) -> bool {
         self.picker.handle_key(key)
     }
 
-    fn cursor_pos(&self, prompt_len: u16) -> (u16, u16) {
-        self.picker.cursor_pos(prompt_len)
+    fn cursor_pos(&mut self, layout: ui::Layout) -> (u16, u16) {
+        self.picker.cursor_pos(layout)
     }
 }
 
@@ -96,7 +100,7 @@ impl widgets::List for List<'_> {
         &mut self,
         index: usize,
         hovered: bool,
-        max_width: usize,
+        mut layout: ui::Layout,
         b: &mut B,
     ) -> error::Result<()> {
         if hovered {
@@ -110,7 +114,8 @@ impl widgets::List for List<'_> {
             }
         }
 
-        self.choices[index].as_str().render(max_width - 2, b)?;
+        layout.line_offset += 2;
+        self.choices[index].as_str().render(layout, b)?;
 
         b.set_fg(Color::Reset)
     }
@@ -174,7 +179,7 @@ impl List<'_> {
         if let Some(default) = picker.list.choices.default() {
             picker.set_at(default);
         }
-        let ans = ui::Input::new(ListPrompt { picker, message }, b)
+        let ans = ui::Input::new(ListPrompt { message, picker }, b)
             .hide_cursor()
             .run_async(events)
             .await?;

@@ -1,5 +1,4 @@
 use std::{
-    fmt,
     io::{self, Write},
     ops::Range,
 };
@@ -10,6 +9,7 @@ use crate::{
     backend::Backend,
     error,
     events::{KeyCode, KeyEvent, KeyModifiers, Movement},
+    Layout,
 };
 
 /// A widget that inputs a line of text
@@ -301,43 +301,43 @@ where
 
     fn render<B: Backend>(
         &mut self,
-        max_width: usize,
+        _: Layout,
         backend: &mut B,
     ) -> error::Result<()> {
         if self.hide_output {
             return Ok(());
         }
 
-        if max_width <= 3 {
-            return Err(fmt::Error.into());
-        }
-
-        if self.value_len > max_width {
-            unimplemented!(
-                "Big strings {} {} {}",
-                self.value_len,
-                self.value().chars().count(),
-                max_width
-            );
-        } else if let Some(mask) = self.mask {
+        if let Some(mask) = self.mask {
             print_mask(self.value_len, mask, backend)?;
         } else {
+            // Terminal takes care of wrapping in case of large strings
             backend.write_all(self.value.as_bytes())?;
         }
 
         Ok(())
     }
 
-    fn cursor_pos(&self, prompt_len: u16) -> (u16, u16) {
-        if self.hide_output {
-            (prompt_len, 0)
+    fn height(&mut self, layout: Layout) -> u16 {
+        if self.value_len as u16 > layout.line_width() {
+            1 + (self.value_len as u16 - layout.line_width()) / layout.width
         } else {
-            (prompt_len + self.at as u16, 0)
+            0
         }
     }
 
-    fn height(&self) -> usize {
-        0
+    fn cursor_pos(&mut self, layout: Layout) -> (u16, u16) {
+        if self.hide_output {
+            // Nothing will be outputted so no need to move the cursor
+            (layout.line_offset, 0)
+        } else if layout.line_width() > self.at as u16 {
+            // It is in the same line as the prompt
+            (layout.line_offset + self.at as u16, 0)
+        } else {
+            let at = self.at as u16 - layout.line_width();
+
+            (at % layout.width, 1 + at / layout.width)
+        }
     }
 }
 

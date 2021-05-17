@@ -113,16 +113,16 @@ const ANSWER_PROMPT: &[u8] = b"  Answer: ";
 impl<F: Fn(char) -> Option<char>> ui::Widget for ExpandPrompt<'_, F> {
     fn render<B: Backend>(
         &mut self,
-        max_width: usize,
+        layout: ui::Layout,
         b: &mut B,
     ) -> error::Result<()> {
         if self.expanded {
-            let max_width = b.size()?.width as usize - ANSWER_PROMPT.len();
-            self.list.render(max_width, b)?;
+            self.list.render(layout, b)?;
             b.write_all(ANSWER_PROMPT)?;
-            self.input.render(max_width, b)
+            self.input
+                .render(layout.with_line_offset(ANSWER_PROMPT.len() as u16), b)
         } else {
-            self.input.render(max_width, b)?;
+            self.input.render(layout, b)?;
 
             if let Some(key) = self.input.value() {
                 let name = &self
@@ -149,13 +149,13 @@ impl<F: Fn(char) -> Option<char>> ui::Widget for ExpandPrompt<'_, F> {
         }
     }
 
-    fn height(&self) -> usize {
+    fn height(&mut self, layout: ui::Layout) -> u16 {
         if self.expanded {
-            self.list.height() + 1
+            self.list.height(layout) + 1
         } else if self.input.value().is_some() {
-            self.input.height() + 1
+            self.input.height(layout) + 1
         } else {
-            self.input.height()
+            self.input.height(layout)
         }
     }
 
@@ -170,12 +170,15 @@ impl<F: Fn(char) -> Option<char>> ui::Widget for ExpandPrompt<'_, F> {
         }
     }
 
-    fn cursor_pos(&self, prompt_len: u16) -> (u16, u16) {
+    fn cursor_pos(&mut self, layout: ui::Layout) -> (u16, u16) {
         if self.expanded {
-            let w = self.input.cursor_pos(ANSWER_PROMPT.len() as u16).0;
-            (w, self.height() as u16)
+            let w = self
+                .input
+                .cursor_pos(layout.with_line_offset(ANSWER_PROMPT.len() as u16))
+                .0;
+            (w, self.height(layout) as u16)
         } else {
-            self.input.cursor_pos(prompt_len)
+            self.input.cursor_pos(layout)
         }
     }
 }
@@ -192,19 +195,20 @@ impl widgets::List for Expand<'_> {
         &mut self,
         index: usize,
         _: bool,
-        max_width: usize,
+        layout: ui::Layout,
         b: &mut B,
     ) -> error::Result<()> {
         if index == self.choices.len() {
-            return HELP_CHOICE.with(|h| self.render_choice(h, max_width, b));
+            return HELP_CHOICE.with(|h| self.render_choice(h, layout, b));
         }
 
         match &self.choices[index] {
-            Choice::Choice(item) => self.render_choice(item, max_width, b),
+            Choice::Choice(item) => self.render_choice(item, layout, b),
             separator => {
                 b.set_fg(Color::DarkGrey)?;
                 b.write_all(b"   ")?;
-                super::get_sep_str(separator).render(max_width - 3, b)?;
+                super::get_sep_str(separator)
+                    .render(layout.with_line_offset(3), b)?;
                 b.set_fg(Color::Reset)
             }
         }
@@ -231,7 +235,7 @@ impl Expand<'_> {
     fn render_choice<B: Backend>(
         &self,
         item: &ExpandItem,
-        max_width: usize,
+        layout: ui::Layout,
         b: &mut B,
     ) -> error::Result<()> {
         let hovered = self.selected.map(|c| c == item.key).unwrap_or(false);
@@ -241,7 +245,7 @@ impl Expand<'_> {
         }
 
         write!(b, "  {}) ", item.key)?;
-        item.name.as_str().render(max_width - 5, b)?;
+        item.name.as_str().render(layout.with_line_offset(5), b)?;
 
         if hovered {
             b.set_fg(Color::Reset)?;

@@ -26,22 +26,22 @@ struct InputPrompt<'f, 'v, 't, 'a> {
 impl Widget for InputPrompt<'_, '_, '_, '_> {
     fn render<B: Backend>(
         &mut self,
-        max_width: usize,
+        layout: ui::Layout,
         b: &mut B,
     ) -> error::Result<()> {
-        self.input.render(max_width, b)
+        self.input.render(layout, b)
     }
 
-    fn height(&self) -> usize {
-        self.input.height()
+    fn height(&mut self, layout: ui::Layout) -> u16 {
+        self.input.height(layout)
     }
 
     fn handle_key(&mut self, key: KeyEvent) -> bool {
         self.input.handle_key(key)
     }
 
-    fn cursor_pos(&self, prompt_len: u16) -> (u16, u16) {
-        self.input.cursor_pos(prompt_len)
+    fn cursor_pos(&mut self, layout: ui::Layout) -> (u16, u16) {
+        self.input.cursor_pos(layout)
     }
 }
 

@@ -62,7 +62,7 @@ fn main() {
                 .message("list 2")
                 .choices(vec![
                     Separator("=== TITLE BOI ===".into()),
-                    "hello worldssssss 1".into(),
+                    "hello worldssssss 1".repeat(7).into(),
                     "hello worldssssss 2".into(),
                     "hello worldssssss 3".into(),
                     "hello worldssssss 4".into(),

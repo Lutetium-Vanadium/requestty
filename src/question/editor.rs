@@ -80,11 +80,11 @@ struct EditorPrompt<'f, 'v, 't, 'a> {
 }
 
 impl Widget for EditorPrompt<'_, '_, '_, '_> {
-    fn render<B: Backend>(&mut self, _: usize, _: &mut B) -> error::Result<()> {
+    fn render<B: Backend>(&mut self, _: ui::Layout, _: &mut B) -> error::Result<()> {
         Ok(())
     }
 
-    fn height(&self) -> usize {
+    fn height(&mut self, _: ui::Layout) -> u16 {
         0
     }
 }
@@ -148,11 +148,11 @@ struct EditorPromptAsync<'f, 'v, 't, 'a> {
 }
 
 impl Widget for EditorPromptAsync<'_, '_, '_, '_> {
-    fn render<B: Backend>(&mut self, _: usize, _: &mut B) -> error::Result<()> {
+    fn render<B: Backend>(&mut self, _: ui::Layout, _: &mut B) -> error::Result<()> {
         Ok(())
     }
 
-    fn height(&self) -> usize {
+    fn height(&mut self, _: ui::Layout) -> u16 {
         0
     }
 }
