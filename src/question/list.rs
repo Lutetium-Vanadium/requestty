@@ -2,7 +2,8 @@ use ui::{
     backend::{Backend, Color, Stylize},
     error,
     events::KeyEvent,
-    widgets, Prompt, Widget,
+    widgets::{self, Text},
+    Prompt, Widget,
 };
 
 use super::{Options, Transform};
@@ -10,7 +11,7 @@ use crate::{Answer, Answers, ListItem};
 
 #[derive(Debug, Default)]
 pub struct List<'t> {
-    choices: super::ChoiceList<String>,
+    choices: super::ChoiceList<Text<String>>,
     transform: Transform<'t, ListItem>,
 }
 
@@ -29,7 +30,8 @@ impl ListPrompt<'_> {
                 .choices
                 .choices
                 .swap_remove(index)
-                .unwrap_choice(),
+                .unwrap_choice()
+                .text,
         }
     }
 }
@@ -89,10 +91,6 @@ impl Widget for ListPrompt<'_> {
     fn handle_key(&mut self, key: KeyEvent) -> bool {
         self.picker.handle_key(key)
     }
-
-    fn cursor_pos(&mut self, layout: ui::Layout) -> (u16, u16) {
-        self.picker.cursor_pos(layout)
-    }
 }
 
 impl widgets::List for List<'_> {
@@ -114,14 +112,18 @@ impl widgets::List for List<'_> {
             }
         }
 
-        layout.line_offset += 2;
-        self.choices[index].as_str().render(layout, b)?;
+        layout.offset_x += 2;
+        self.choices[index].render(layout, b)?;
 
         b.set_fg(Color::Reset)
     }
 
     fn is_selectable(&self, index: usize) -> bool {
         !self.choices[index].is_separator()
+    }
+
+    fn height_at(&mut self, index: usize, layout: ui::Layout) -> u16 {
+        self.choices[index].height(layout)
     }
 
     fn len(&self) -> usize {
@@ -157,7 +159,7 @@ impl List<'_> {
         match transform {
             Transform::Sync(transform) => transform(&ans, answers, b)?,
             _ => {
-                b.write_styled(ans.name.as_str().cyan())?;
+                b.write_styled(ans.name.lines().next().unwrap().cyan())?;
                 b.write_all(b"\n")?;
                 b.flush()?;
             }
@@ -188,7 +190,7 @@ impl List<'_> {
             Transform::Async(transform) => transform(&ans, answers, b).await?,
             Transform::Sync(transform) => transform(&ans, answers, b)?,
             _ => {
-                b.write_styled(ans.name.as_str().cyan())?;
+                b.write_styled(ans.name.lines().next().unwrap().cyan())?;
                 b.write_all(b"\n")?;
                 b.flush()?;
             }
@@ -237,7 +239,7 @@ impl<'m, 'w, 't> ListBuilder<'m, 'w, 't> {
         self.list
             .choices
             .choices
-            .push(super::Choice::Choice(choice.into()));
+            .push(super::Choice::Choice(Text::new(choice.into())));
         self
     }
 
@@ -249,7 +251,11 @@ impl<'m, 'w, 't> ListBuilder<'m, 'w, 't> {
         self.list
             .choices
             .choices
-            .extend(choices.into_iter().map(Into::into));
+            .extend(choices.into_iter().map(|choice| match choice.into() {
+                super::Choice::Choice(c) => super::Choice::Choice(Text::new(c)),
+                super::Choice::Separator(s) => super::Choice::Separator(s),
+                super::Choice::DefaultSeparator => super::Choice::DefaultSeparator,
+            }));
         self
     }
 

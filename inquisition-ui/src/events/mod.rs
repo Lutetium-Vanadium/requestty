@@ -100,6 +100,7 @@ pub enum KeyCode {
 
 /// Movements that can be captured from a [`KeyEvent`]. See the individual variants for
 /// what keys they capture
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Movement {
     /// The Up arrow key, and `k` is captured
     Up,

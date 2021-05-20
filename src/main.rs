@@ -62,7 +62,7 @@ fn main() {
                 .message("list 2")
                 .choices(vec![
                     Separator("=== TITLE BOI ===".into()),
-                    "hello worldssssss 1".repeat(7).into(),
+                    "hello worldssssss 1\nMulti-line description about it".into(),
                     "hello worldssssss 2".into(),
                     "hello worldssssss 3".into(),
                     "hello worldssssss 4".into(),
@@ -73,6 +73,7 @@ fn main() {
                     "hello worldssssss 8".into(),
                 ])
                 .page_size(6)
+                .should_loop(false)
                 .into(),
         ],
 
@@ -92,7 +93,7 @@ fn main() {
                 .message("checkbox 2")
                 .choices(vec![
                     Separator("=== TITLE BOI ===".into()),
-                    "hello worldssssss 1".into(),
+                    "hello worldssssss 1\nMulti-line description about it".into(),
                     "hello worldssssss 2".into(),
                     "hello worldssssss 3".into(),
                     "hello worldssssss 4".into(),
@@ -124,7 +125,7 @@ fn main() {
                 .message("list 2")
                 .choices(vec![
                     Separator("=== TITLE BOI ===".into()),
-                    "hello worldssssss 1".into(),
+                    "hello worldssssss 1\nMulti-line description about it".into(),
                     "hello worldssssss 2".into(),
                     "hello worldssssss 3".into(),
                     "hello worldssssss 4".into(),
@@ -154,7 +155,10 @@ fn main() {
                 .message("expand 2")
                 .choice('a', "Name for a")
                 .default_separator()
-                .choices(vec![('b', "Name for b"), ('c', "Name for c")])
+                .choices(vec![
+                    ('b', "Name for b\nMulti-line description"),
+                    ('c', "Name for c"),
+                ])
                 .default_separator()
                 .choice('d', "Name for d")
                 .separator("== Hello separator")

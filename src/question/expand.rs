@@ -7,7 +7,8 @@ use ui::{
     backend::{Backend, Color, MoveDirection, Stylize},
     error,
     events::KeyEvent,
-    widgets, Prompt, Validation, Widget,
+    widgets::{self, Text},
+    Prompt, Validation, Widget,
 };
 
 use super::{Choice, Options, Transform};
@@ -15,10 +16,10 @@ use crate::{Answer, Answers, ExpandItem};
 
 #[derive(Debug)]
 pub struct Expand<'t> {
-    choices: super::ChoiceList<ExpandItem>,
+    choices: super::ChoiceList<ExpandItem<Text<String>>>,
     selected: Option<char>,
     default: char,
-    transform: Transform<'t, ExpandItem>,
+    transform: Transform<'t, ExpandItem<String>>,
 }
 
 impl Default for Expand<'static> {
@@ -40,9 +41,25 @@ struct ExpandPrompt<'t, F> {
     expanded: bool,
 }
 
-impl<F> ExpandPrompt<'_, F> {
-    fn finish_with(self, c: char) -> ExpandItem {
+impl<F: Fn(char) -> Option<char>> ExpandPrompt<'_, F> {
+    fn selected(&mut self) -> Option<&mut ExpandItem<Text<String>>> {
+        let key = self.input.value()?;
+
         self.list
+            .list
+            .choices
+            .choices
+            .iter_mut()
+            .filter_map(|choice| match choice {
+                Choice::Choice(choice) => Some(choice),
+                _ => None,
+            })
+            .find(|item| item.key == key)
+    }
+
+    fn finish_with(self, c: char) -> ExpandItem<String> {
+        let item = self
+            .list
             .finish()
             .choices
             .choices
@@ -52,13 +69,18 @@ impl<F> ExpandPrompt<'_, F> {
                 _ => None,
             })
             .find(|item| item.key == c)
-            .unwrap()
+            .unwrap();
+
+        ExpandItem {
+            name: item.name.text,
+            key: item.key,
+        }
     }
 }
 
 impl<F: Fn(char) -> Option<char>> Prompt for ExpandPrompt<'_, F> {
     type ValidateErr = &'static str;
-    type Output = ExpandItem;
+    type Output = ExpandItem<String>;
 
     fn prompt(&self) -> &str {
         &self.message
@@ -113,7 +135,7 @@ const ANSWER_PROMPT: &[u8] = b"  Answer: ";
 impl<F: Fn(char) -> Option<char>> ui::Widget for ExpandPrompt<'_, F> {
     fn render<B: Backend>(
         &mut self,
-        layout: ui::Layout,
+        mut layout: ui::Layout,
         b: &mut B,
     ) -> error::Result<()> {
         if self.expanded {
@@ -124,25 +146,17 @@ impl<F: Fn(char) -> Option<char>> ui::Widget for ExpandPrompt<'_, F> {
         } else {
             self.input.render(layout, b)?;
 
-            if let Some(key) = self.input.value() {
-                let name = &self
-                    .list
-                    .list
-                    .choices
-                    .choices
-                    .iter()
-                    .filter_map(|choice| match choice {
-                        Choice::Choice(choice) => Some(choice),
-                        _ => None,
-                    })
-                    .find(|item| item.key == key)
-                    .map(|item| &*item.name)
-                    .unwrap_or("Help, list all options");
-
+            if self.input.value().is_some() {
                 b.move_cursor(MoveDirection::NextLine(1))?;
-                b.write_styled(">>".cyan())?;
+                b.write_styled(">> ".cyan())?;
 
-                write!(b, " {}", name)?;
+                layout.offset_y += 1;
+                layout.offset_x += 3;
+
+                match self.selected() {
+                    Some(item) => item.render(layout, b)?,
+                    None => b.write_all(b"Help, list all options")?,
+                }
             }
 
             Ok(())
@@ -153,7 +167,8 @@ impl<F: Fn(char) -> Option<char>> ui::Widget for ExpandPrompt<'_, F> {
         if self.expanded {
             self.list.height(layout) + 1
         } else if self.input.value().is_some() {
-            self.input.height(layout) + 1
+            self.input.height(layout)
+                + self.selected().map(|c| c.height(layout)).unwrap_or(1)
         } else {
             self.input.height(layout)
         }
@@ -183,13 +198,6 @@ impl<F: Fn(char) -> Option<char>> ui::Widget for ExpandPrompt<'_, F> {
     }
 }
 
-thread_local! {
-    static HELP_CHOICE: ExpandItem = ExpandItem {
-        key: 'h',
-        name: "Help, list all options".into(),
-    };
-}
-
 impl widgets::List for Expand<'_> {
     fn render_item<B: Backend>(
         &mut self,
@@ -199,11 +207,11 @@ impl widgets::List for Expand<'_> {
         b: &mut B,
     ) -> error::Result<()> {
         if index == self.choices.len() {
-            return HELP_CHOICE.with(|h| self.render_choice(h, layout, b));
+            return self.render_choice(None, layout, b);
         }
 
-        match &self.choices[index] {
-            Choice::Choice(item) => self.render_choice(item, layout, b),
+        match &mut self.choices[index] {
+            Choice::Choice(_) => self.render_choice(Some(index), layout, b),
             separator => {
                 b.set_fg(Color::DarkGrey)?;
                 b.write_all(b"   ")?;
@@ -216,6 +224,15 @@ impl widgets::List for Expand<'_> {
 
     fn is_selectable(&self, _: usize) -> bool {
         true
+    }
+
+    fn height_at(&mut self, index: usize, layout: ui::Layout) -> u16 {
+        if index >= self.choices.len() {
+            // Help option
+            1
+        } else {
+            self.choices[index].height(layout)
+        }
     }
 
     fn len(&self) -> usize {
@@ -233,19 +250,35 @@ impl widgets::List for Expand<'_> {
 
 impl Expand<'_> {
     fn render_choice<B: Backend>(
-        &self,
-        item: &ExpandItem,
-        layout: ui::Layout,
+        &mut self,
+        index: Option<usize>,
+        mut layout: ui::Layout,
         b: &mut B,
     ) -> error::Result<()> {
-        let hovered = self.selected.map(|c| c == item.key).unwrap_or(false);
+        let key = match index {
+            Some(index) => self.choices[index].as_ref().unwrap_choice().key,
+            None => 'h',
+        };
+
+        let hovered = self.selected.map(|c| c == key).unwrap_or(false);
 
         if hovered {
             b.set_fg(Color::Cyan)?;
         }
 
-        write!(b, "  {}) ", item.key)?;
-        item.name.as_str().render(layout.with_line_offset(5), b)?;
+        write!(b, "  {}) ", key)?;
+
+        layout.offset_x += 5;
+
+        match index {
+            Some(index) => self.choices[index]
+                .as_mut()
+                .unwrap_choice()
+                .render(layout, b)?,
+            None => {
+                "Help, list all options".render(layout.with_line_offset(5), b)?
+            }
+        }
 
         if hovered {
             b.set_fg(Color::Reset)?;
@@ -315,7 +348,7 @@ impl Expand<'_> {
         match transform {
             Transform::Sync(transform) => transform(&ans, answers, b)?,
             _ => {
-                b.write_styled(ans.name.as_str().cyan())?;
+                b.write_styled(ans.name.lines().next().unwrap().cyan())?;
                 b.write_all(b"\n")?;
                 b.flush()?;
             }
@@ -356,7 +389,7 @@ impl Expand<'_> {
             Transform::Async(transform) => transform(&ans, answers, b).await?,
             Transform::Sync(transform) => transform(&ans, answers, b)?,
             _ => {
-                b.write_styled(ans.name.as_str().cyan())?;
+                b.write_styled(ans.name.lines().next().unwrap().cyan())?;
                 b.write_all(b"\n")?;
                 b.flush()?;
             }
@@ -415,7 +448,7 @@ impl<'m, 'w, 't> ExpandBuilder<'m, 'w, 't> {
 
         self.expand.choices.choices.push(Choice::Choice(ExpandItem {
             key,
-            name: name.into(),
+            name: Text::new(name.into()),
         }));
 
         self
@@ -423,7 +456,7 @@ impl<'m, 'w, 't> ExpandBuilder<'m, 'w, 't> {
 
     pub fn choices<I, T>(mut self, choices: I) -> Self
     where
-        T: Into<Choice<ExpandItem>>,
+        T: Into<Choice<ExpandItem<String>>>,
         I: IntoIterator<Item = T>,
     {
         let Self {
@@ -431,12 +464,13 @@ impl<'m, 'w, 't> ExpandBuilder<'m, 'w, 't> {
             ref mut expand,
             ..
         } = self;
+
         expand
             .choices
             .choices
-            .extend(choices.into_iter().map(Into::into).inspect(|choice| {
-                if let Choice::Choice(c) = choice {
-                    let key = c.key.to_ascii_lowercase();
+            .extend(choices.into_iter().map(|c| match c.into() {
+                Choice::Choice(ExpandItem { name, mut key }) => {
+                    key = key.to_ascii_lowercase();
                     if key == 'h' {
                         panic!("Reserved key 'h'");
                     }
@@ -444,8 +478,16 @@ impl<'m, 'w, 't> ExpandBuilder<'m, 'w, 't> {
                         panic!("Duplicate key '{}'", key);
                     }
                     keys.insert(key);
+
+                    Choice::Choice(ExpandItem {
+                        name: Text::new(name),
+                        key,
+                    })
                 }
+                Choice::Separator(s) => Choice::Separator(s),
+                Choice::DefaultSeparator => Choice::DefaultSeparator,
             }));
+
         self
     }
 
@@ -480,7 +522,7 @@ crate::impl_options_builder!(ExpandBuilder<'t>; (this, opts) => {
     }
 });
 
-crate::impl_transform_builder!(ExpandBuilder<'m, 'w, t> ExpandItem; (this, transform) => {
+crate::impl_transform_builder!(ExpandBuilder<'m, 'w, t> ExpandItem<String>; (this, transform) => {
     ExpandBuilder {
         opts: this.opts,
         keys: this.keys,

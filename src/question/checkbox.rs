@@ -4,7 +4,8 @@ use ui::{
     backend::{Backend, Color},
     error,
     events::{KeyCode, KeyEvent},
-    widgets, Prompt, Validation, Widget,
+    widgets::{self, Text},
+    Prompt, Validation, Widget,
 };
 
 use super::{Choice, Filter, Options, Transform, Validate};
@@ -12,7 +13,7 @@ use crate::{Answer, Answers, ListItem};
 
 #[derive(Debug, Default)]
 pub struct Checkbox<'f, 'v, 't> {
-    choices: super::ChoiceList<String>,
+    choices: super::ChoiceList<Text<String>>,
     selected: Vec<bool>,
     filter: Filter<'f, Vec<bool>>,
     validate: Validate<'v, [bool]>,
@@ -27,14 +28,17 @@ struct CheckboxPrompt<'f, 'v, 't, 'a> {
 
 fn create_list_items(
     selected: Vec<bool>,
-    choices: super::ChoiceList<String>,
+    choices: super::ChoiceList<Text<String>>,
 ) -> Vec<ListItem> {
     selected
         .into_iter()
         .enumerate()
         .zip(choices.choices.into_iter())
         .filter_map(|((index, is_selected), name)| match (is_selected, name) {
-            (true, Choice::Choice(name)) => Some(ListItem { index, name }),
+            (true, Choice::Choice(name)) => Some(ListItem {
+                index,
+                name: name.text,
+            }),
             _ => None,
         })
         .collect()
@@ -163,7 +167,7 @@ impl widgets::List for Checkbox<'_, '_, '_> {
         &mut self,
         index: usize,
         hovered: bool,
-        layout: ui::Layout,
+        mut layout: ui::Layout,
         b: &mut B,
     ) -> error::Result<()> {
         if hovered {
@@ -190,15 +194,19 @@ impl widgets::List for Checkbox<'_, '_, '_> {
             b.set_fg(Color::DarkGrey)?;
         }
 
-        self.choices[index]
-            .as_str()
-            .render(layout.with_line_offset(4), b)?;
+        layout.offset_x += 4;
+
+        self.choices[index].render(layout, b)?;
 
         b.set_fg(Color::Reset)
     }
 
     fn is_selectable(&self, index: usize) -> bool {
         !self.choices[index].is_separator()
+    }
+
+    fn height_at(&mut self, index: usize, layout: ui::Layout) -> u16 {
+        self.choices[index].height(layout)
     }
 
     fn len(&self) -> usize {
@@ -239,7 +247,10 @@ impl Checkbox<'_, '_, '_> {
             Transform::Sync(transform) => transform(&ans, answers, b)?,
             _ => {
                 b.set_fg(Color::Cyan)?;
-                print_comma_separated(ans.iter().map(|item| item.name.as_str()), b)?;
+                print_comma_separated(
+                    ans.iter().map(|item| item.name.lines().next().unwrap()),
+                    b,
+                )?;
                 b.set_fg(Color::Reset)?;
 
                 b.write_all(b"\n")?;
@@ -277,7 +288,10 @@ impl Checkbox<'_, '_, '_> {
             Transform::Sync(transform) => transform(&ans, answers, b)?,
             _ => {
                 b.set_fg(Color::Cyan)?;
-                print_comma_separated(ans.iter().map(|item| item.name.as_str()), b)?;
+                print_comma_separated(
+                    ans.iter().map(|item| item.name.lines().next().unwrap()),
+                    b,
+                )?;
                 b.set_fg(Color::Reset)?;
 
                 b.write_all(b"\n")?;
@@ -330,7 +344,7 @@ impl<'m, 'w, 'f, 'v, 't> CheckboxBuilder<'m, 'w, 'f, 'v, 't> {
         self.checkbox
             .choices
             .choices
-            .push(Choice::Choice(choice.into()));
+            .push(Choice::Choice(Text::new(choice.into())));
         self.checkbox.selected.push(default);
         self
     }
@@ -343,7 +357,11 @@ impl<'m, 'w, 'f, 'v, 't> CheckboxBuilder<'m, 'w, 'f, 'v, 't> {
         self.checkbox
             .choices
             .choices
-            .extend(choices.into_iter().map(Into::into));
+            .extend(choices.into_iter().map(|c| match c.into() {
+                Choice::Choice(c) => Choice::Choice(Text::new(c)),
+                Choice::Separator(s) => Choice::Separator(s),
+                Choice::DefaultSeparator => Choice::DefaultSeparator,
+            }));
         self.checkbox
             .selected
             .resize(self.checkbox.choices.len(), false);
@@ -367,7 +385,10 @@ impl<'m, 'w, 'f, 'v, 't> CheckboxBuilder<'m, 'w, 'f, 'v, 't> {
         for choice in iter {
             match choice.into() {
                 Choice::Choice((choice, selected)) => {
-                    self.checkbox.choices.choices.push(Choice::Choice(choice));
+                    self.checkbox
+                        .choices
+                        .choices
+                        .push(Choice::Choice(Text::new(choice)));
                     self.checkbox.selected.push(selected);
                 }
                 Choice::Separator(s) => {

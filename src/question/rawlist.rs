@@ -2,7 +2,7 @@ use ui::{
     backend::{Backend, Color, Stylize},
     error,
     events::KeyEvent,
-    widgets::{self, List},
+    widgets::{self, List, Text},
     Prompt, Validation, Widget,
 };
 
@@ -11,7 +11,7 @@ use crate::{Answer, Answers, ListItem};
 
 #[derive(Debug, Default)]
 pub struct Rawlist<'t> {
-    choices: super::ChoiceList<(usize, String)>,
+    choices: super::ChoiceList<(usize, Text<String>)>,
     transform: Transform<'t, ListItem>,
 }
 
@@ -32,7 +32,8 @@ impl RawlistPrompt<'_> {
                 .choices
                 .swap_remove(index)
                 .unwrap_choice()
-                .1,
+                .1
+                .text,
         }
     }
 }
@@ -144,20 +145,19 @@ impl widgets::List for Rawlist<'_> {
         &mut self,
         index: usize,
         hovered: bool,
-        layout: ui::Layout,
+        mut layout: ui::Layout,
         b: &mut B,
     ) -> error::Result<()> {
-        match &self.choices[index] {
-            Choice::Choice((index, name)) => {
+        match &mut self.choices[index] {
+            &mut Choice::Choice((index, ref mut name)) => {
                 if hovered {
                     b.set_fg(Color::Cyan)?;
                 }
 
                 write!(b, "  {}) ", index)?;
-                name.as_str().render(
-                    layout.with_line_offset((*index as f64).log10() as u16 + 5),
-                    b,
-                )?;
+
+                layout.offset_x += (index as f64).log10() as u16 + 5;
+                name.render(layout, b)?;
 
                 if hovered {
                     b.set_fg(Color::Reset)?;
@@ -177,6 +177,13 @@ impl widgets::List for Rawlist<'_> {
 
     fn is_selectable(&self, index: usize) -> bool {
         !self.choices[index].is_separator()
+    }
+
+    fn height_at(&mut self, index: usize, layout: ui::Layout) -> u16 {
+        match self.choices[index] {
+            Choice::Choice(ref mut c) => c.1.height(layout),
+            _ => 1,
+        }
     }
 
     fn len(&self) -> usize {
@@ -226,7 +233,7 @@ impl Rawlist<'_> {
         match transform {
             Transform::Sync(transform) => transform(&ans, answers, b)?,
             _ => {
-                b.write_styled(ans.name.as_str().cyan())?;
+                b.write_styled(ans.name.lines().next().unwrap().cyan())?;
                 b.write_all(b"\n")?;
                 b.flush()?;
             }
@@ -268,7 +275,7 @@ impl Rawlist<'_> {
             Transform::Async(transform) => transform(&ans, answers, b).await?,
             Transform::Sync(transform) => transform(&ans, answers, b)?,
             _ => {
-                b.write_styled(ans.name.as_str().cyan())?;
+                b.write_styled(ans.name.lines().next().unwrap().cyan())?;
                 b.write_all(b"\n")?;
                 b.flush()?
             }
@@ -314,10 +321,10 @@ impl<'m, 'w, 't> RawlistBuilder<'m, 'w, 't> {
     }
 
     pub fn choice<I: Into<String>>(mut self, choice: I) -> Self {
-        self.list
-            .choices
-            .choices
-            .push(Choice::Choice((self.choice_count, choice.into())));
+        self.list.choices.choices.push(Choice::Choice((
+            self.choice_count,
+            Text::new(choice.into()),
+        )));
         self.choice_count += 1;
         self
     }
@@ -333,7 +340,7 @@ impl<'m, 'w, 't> RawlistBuilder<'m, 'w, 't> {
             .choices
             .extend(choices.into_iter().map(|choice| match choice.into() {
                 Choice::Choice(c) => {
-                    let choice = Choice::Choice((*choice_count, c));
+                    let choice = Choice::Choice((*choice_count, Text::new(c)));
                     *choice_count += 1;
                     choice
                 }

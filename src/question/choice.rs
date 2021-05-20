@@ -99,6 +99,14 @@ impl<T> Choice<T> {
         }
     }
 
+    pub(crate) fn as_mut(&mut self) -> Choice<&mut T> {
+        match self {
+            Choice::Choice(t) => Choice::Choice(t),
+            Choice::Separator(s) => Choice::Separator(s.clone()),
+            Choice::DefaultSeparator => Choice::DefaultSeparator,
+        }
+    }
+
     pub(crate) fn unwrap_choice(self) -> T {
         match self {
             Choice::Choice(c) => c,
@@ -116,12 +124,34 @@ pub(crate) fn get_sep_str<T>(separator: &Choice<T>) -> &str {
     }
 }
 
-impl<T: AsRef<str>> Choice<T> {
-    pub(crate) fn as_str(&self) -> &str {
+impl<T: ui::Widget> ui::Widget for Choice<T> {
+    fn render<B: ui::backend::Backend>(
+        &mut self,
+        layout: ui::Layout,
+        backend: &mut B,
+    ) -> ui::error::Result<()> {
         match self {
-            Choice::Choice(t) => t.as_ref(),
-            separator => get_sep_str(separator),
+            Choice::Choice(c) => c.render(layout, backend),
+            sep => get_sep_str(sep).render(layout, backend),
         }
+    }
+
+    fn height(&mut self, layout: ui::Layout) -> u16 {
+        match self {
+            Choice::Choice(c) => c.height(layout),
+            _ => 1,
+        }
+    }
+
+    fn handle_key(&mut self, key: ui::events::KeyEvent) -> bool {
+        match self {
+            Choice::Choice(c) => c.handle_key(key),
+            _ => false,
+        }
+    }
+
+    fn cursor_pos(&mut self, _: ui::Layout) -> (u16, u16) {
+        unimplemented!("This should not be called")
     }
 }
 
@@ -137,7 +167,7 @@ impl From<&'_ str> for Choice<String> {
     }
 }
 
-impl<I: Into<String>> From<(char, I)> for Choice<ExpandItem> {
+impl<I: Into<String>> From<(char, I)> for Choice<ExpandItem<String>> {
     fn from((key, name): (char, I)) -> Self {
         Choice::Choice(ExpandItem {
             key,

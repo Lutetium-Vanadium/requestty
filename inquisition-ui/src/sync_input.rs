@@ -110,9 +110,11 @@ impl<P: Prompt, B: Backend> Input<P, B> {
         Ok(base_row)
     }
 
-    pub(super) fn set_cursor_pos(&mut self) -> error::Result<()> {
-        let (dcw, dch) = self.prompt.cursor_pos(self.layout());
-        self.backend.set_cursor(dcw, self.base_row + dch)?;
+    pub(super) fn flush(&mut self) -> error::Result<()> {
+        if !self.backend.hide_cursor {
+            let (dcw, dch) = self.prompt.cursor_pos(self.layout());
+            self.backend.set_cursor(dcw, self.base_row + dch)?;
+        }
         self.backend.flush().map_err(Into::into)
     }
 
@@ -124,7 +126,7 @@ impl<P: Prompt, B: Backend> Input<P, B> {
 
         self.prompt.render(self.layout(), &mut *self.backend)?;
 
-        self.set_cursor_pos()
+        self.flush()
     }
 
     pub(super) fn clear(&mut self, prompt_len: u16) -> error::Result<()> {
@@ -148,7 +150,7 @@ impl<P: Prompt, B: Backend> Input<P, B> {
         self.goto_last_line()?;
         self.backend.write_styled(">>".red())?;
         write!(self.backend, " {}", e)?;
-        self.set_cursor_pos()
+        self.flush()
     }
 
     pub(super) fn exit(&mut self) -> error::Result<()> {

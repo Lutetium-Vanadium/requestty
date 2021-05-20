@@ -9,6 +9,7 @@ pub mod widgets {
     pub use super::char_input::CharInput;
     pub use super::list::{List, ListPicker};
     pub use super::string_input::StringInput;
+    pub use super::text::Text;
 
     /// The default type for filter_map_char in [`StringInput`] and [`CharInput`]
     pub type FilterMapChar = fn(char) -> Option<char>;
@@ -31,6 +32,7 @@ pub mod events;
 mod list;
 mod string_input;
 mod sync_input;
+mod text;
 mod widget;
 
 /// Returned by [`Prompt::validate`]
@@ -43,12 +45,62 @@ pub enum Validation {
     Continue,
 }
 
+/// Assume the highlighted part of the block below is the place available for rendering
+/// in the given box
+/// ```text
+///  ____________
+/// |            |
+/// |     ███████|
+/// |  ██████████|
+/// |  ██████████|
+/// '------------'
+/// ```
 #[derive(Debug, PartialEq, Eq, Clone, Copy, Hash, Default)]
 pub struct Layout {
+    /// ```text
+    ///  ____________
+    /// |  vvv-- line_offset
+    /// |     ███████|
+    /// |  ██████████|
+    /// |  ██████████|
+    /// '------------'
+    /// ```
     pub line_offset: u16,
+    /// ```text
+    ///  ____________
+    /// |vv-- offset_x
+    /// |     ███████|
+    /// |  ██████████|
+    /// |  ██████████|
+    /// '------------'
+    /// ```
     pub offset_x: u16,
+    /// ```text
+    ///  .-- offset_y
+    /// |'>          |
+    /// |     ███████|
+    /// |  ██████████|
+    /// |  ██████████|
+    /// '------------'
+    /// ```
     pub offset_y: u16,
+    /// ```text
+    ///  ____________
+    /// |  vvvvvvvvvv-- width
+    /// |     ███████|
+    /// |  ██████████|
+    /// |  ██████████|
+    /// '------------'
+    /// ```
     pub width: u16,
+    /// ```text
+    ///  ____________
+    /// |.-- height  |
+    /// |'>   ███████|
+    /// |'>██████████|
+    /// |'>██████████|
+    /// '------------'
+    /// ```
     pub height: u16,
 }
 
@@ -85,7 +137,7 @@ impl Layout {
     }
 
     pub fn line_width(&self) -> u16 {
-        self.width - self.line_offset
+        self.width - self.line_offset - self.offset_x
     }
 }
 

@@ -13,7 +13,7 @@ use std::collections::HashMap;
 pub enum Answer {
     String(String),
     ListItem(ListItem),
-    ExpandItem(ExpandItem),
+    ExpandItem(ExpandItem<String>),
     Int(i64),
     Float(f64),
     Bool(bool),
@@ -50,7 +50,7 @@ impl Answer {
         matches!(self, Self::ExpandItem(..))
     }
 
-    pub fn try_into_expand_item(self) -> Result<ExpandItem, Self> {
+    pub fn try_into_expand_item(self) -> Result<ExpandItem<String>, Self> {
         match self {
             Self::ExpandItem(v) => Ok(v),
             _ => Err(self),
@@ -119,17 +119,39 @@ impl From<(usize, String)> for ListItem {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct ExpandItem {
+pub struct ExpandItem<S> {
     pub key: char,
-    pub name: String,
+    pub name: S,
 }
 
-impl<I: Into<String>> From<(char, I)> for ExpandItem {
+impl<I: Into<String>> From<(char, I)> for ExpandItem<String> {
     fn from((key, name): (char, I)) -> Self {
         Self {
             key,
             name: name.into(),
         }
+    }
+}
+
+impl<S: ui::Widget> ui::Widget for ExpandItem<S> {
+    fn render<B: ui::backend::Backend>(
+        &mut self,
+        layout: ui::Layout,
+        backend: &mut B,
+    ) -> ui::error::Result<()> {
+        self.name.render(layout, backend)
+    }
+
+    fn height(&mut self, layout: ui::Layout) -> u16 {
+        self.name.height(layout)
+    }
+
+    fn handle_key(&mut self, key: ui::events::KeyEvent) -> bool {
+        self.name.handle_key(key)
+    }
+
+    fn cursor_pos(&mut self, layout: ui::Layout) -> (u16, u16) {
+        self.name.cursor_pos(layout)
     }
 }
 
