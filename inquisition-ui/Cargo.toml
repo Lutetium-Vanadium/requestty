@@ -24,9 +24,6 @@ async-std-dep = { package = "async-std", version = "1.9", optional = true, featu
 
 [features]
 default = []
-tokio = ["tokio-dep", "async-trait", "futures", "anes"]
-smol = ["smol-dep", "async-trait", "futures", "anes"]
-async-std = ["async-std-dep", "async-trait", "futures", "anes"]
-
-[target.'cfg(unix)'.dependencies]
-anes = { version = "0.1", optional = true, features = ["parser"] }
+tokio = ["tokio-dep", "async-trait", "futures"]
+smol = ["smol-dep", "async-trait", "futures"]
+async-std = ["async-std-dep", "async-trait", "futures"]

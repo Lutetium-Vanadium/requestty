@@ -4,15 +4,8 @@ use std::io::{stdin, Stdin};
 use crate::error;
 
 crate::cfg_async! {
-#[cfg(unix)]
-mod unix;
-#[cfg(unix)]
-pub use unix::AsyncEvents;
-
-#[cfg(windows)]
-mod win;
-#[cfg(windows)]
-pub use win::AsyncEvents;
+mod async_events;
+pub use async_events::AsyncEvents;
 }
 
 #[cfg(feature = "crossterm")]
