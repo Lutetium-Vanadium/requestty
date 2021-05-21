@@ -1,5 +1,5 @@
 error: missing required option `name`
  --> $DIR/name.rs:2:35
   |
-2 |     inquisition::questions![input {}];
+2 |     inquisition::questions![Input {}];
   |                                   ^^

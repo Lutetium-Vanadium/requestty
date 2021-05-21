@@ -1,6 +1,6 @@
 fn main() {
     inquisition::questions! [
-        expand {
+        Expand {
             name: "name",
             default: 'c',
             transform: |_, _, _| Ok(()),

@@ -1,3 +1,3 @@
 fn main() {
-    let q = inquisition::questions![float { mask: todo!() }];
+    let q = inquisition::questions![Float { mask: todo!() }];
 }

@@ -1,5 +1,5 @@
 error: option `default` does not exist for kind `checkbox`
  --> $DIR/default.rs:2:40
   |
-2 |     inquisition::questions![checkbox { default: todo!() }];
+2 |     inquisition::questions![Checkbox { default: todo!() }];
   |                                        ^^^^^^^

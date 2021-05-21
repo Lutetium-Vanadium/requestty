@@ -1,6 +1,6 @@
 fn main() {
-    let q = inquisition::questions![input {
-        filter_async: todo!(),
-        filter_async: todo!(),
+    let q = inquisition::questions![Input {
+        async filter: todo!(),
+        async filter: todo!(),
     }];
 }

@@ -1,3 +1,3 @@
 fn main() {
-    let q = inquisition::questions![expand { extension: todo!() }];
+    let q = inquisition::questions![Expand { extension: todo!() }];
 }

@@ -24,8 +24,8 @@ pub(crate) enum QuestionKind {
     Int,
     Float,
     Confirm,
-    List,
-    Rawlist,
+    Select,
+    RawSelect,
     Expand,
     Checkbox,
     Password,
@@ -40,8 +40,8 @@ impl QuestionKind {
             QuestionKind::Int => "int",
             QuestionKind::Float => "float",
             QuestionKind::Confirm => "confirm",
-            QuestionKind::List => "list",
-            QuestionKind::Rawlist => "rawlist",
+            QuestionKind::Select => "select",
+            QuestionKind::RawSelect => "raw_select",
             QuestionKind::Expand => "expand",
             QuestionKind::Checkbox => "checkbox",
             QuestionKind::Password => "password",
@@ -60,7 +60,9 @@ impl QuestionKind {
             QuestionKind::Confirm => {
                 BuilderMethods::DEFAULT | BuilderMethods::TRANSFORM
             }
-            QuestionKind::List | QuestionKind::Rawlist | QuestionKind::Expand => {
+            QuestionKind::Select
+            | QuestionKind::RawSelect
+            | QuestionKind::Expand => {
                 BuilderMethods::DEFAULT
                     | BuilderMethods::TRANSFORM
                     | BuilderMethods::LIST
@@ -90,27 +92,27 @@ impl Parse for QuestionKind {
     fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
         let ident = input.parse::<syn::Ident>()?;
 
-        let kind = if ident == "input" {
+        let kind = if ident == "Input" {
             QuestionKind::Input
-        } else if ident == "int" {
+        } else if ident == "Int" {
             QuestionKind::Int
-        } else if ident == "float" {
+        } else if ident == "Float" {
             QuestionKind::Float
-        } else if ident == "confirm" {
+        } else if ident == "Confirm" {
             QuestionKind::Confirm
-        } else if ident == "list" {
-            QuestionKind::List
-        } else if ident == "rawlist" {
-            QuestionKind::Rawlist
-        } else if ident == "expand" {
+        } else if ident == "Select" {
+            QuestionKind::Select
+        } else if ident == "RawSelect" {
+            QuestionKind::RawSelect
+        } else if ident == "Expand" {
             QuestionKind::Expand
-        } else if ident == "checkbox" {
+        } else if ident == "Checkbox" {
             QuestionKind::Checkbox
-        } else if ident == "password" {
+        } else if ident == "Password" {
             QuestionKind::Password
-        } else if ident == "editor" {
+        } else if ident == "Editor" {
             QuestionKind::Editor
-        } else if ident == "plugin" {
+        } else if ident == "Plugin" {
             QuestionKind::Plugin
         } else {
             return Err(syn::Error::new(

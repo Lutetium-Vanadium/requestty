@@ -1,6 +1,6 @@
 fn main() {
     inquisition::questions! [
-        input {
+        Input {
             name: "name",
             default: "hello world",
             transform: |_, _, _| Ok(()),

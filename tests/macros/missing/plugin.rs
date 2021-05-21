@@ -1,3 +1,3 @@
 fn main() {
-    inquisition::questions![plugin { name: "plugin" }];
+    inquisition::questions![Plugin { name: "plugin" }];
 }

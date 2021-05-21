@@ -1,6 +1,6 @@
 fn main() {
     inquisition::questions! [
-        editor {
+        Editor {
             name: "name",
             default: "hello world",
             extension: ".rs",

@@ -1,5 +1,5 @@
 error: option `choices` does not exist for kind `plugin`
  --> $DIR/choices.rs:2:38
   |
-2 |     inquisition::questions![plugin { choices: todo!() }];
+2 |     inquisition::questions![Plugin { choices: todo!() }];
   |                                      ^^^^^^^

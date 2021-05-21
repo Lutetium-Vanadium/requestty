@@ -155,8 +155,8 @@ fn int() {
 }
 
 #[test]
-fn list() {
-    let t = Runner::new("list");
+fn select() {
+    let t = Runner::new("select");
 
     t.pass("valid");
     t.compile_fail("filter");
@@ -201,8 +201,8 @@ fn plugin() {
 }
 
 #[test]
-fn rawlist() {
-    let t = Runner::new("rawlist");
+fn raw_select() {
+    let t = Runner::new("raw_select");
 
     t.pass("valid");
     t.compile_fail("filter");

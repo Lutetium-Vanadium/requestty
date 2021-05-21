@@ -3,7 +3,7 @@ fn main() {
     let default_choice = true;
 
     inquisition::questions! [
-        checkbox {
+        Checkbox {
             name: "name",
             transform: |_, _, _| Ok(()),
             async transform: |_, _, _| Box::pin(async { Ok(()) }),

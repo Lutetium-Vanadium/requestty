@@ -1,3 +1,3 @@
 fn main() {
-    let q = inquisition::questions![checkbox { extension: todo!() }];
+    let q = inquisition::questions![Checkbox { extension: todo!() }];
 }

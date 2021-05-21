@@ -1,5 +1,5 @@
 fn main() {
-    let q = inquisition::questions![list {
+    let q = inquisition::questions![Select {
         choices: todo!(),
         choices: todo!(),
     }];

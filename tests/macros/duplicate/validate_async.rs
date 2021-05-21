@@ -1,6 +1,6 @@
 fn main() {
-    let q = inquisition::questions![input {
-        validate_async: todo!(),
-        validate_async: todo!(),
+    let q = inquisition::questions![Input {
+        async validate: todo!(),
+        async validate: todo!(),
     }];
 }

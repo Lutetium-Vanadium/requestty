@@ -1,6 +1,6 @@
 fn main() {
     inquisition::questions! [
-        float {
+        Float {
             name: "name",
             default: 0.0,
             transform: |_, _, _| Ok(()),

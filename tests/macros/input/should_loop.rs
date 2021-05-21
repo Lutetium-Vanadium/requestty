@@ -1,5 +1,5 @@
 fn main() {
-    inquisition::questions![input {
+    inquisition::questions![Input {
         should_loop: todo!()
     }];
 }

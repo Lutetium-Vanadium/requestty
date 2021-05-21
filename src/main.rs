@@ -46,8 +46,8 @@ fn main() {
         ],
 
         Some("l") => vec![
-            Question::list("a")
-                .message("list 1")
+            Question::select("a")
+                .message("select 1")
                 .choices(vec![
                     "0".into(),
                     DefaultSeparator,
@@ -58,8 +58,8 @@ fn main() {
                 ])
                 .default(3)
                 .into(),
-            Question::list("b")
-                .message("list 2")
+            Question::select("b")
+                .message("select 2")
                 .choices(vec![
                     Separator("=== TITLE BOI ===".into()),
                     "hello worldssssss 1\nMulti-line description about it".into(),
@@ -109,8 +109,8 @@ fn main() {
         ],
 
         Some("r") => vec![
-            Question::rawlist("a")
-                .message("list 1")
+            Question::raw_select("a")
+                .message("select 1")
                 .choices(vec![
                     "0".into(),
                     DefaultSeparator,
@@ -121,8 +121,8 @@ fn main() {
                 ])
                 .default(2)
                 .into(),
-            Question::rawlist("b")
-                .message("list 2")
+            Question::raw_select("b")
+                .message("select 2")
                 .choices(vec![
                     Separator("=== TITLE BOI ===".into()),
                     "hello worldssssss 1\nMulti-line description about it".into(),

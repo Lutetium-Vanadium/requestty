@@ -1,3 +1,3 @@
 fn main() {
-    let q = inquisition::questions![confirm { async validate: todo!() }];
+    let q = inquisition::questions![Confirm { async validate: todo!() }];
 }

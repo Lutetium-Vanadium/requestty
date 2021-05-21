@@ -1,4 +1,4 @@
-name: Rust
+name: Async std
 
 on: [push, pull_request]
 

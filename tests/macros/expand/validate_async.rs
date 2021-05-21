@@ -1,3 +1,3 @@
 fn main() {
-    let q = inquisition::questions![expand { async validate: todo!() }];
+    let q = inquisition::questions![Expand { async validate: todo!() }];
 }

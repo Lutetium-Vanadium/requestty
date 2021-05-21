@@ -1,5 +1,0 @@
-error: option `validate_async` does not exist for kind `rawlist`
- --> $DIR/validate_async.rs:2:53
-  |
-2 |     let q = inquisition::questions![rawlist { async validate: todo!() }];
-  |                                                     ^^^^^^^^

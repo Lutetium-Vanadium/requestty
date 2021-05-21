@@ -1,3 +1,3 @@
 fn main() {
-    let q = inquisition::questions![plugin { async transform: todo!() }];
+    let q = inquisition::questions![Plugin { async transform: todo!() }];
 }

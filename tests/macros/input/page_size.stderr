@@ -1,5 +1,5 @@
 error: option `page_size` does not exist for kind `input`
  --> $DIR/page_size.rs:2:37
   |
-2 |     inquisition::questions![input { page_size: todo!() }];
+2 |     inquisition::questions![Input { page_size: todo!() }];
   |                                     ^^^^^^^^^

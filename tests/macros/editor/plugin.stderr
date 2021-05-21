@@ -1,5 +1,5 @@
 error: option `plugin` does not exist for kind `editor`
  --> $DIR/plugin.rs:2:46
   |
-2 |     let q = inquisition::questions![editor { plugin: todo!() }];
+2 |     let q = inquisition::questions![Editor { plugin: todo!() }];
   |                                              ^^^^^^

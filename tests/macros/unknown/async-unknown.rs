@@ -1,3 +1,3 @@
 fn main() {
-    let q = inquisition::questions![input { async unknown: 0 }];
+    let q = inquisition::questions![Input { async unknown: 0 }];
 }

@@ -1,5 +1,5 @@
 error: option `extension` does not exist for kind `checkbox`
  --> $DIR/extension.rs:2:48
   |
-2 |     let q = inquisition::questions![checkbox { extension: todo!() }];
+2 |     let q = inquisition::questions![Checkbox { extension: todo!() }];
   |                                                ^^^^^^^^^

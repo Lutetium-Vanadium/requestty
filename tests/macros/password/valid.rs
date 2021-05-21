@@ -1,6 +1,6 @@
 fn main() {
     inquisition::questions! [
-        password {
+        Password {
             name: "name",
             mask: '*',
             transform: |_, _, _| Ok(()),

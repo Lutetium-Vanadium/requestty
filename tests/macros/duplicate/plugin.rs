@@ -1,5 +1,5 @@
 fn main() {
-    let q = inquisition::questions![plugin {
+    let q = inquisition::questions![Plugin {
         plugin: todo!(),
         plugin: todo!(),
     }];

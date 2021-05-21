@@ -1,3 +1,3 @@
 fn main() {
-    inquisition::questions![float { choices: todo!() }];
+    inquisition::questions![Float { choices: todo!() }];
 }

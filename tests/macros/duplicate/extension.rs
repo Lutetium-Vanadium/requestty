@@ -1,5 +1,5 @@
 fn main() {
-    let q = inquisition::questions![editor {
+    let q = inquisition::questions![Editor {
         extension: todo!(),
         extension: todo!(),
     }];

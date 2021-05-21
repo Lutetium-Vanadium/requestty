@@ -1,3 +1,3 @@
 fn main() {
-    let q = inquisition::questions![expand { async filter: todo!() }];
+    let q = inquisition::questions![Expand { async filter: todo!() }];
 }

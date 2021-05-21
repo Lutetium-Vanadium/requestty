@@ -1,5 +1,5 @@
-error: unknown question option `transform_async`
- --> $DIR/transform_async.rs:3:9
+error: duplicate option `transform_async`
+ --> $DIR/transform_async.rs:4:15
   |
-3 |         transform_async: todo!(),
-  |         ^^^^^^^^^^^^^^^
+4 |         async transform: todo!(),
+  |               ^^^^^^^^^

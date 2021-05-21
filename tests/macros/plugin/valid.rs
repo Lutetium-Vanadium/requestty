@@ -34,7 +34,7 @@ impl inquisition::question::Plugin for TestPlugin {
 }
 
 fn main() {
-    inquisition::questions![plugin {
+    inquisition::questions![Plugin {
         name: "name",
         plugin: TestPlugin,
     }];

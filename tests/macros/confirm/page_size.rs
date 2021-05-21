@@ -1,3 +1,3 @@
 fn main() {
-    inquisition::questions![confirm { page_size: todo!() }];
+    inquisition::questions![Confirm { page_size: todo!() }];
 }

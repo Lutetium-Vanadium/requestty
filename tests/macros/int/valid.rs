@@ -1,6 +1,6 @@
 fn main() {
     inquisition::questions! [
-        int {
+        Int {
             name: "name",
             default: 0,
             transform: |_, _, _| Ok(()),

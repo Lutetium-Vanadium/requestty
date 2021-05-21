@@ -1,3 +1,3 @@
 fn main() {
-    inquisition::questions![input {}];
+    inquisition::questions![Input {}];
 }

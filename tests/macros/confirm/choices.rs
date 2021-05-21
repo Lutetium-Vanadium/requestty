@@ -1,3 +1,3 @@
 fn main() {
-    inquisition::questions![confirm { choices: todo!() }];
+    inquisition::questions![Confirm { choices: todo!() }];
 }

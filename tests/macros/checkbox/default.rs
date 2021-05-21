@@ -1,3 +1,3 @@
 fn main() {
-    inquisition::questions![checkbox { default: todo!() }];
+    inquisition::questions![Checkbox { default: todo!() }];
 }

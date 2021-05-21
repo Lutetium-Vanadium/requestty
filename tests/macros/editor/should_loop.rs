@@ -1,5 +1,5 @@
 fn main() {
-    inquisition::questions![editor {
+    inquisition::questions![Editor {
         should_loop: todo!()
     }];
 }

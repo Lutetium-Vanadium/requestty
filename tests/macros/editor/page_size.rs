@@ -1,3 +1,3 @@
 fn main() {
-    inquisition::questions![editor { page_size: todo!() }];
+    inquisition::questions![Editor { page_size: todo!() }];
 }

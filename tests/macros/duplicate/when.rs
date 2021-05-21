@@ -1,5 +1,5 @@
 fn main() {
-    let q = inquisition::questions![input {
+    let q = inquisition::questions![Input {
         when: todo!(),
         when: todo!(),
     }];

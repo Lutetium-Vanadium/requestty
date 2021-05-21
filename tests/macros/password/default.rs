@@ -1,3 +1,3 @@
 fn main() {
-    let q = inquisition::questions![password { default: todo!() }];
+    let q = inquisition::questions![Password { default: todo!() }];
 }

@@ -4,24 +4,24 @@ mod confirm;
 mod editor;
 mod expand;
 mod input;
-mod list;
 mod number;
+mod select;
 #[macro_use]
 mod options;
 mod password;
 mod plugin;
-mod rawlist;
+mod raw_select;
 
 pub use checkbox::CheckboxBuilder;
 pub use confirm::ConfirmBuilder;
 pub use editor::EditorBuilder;
 pub use expand::ExpandBuilder;
 pub use input::InputBuilder;
-pub use list::ListBuilder;
 pub use number::{FloatBuilder, IntBuilder};
 pub use password::PasswordBuilder;
 pub use plugin::PluginBuilder;
-pub use rawlist::RawlistBuilder;
+pub use raw_select::RawSelectBuilder;
+pub use select::SelectBuilder;
 
 use crate::{Answer, Answers};
 pub use choice::Choice;
@@ -72,14 +72,16 @@ impl Question<'static, 'static, 'static, 'static, 'static> {
         ConfirmBuilder::new(name.into())
     }
 
-    pub fn list<N: Into<String>>(name: N) -> ListBuilder<'static, 'static, 'static> {
-        ListBuilder::new(name.into())
+    pub fn select<N: Into<String>>(
+        name: N,
+    ) -> SelectBuilder<'static, 'static, 'static> {
+        SelectBuilder::new(name.into())
     }
 
-    pub fn rawlist<N: Into<String>>(
+    pub fn raw_select<N: Into<String>>(
         name: N,
-    ) -> RawlistBuilder<'static, 'static, 'static> {
-        RawlistBuilder::new(name.into())
+    ) -> RawSelectBuilder<'static, 'static, 'static> {
+        RawSelectBuilder::new(name.into())
     }
 
     pub fn expand<N: Into<String>>(
@@ -124,8 +126,8 @@ pub(crate) enum QuestionKind<'f, 'v, 't> {
     Int(number::Int<'f, 'v, 't>),
     Float(number::Float<'f, 'v, 't>),
     Confirm(confirm::Confirm<'t>),
-    List(list::List<'t>),
-    Rawlist(rawlist::Rawlist<'t>),
+    Select(select::Select<'t>),
+    RawSelect(raw_select::RawSelect<'t>),
     Expand(expand::Expand<'t>),
     Checkbox(checkbox::Checkbox<'f, 'v, 't>),
     Password(password::Password<'f, 'v, 't>),
@@ -159,8 +161,8 @@ impl Question<'_, '_, '_, '_, '_> {
             QuestionKind::Int(i) => i.ask(message, answers, b, events)?,
             QuestionKind::Float(f) => f.ask(message, answers, b, events)?,
             QuestionKind::Confirm(c) => c.ask(message, answers, b, events)?,
-            QuestionKind::List(l) => l.ask(message, answers, b, events)?,
-            QuestionKind::Rawlist(r) => r.ask(message, answers, b, events)?,
+            QuestionKind::Select(l) => l.ask(message, answers, b, events)?,
+            QuestionKind::RawSelect(r) => r.ask(message, answers, b, events)?,
             QuestionKind::Expand(e) => e.ask(message, answers, b, events)?,
             QuestionKind::Checkbox(c) => c.ask(message, answers, b, events)?,
             QuestionKind::Password(p) => p.ask(message, answers, b, events)?,
@@ -196,8 +198,8 @@ impl Question<'_, '_, '_, '_, '_> {
             QuestionKind::Int(i) => i.ask_async(message, answers, b, events).await?,
             QuestionKind::Float(f) => f.ask_async(message, answers, b, events).await?,
             QuestionKind::Confirm(c) => c.ask_async(message, answers, b, events).await?,
-            QuestionKind::List(l) => l.ask_async(message, answers, b, events).await?,
-            QuestionKind::Rawlist(r) => r.ask_async(message, answers, b, events).await?,
+            QuestionKind::Select(l) => l.ask_async(message, answers, b, events).await?,
+            QuestionKind::RawSelect(r) => r.ask_async(message, answers, b, events).await?,
             QuestionKind::Expand(e) => e.ask_async(message, answers, b, events).await?,
             QuestionKind::Checkbox(c) => c.ask_async(message, answers, b, events).await?,
             QuestionKind::Password(p) => p.ask_async(message, answers, b, events).await?,

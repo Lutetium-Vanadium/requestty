@@ -1,5 +1,5 @@
 error: option `default` does not exist for kind `plugin`
  --> $DIR/default.rs:2:46
   |
-2 |     let q = inquisition::questions![plugin { default: todo!() }];
+2 |     let q = inquisition::questions![Plugin { default: todo!() }];
   |                                              ^^^^^^^

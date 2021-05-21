@@ -1,5 +1,5 @@
 fn main() {
-    let q = inquisition::questions![list {
+    let q = inquisition::questions![Select {
         page_size: todo!(),
         page_size: todo!(),
     }];

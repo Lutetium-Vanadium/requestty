@@ -1,5 +1,5 @@
-error: unknown question option `validate_async`
- --> $DIR/validate_async.rs:3:9
+error: duplicate option `validate_async`
+ --> $DIR/validate_async.rs:4:15
   |
-3 |         validate_async: todo!(),
-  |         ^^^^^^^^^^^^^^
+4 |         async validate: todo!(),
+  |               ^^^^^^^^

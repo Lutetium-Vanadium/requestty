@@ -1,5 +1,5 @@
 fn main() {
-    inquisition::questions![confirm {
+    inquisition::questions![Confirm {
         name: "name",
         default: true,
         transform: |_, _, _| Ok(()),

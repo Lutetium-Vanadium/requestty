@@ -1,3 +1,3 @@
 fn main() {
-    inquisition::questions![plugin { page_size: todo!() }];
+    inquisition::questions![Plugin { page_size: todo!() }];
 }

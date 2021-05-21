@@ -1,3 +1,3 @@
 fn main() {
-    let q = inquisition::questions![float { extension: todo!() }];
+    let q = inquisition::questions![Float { extension: todo!() }];
 }

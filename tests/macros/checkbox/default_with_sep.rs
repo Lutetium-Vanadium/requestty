@@ -1,6 +1,6 @@
 fn main() {
     inquisition::questions! [
-        checkbox {
+        Checkbox {
             name: "name",
             choices: [
                 sep "separator" default true,

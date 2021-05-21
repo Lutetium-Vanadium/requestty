@@ -1,5 +1,5 @@
 error: missing required option `plugin`
  --> $DIR/plugin.rs:2:36
   |
-2 |     inquisition::questions![plugin { name: "plugin" }];
+2 |     inquisition::questions![Plugin { name: "plugin" }];
   |                                    ^^^^^^^^^^^^^^^^^^

@@ -1,5 +1,5 @@
-error: unknown question option `filter_async`
- --> $DIR/filter_async.rs:3:9
+error: duplicate option `filter_async`
+ --> $DIR/filter_async.rs:4:15
   |
-3 |         filter_async: todo!(),
-  |         ^^^^^^^^^^^^
+4 |         async filter: todo!(),
+  |               ^^^^^^

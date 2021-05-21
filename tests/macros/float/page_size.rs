@@ -1,3 +1,3 @@
 fn main() {
-    inquisition::questions![float { page_size: todo!() }];
+    inquisition::questions![Float { page_size: todo!() }];
 }

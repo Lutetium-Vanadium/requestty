@@ -1,3 +1,3 @@
 fn main() {
-    let q = inquisition::questions![confirm { filter: todo!() }];
+    let q = inquisition::questions![Confirm { filter: todo!() }];
 }

@@ -1,5 +1,5 @@
 fn main() {
-    let q = inquisition::questions![password {
+    let q = inquisition::questions![Password {
         mask: todo!(),
         mask: todo!(),
     }];
