@@ -13,7 +13,7 @@ use std::{
 
 use futures::{task::AtomicWaker, Stream};
 
-use crate::{events, error};
+use crate::{error, events};
 
 type Receiver = mpsc::Receiver<error::Result<events::KeyEvent>>;
 
@@ -45,7 +45,8 @@ impl AsyncEvents {
             });
 
             events
-        }).await;
+        })
+        .await;
 
         #[cfg(feature = "tokio")]
         return res.map_err(|_| {
@@ -64,7 +65,10 @@ impl AsyncEvents {
 impl Stream for AsyncEvents {
     type Item = error::Result<events::KeyEvent>;
 
-    fn poll_next(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
+    fn poll_next(
+        self: Pin<&mut Self>,
+        cx: &mut Context<'_>,
+    ) -> Poll<Option<Self::Item>> {
         match self.events.try_recv() {
             Ok(e) => Poll::Ready(Some(e)),
             Err(mpsc::TryRecvError::Empty) => {

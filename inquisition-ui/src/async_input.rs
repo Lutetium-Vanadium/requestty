@@ -17,7 +17,9 @@ pub trait AsyncPrompt: Prompt {
     /// Try to validate the prompt state is valid synchronously without blocking. If it can't be
     /// done without blocking, return `None` and [`validate_async`](AsyncPrompt::validate_async)
     /// will be called instead. It is called whenever the use presses the enter key.
-    fn try_validate_sync(&mut self) -> Option<Result<Validation, Self::ValidateErr>> {
+    fn try_validate_sync(
+        &mut self,
+    ) -> Option<Result<Validation, Self::ValidateErr>> {
         None
     }
 
@@ -52,14 +54,19 @@ impl<P: AsyncPrompt + Send, B: Backend + Unpin> Input<P, B> {
 
     /// Run the ui on the given writer. It will return when the user presses `Enter` or `Escape`
     /// based on the [`AsyncPrompt`] implementation.
-    pub async fn run_async(mut self, events: &mut AsyncEvents) -> error::Result<P::Output> {
+    pub async fn run_async(
+        mut self,
+        events: &mut AsyncEvents,
+    ) -> error::Result<P::Output> {
         let prompt_len = self.init()?;
 
         loop {
             let e = events.next().await.unwrap()?;
 
             let key_handled = match e.code {
-                KeyCode::Char('c') if e.modifiers.contains(KeyModifiers::CONTROL) => {
+                KeyCode::Char('c')
+                    if e.modifiers.contains(KeyModifiers::CONTROL) =>
+                {
                     self.exit()?;
                     return Err(error::ErrorKind::Interrupted);
                 }
