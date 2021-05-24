@@ -226,11 +226,12 @@ impl widgets::List for Expand<'_> {
         true
     }
 
-    fn height_at(&mut self, index: usize, layout: ui::Layout) -> u16 {
+    fn height_at(&mut self, index: usize, mut layout: ui::Layout) -> u16 {
         if index >= self.choices.len() {
             // Help option
             1
         } else {
+            layout.offset_x += 5;
             self.choices[index].height(layout)
         }
     }

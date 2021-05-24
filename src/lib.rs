@@ -19,7 +19,10 @@ macro_rules! prompt_module {
 
 pub mod plugin {
     pub use crate::{question::Plugin, Answer, Answers};
-    pub use ui::{backend::Backend, events::Events};
+    pub use ui::{
+        backend::{Attributes, Backend, Color, Styled, Stylize},
+        events::Events,
+    };
     crate::cfg_async! {
     pub use ui::events::AsyncEvents;
     }
@@ -146,12 +149,26 @@ where
     PromptModule::new(questions).prompt_all()
 }
 
+pub fn prompt_one<'m, 'w, 'f, 'v, 't, I: Into<Question<'m, 'w, 'f, 'v, 't>>>(
+    question: I,
+) -> error::Result<Answer> {
+    let ans = prompt(std::iter::once(question.into()))?;
+    Ok(ans.into_iter().next().unwrap().1)
+}
+
 cfg_async! {
 pub async fn prompt_async<'m, 'w, 'f, 'v, 't, Q>(questions: Q) -> error::Result<Answers>
 where
     Q: IntoIterator<Item = Question<'m, 'w, 'f, 'v, 't>>,
 {
     PromptModule::new(questions).prompt_all_async().await
+}
+
+pub async fn prompt_one_async<'m, 'w, 'f, 'v, 't, I: Into<Question<'m, 'w, 'f, 'v, 't>>>(
+    question: I,
+) -> error::Result<Answer> {
+    let ans = prompt_async(std::iter::once(question.into())).await?;
+    Ok(ans.into_iter().next().unwrap().1)
 }
 }
 

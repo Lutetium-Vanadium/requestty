@@ -150,7 +150,7 @@ impl<L: List> ListPicker<L> {
         at
     }
 
-    fn update_heights(&mut self, layout: Layout) {
+    fn update_heights(&mut self, mut layout: Layout) {
         let heights = match self.heights {
             Some(ref mut heights) if heights.prev_layout != layout => {
                 heights.heights.clear();
@@ -168,6 +168,8 @@ impl<L: List> ListPicker<L> {
             _ => return,
         };
 
+        layout.line_offset = 0;
+
         self.height = 0;
         for i in 0..self.list.len() {
             let height = self.list.height_at(i, layout);
@@ -182,6 +184,14 @@ impl<L: List> ListPicker<L> {
 
     fn is_paginating(&self) -> bool {
         self.height > self.page_size()
+    }
+
+    fn at_outside_page(&self) -> bool {
+        if self.page_start < self.page_end {
+            self.at <= self.page_start || self.at >= self.page_end
+        } else {
+            self.at <= self.page_start && self.at >= self.page_end
+        }
     }
 
     /// Gets the index at a given delta taking into case wrapping if enabled -- delta
@@ -209,7 +219,7 @@ impl<L: List> ListPicker<L> {
 
     fn adjust_page(&mut self, moved: Movement) {
         // Check whether at is within second and second last element of the page
-        let direction = if self.at <= self.page_start || self.at >= self.page_end {
+        let direction = if self.at_outside_page() {
             match moved {
                 Movement::Down => -1,
                 Movement::Up => 1,
@@ -469,6 +479,14 @@ impl<L: List> super::Widget for ListPicker<L> {
             .min(self.page_size())
             // but do not show less than a single element
             // +1 since the message at the end takes one line
-            .max(self.heights.as_ref().unwrap().heights[self.at] + 1)
+            .max(
+                self.heights
+                    .as_ref()
+                    .unwrap()
+                    .heights
+                    .get(self.at)
+                    .unwrap_or(&0)
+                    + 1,
+            )
     }
 }

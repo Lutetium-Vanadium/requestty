@@ -122,7 +122,9 @@ impl widgets::List for Select<'_> {
         !self.choices[index].is_separator()
     }
 
-    fn height_at(&mut self, index: usize, layout: ui::Layout) -> u16 {
+    fn height_at(&mut self, index: usize, mut layout: ui::Layout) -> u16 {
+        layout.offset_x += 2;
+
         self.choices[index].height(layout)
     }
 

@@ -104,6 +104,62 @@ impl Answer {
             _ => Err(self),
         }
     }
+
+    pub fn as_string(&self) -> Option<&String> {
+        if let Self::String(v) = self {
+            Some(v)
+        } else {
+            None
+        }
+    }
+
+    pub fn as_list_item(&self) -> Option<&ListItem> {
+        if let Self::ListItem(v) = self {
+            Some(v)
+        } else {
+            None
+        }
+    }
+
+    pub fn as_expand_item(&self) -> Option<&ExpandItem<String>> {
+        if let Self::ExpandItem(v) = self {
+            Some(v)
+        } else {
+            None
+        }
+    }
+
+    pub fn as_int(&self) -> Option<i64> {
+        if let Self::Int(v) = self {
+            Some(*v)
+        } else {
+            None
+        }
+    }
+
+    pub fn as_float(&self) -> Option<f64> {
+        if let Self::Float(v) = self {
+            Some(*v)
+        } else {
+            None
+        }
+    }
+
+    pub fn as_bool(&self) -> Option<bool> {
+        if let Self::Bool(v) = self {
+            Some(*v)
+        } else {
+            None
+        }
+    }
+
+    pub fn as_list_items(&self) -> Option<&Vec<ListItem>> {
+        if let Self::ListItems(v) = self {
+            Some(v)
+        } else {
+            None
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]

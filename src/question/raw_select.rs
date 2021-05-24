@@ -53,7 +53,7 @@ impl Prompt for RawSelectPrompt<'_> {
 
     fn validate(&mut self) -> Result<Validation, Self::ValidateErr> {
         if self.list.get_at() >= self.list.list.len() {
-            Err("Please enter a valid index")
+            Err("Please enter a valid choice")
         } else {
             Ok(Validation::Finish)
         }
@@ -108,7 +108,7 @@ impl Widget for RawSelectPrompt<'_> {
     fn handle_key(&mut self, key: KeyEvent) -> bool {
         if self.input.handle_key(key) {
             if let Ok(n) = self.input.value().parse::<usize>() {
-                if n < self.list.list.len() && n > 0 {
+                if n <= self.list.list.len() && n > 0 {
                     let pos = self.list.list.choices.choices[(n-1)..].iter().position(
                         |choice| matches!(choice, Choice::Choice((i, _)) if *i == n),
                     );
@@ -180,9 +180,12 @@ impl widgets::List for RawSelect<'_> {
         !self.choices[index].is_separator()
     }
 
-    fn height_at(&mut self, index: usize, layout: ui::Layout) -> u16 {
+    fn height_at(&mut self, index: usize, mut layout: ui::Layout) -> u16 {
         match self.choices[index] {
-            Choice::Choice(ref mut c) => c.1.height(layout),
+            Choice::Choice((index, ref mut c)) => {
+                layout.offset_x += (index as f64).log10() as u16 + 5;
+                c.height(layout)
+            }
             _ => 1,
         }
     }

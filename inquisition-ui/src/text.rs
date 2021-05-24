@@ -39,9 +39,11 @@ impl<S: AsRef<str>> Widget for Text<S> {
     }
 
     fn height(&mut self, layout: crate::Layout) -> u16 {
-        if self.width != layout.width || self.line_offset != layout.line_offset {
+        let width = layout.width - layout.offset_x;
+
+        if self.width != width || self.line_offset != layout.line_offset {
             self.wrapped = fill(self.text.as_ref(), layout);
-            self.width = layout.width;
+            self.width = width;
             self.line_offset = layout.line_offset;
         }
 
@@ -72,10 +74,10 @@ fn fill(text: &str, layout: Layout) -> String {
         &s[..]
     };
 
-    let mut text = textwrap::fill(
-        text,
-        textwrap::Options::new(layout.width as usize).initial_indent(indent),
-    );
+    let width = (layout.width - layout.offset_x) as usize;
+
+    let mut text =
+        textwrap::fill(text, textwrap::Options::new(width).initial_indent(indent));
 
     drop(text.drain(..indent.len()));
 

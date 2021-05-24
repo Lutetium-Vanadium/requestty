@@ -308,20 +308,17 @@ impl Parse for Question {
                     } else if ident == "transform" {
                         insert_non_dup(ident, &mut opts.transform, &content)?;
                     } else if ident == "choices" {
-                        match kind {
-                            QuestionKind::Checkbox => insert_non_dup_parse(
-                                ident,
-                                &mut opts.choices,
-                                &content,
-                                Choices::parse_checkbox_choice,
-                            )?,
-                            _ => insert_non_dup_parse(
-                                ident,
-                                &mut opts.choices,
-                                &content,
-                                Choices::parse_choice,
-                            )?,
-                        }
+                        let parser = match kind {
+                            QuestionKind::Checkbox => Choices::parse_checkbox_choice,
+                            _ => Choices::parse_choice,
+                        };
+
+                        insert_non_dup_parse(
+                            ident,
+                            &mut opts.choices,
+                            &content,
+                            parser,
+                        )?;
                     } else if ident == "page_size" {
                         insert_non_dup(ident, &mut opts.page_size, &content)?;
                     } else if ident == "should_loop" {

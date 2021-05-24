@@ -29,6 +29,8 @@ async-std-dep = { package = "async-std", version = "1.9", optional = true, featu
 
 [dev-dependencies]
 trybuild = "1.0.42"
+csscolorparser = "0.4" # examples/input.rs
+regex = "1.5"          # examples/templates/pizza.rs
 
 [features]
 default = ["crossterm", "ahash"]
@@ -37,3 +39,15 @@ termion = ["ui/termion"]
 tokio = ["tokio-dep", "async-trait", "ui/tokio"]
 smol = ["smol-dep", "async-trait", "ui/smol"]
 async-std = ["async-std-dep", "async-trait", "ui/async-std"]
+
+[[example]]
+name = "async-std"
+required-features = ["async-std"]
+
+[[example]]
+name = "smol"
+required-features = ["smol"]
+
+[[example]]
+name = "tokio"
+required-features = ["tokio"]

@@ -12,7 +12,7 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
-    - name: Build
-      run: cargo build --verbose --features=smol
+    - name: Run clippy
+      run: cargo clippy --verbose --features=smol --bins --examples
     - name: Run tests
       run: cargo test --workspace --verbose --features=smol

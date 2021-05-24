@@ -4,6 +4,8 @@ use inquisition::{DefaultSeparator, Question, Separator};
 use std::env;
 
 fn main() {
+    println!("{}", std::mem::size_of::<Question>());
+
     let q = match env::args().nth(1).as_deref() {
         Some("b") => vec![
             Question::confirm("a").message("Hello there 1").build(),

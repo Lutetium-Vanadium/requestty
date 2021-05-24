@@ -105,6 +105,8 @@ pub trait Stylize<'a> {
     fn cyan(self) -> Styled<'a>;
     fn white(self) -> Styled<'a>;
     fn grey(self) -> Styled<'a>;
+    fn rgb(self, r: u8, g: u8, b: u8) -> Styled<'a>;
+    fn ansi(self, ansi: u8) -> Styled<'a>;
 
     fn on_black(self) -> Styled<'a>;
     fn on_dark_grey(self) -> Styled<'a>;
@@ -122,6 +124,8 @@ pub trait Stylize<'a> {
     fn on_cyan(self) -> Styled<'a>;
     fn on_white(self) -> Styled<'a>;
     fn on_grey(self) -> Styled<'a>;
+    fn on_rgb(self, r: u8, g: u8, b: u8) -> Styled<'a>;
+    fn on_ansi(self, ansi: u8) -> Styled<'a>;
 
     fn reset(self) -> Styled<'a>;
     fn bold(self) -> Styled<'a>;
@@ -216,6 +220,16 @@ impl<'a, I: Into<Styled<'a>>> Stylize<'a> for I {
         styled.fg = Some(Color::Grey);
         styled
     }
+    fn rgb(self, r: u8, g: u8, b: u8) -> Styled<'a> {
+        let mut styled = self.into();
+        styled.fg = Some(Color::Rgb(r, g, b));
+        styled
+    }
+    fn ansi(self, ansi: u8) -> Styled<'a> {
+        let mut styled = self.into();
+        styled.fg = Some(Color::Ansi(ansi));
+        styled
+    }
 
     fn on_black(self) -> Styled<'a> {
         let mut styled = self.into();
@@ -295,6 +309,16 @@ impl<'a, I: Into<Styled<'a>>> Stylize<'a> for I {
     fn on_grey(self) -> Styled<'a> {
         let mut styled = self.into();
         styled.bg = Some(Color::Grey);
+        styled
+    }
+    fn on_rgb(self, r: u8, g: u8, b: u8) -> Styled<'a> {
+        let mut styled = self.into();
+        styled.bg = Some(Color::Rgb(r, g, b));
+        styled
+    }
+    fn on_ansi(self, ansi: u8) -> Styled<'a> {
+        let mut styled = self.into();
+        styled.bg = Some(Color::Ansi(ansi));
         styled
     }
 

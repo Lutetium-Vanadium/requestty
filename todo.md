@@ -1,5 +1,6 @@
 ## Required
-- examples
+- non static things are buggy
+- when and message as functions cannot infer argument type
 - tests
 - docs
 
