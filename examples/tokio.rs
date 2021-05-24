@@ -1,6 +1,8 @@
 include!("templates/pizza.rs");
 
-#[tokio::main]
+// It has to be called `tokio_dep` in this example due to implementation reasons. When
+// used outside this crate, just `tokio` will work.
+#[tokio_dep::main]
 async fn main() -> inquisition::Result<()> {
     // There is no special async prompt, PromptModule itself can run both synchronously
     // and asynchronously

@@ -1,6 +1,8 @@
 include!("templates/pizza.rs");
 
 fn main() -> inquisition::Result<()> {
+    // It has to be called `async_std_dep` in this example due to implementation reasons.
+    // When used outside this crate, just `async_std` will work.
     async_std::task::block_on(
         async {
             // There is no special async prompt, PromptModule itself can run both

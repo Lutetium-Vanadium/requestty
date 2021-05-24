@@ -1,7 +1,9 @@
 include!("templates/pizza.rs");
 
 fn main() -> inquisition::Result<()> {
-    smol::block_on(
+    // It has to be called `smol_dep` in this example due to implementation reasons.
+    // When used outside this crate, just `smol` will work.
+    smol_dep::block_on(
         async {
             // There is no special async prompt, PromptModule itself can run both
             // synchronously and asynchronously
