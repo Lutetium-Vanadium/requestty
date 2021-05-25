@@ -30,7 +30,7 @@ use options::Options;
 pub use plugin::Plugin;
 use ui::{backend::Backend, error};
 
-use std::{fmt, future::Future, pin::Pin};
+use std::fmt;
 
 #[derive(Debug)]
 pub struct Question<'m, 'w, 'f, 'v, 't> {
@@ -172,53 +172,11 @@ impl Question<'_, '_, '_, '_, '_> {
 
         Ok(Some((name, res)))
     }
-
-    crate::cfg_async! {
-    pub(crate) async fn ask_async<B: Backend>(
-        mut self,
-        answers: &Answers,
-        b: &mut B,
-        events: &mut ui::events::AsyncEvents,
-    ) -> error::Result<Option<(String, Answer)>> {
-        if (!self.opts.ask_if_answered && answers.contains_key(&self.opts.name))
-            || !self.opts.when.get(answers)
-        {
-            return Ok(None);
-        }
-
-        let name = self.opts.name;
-        let message = self
-            .opts
-            .message
-            .map(|message| message.get(answers))
-            .unwrap_or_else(|| name.clone() + ":");
-
-        let res = match self.kind {
-            QuestionKind::Input(i) => i.ask_async(message, answers, b, events).await?,
-            QuestionKind::Int(i) => i.ask_async(message, answers, b, events).await?,
-            QuestionKind::Float(f) => f.ask_async(message, answers, b, events).await?,
-            QuestionKind::Confirm(c) => c.ask_async(message, answers, b, events).await?,
-            QuestionKind::Select(l) => l.ask_async(message, answers, b, events).await?,
-            QuestionKind::RawSelect(r) => r.ask_async(message, answers, b, events).await?,
-            QuestionKind::Expand(e) => e.ask_async(message, answers, b, events).await?,
-            QuestionKind::Checkbox(c) => c.ask_async(message, answers, b, events).await?,
-            QuestionKind::Password(p) => p.ask_async(message, answers, b, events).await?,
-            QuestionKind::Editor(e) => e.ask_async(message, answers, b, events).await?,
-            QuestionKind::Plugin(ref mut o) => o.ask_async(message, answers, b, events).await?,
-        };
-
-        Ok(Some((name, res)))
-    }
-    }
 }
-
-pub(crate) type BoxFuture<'a, T> =
-    Pin<Box<dyn Future<Output = T> + Send + Sync + 'a>>;
 
 macro_rules! handler {
     ($name:ident, $fn_trait:ident ( $($type:ty),* ) -> $return:ty) => {
         pub(crate) enum $name<'a, T> {
-            Async(Box<dyn $fn_trait( $($type),* ) -> BoxFuture<'a, $return> + Send + Sync + 'a>),
             Sync(Box<dyn $fn_trait( $($type),* ) -> $return + Send + Sync + 'a>),
             None,
         }
@@ -239,7 +197,6 @@ macro_rules! handler {
         impl<T: fmt::Debug> fmt::Debug for $name<'_, T> {
             fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
                 match self {
-                    Self::Async(_) => f.write_str("Async(_)"),
                     Self::Sync(_) => f.write_str("Sync(_)"),
                     Self::None => f.write_str("None"),
                 }
@@ -250,7 +207,6 @@ macro_rules! handler {
     // The type signature of the function must only contain &T
     ($name:ident, ?Sized $fn_trait:ident ( $($type:ty),* ) -> $return:ty) => {
         pub(crate) enum $name<'a, T: ?Sized> {
-            Async(Box<dyn $fn_trait( $($type),* ) -> BoxFuture<'a, $return> + Send + Sync + 'a>),
             Sync(Box<dyn $fn_trait( $($type),* ) -> $return + Send + Sync + 'a>),
             None,
         }
@@ -271,7 +227,6 @@ macro_rules! handler {
         impl<T: fmt::Debug + ?Sized> fmt::Debug for $name<'_, T> {
             fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
                 match self {
-                    Self::Async(_) => f.write_str("Async(_)"),
                     Self::Sync(_) => f.write_str("Sync(_)"),
                     Self::None => f.write_str("None"),
                 }
@@ -303,15 +258,6 @@ macro_rules! impl_filter_builder {
                 let $filter = crate::question::Filter::Sync(Box::new(filter));
                 $body
             }
-
-            pub fn filter_async<'a, F>(self, filter: F) -> $ty<$($pre_lifetime),*, 'a, $($post_lifetime),*>
-            where
-                F: FnOnce($t, &crate::Answers) -> std::pin::Pin<Box<dyn std::future::Future<Output = $t> + Send + Sync + 'a>> + Send + Sync + 'a,
-            {
-                let $self = self;
-                let $filter = crate::question::Filter::Async(Box::new(filter));
-                $body
-            }
         }
     };
 }
@@ -330,15 +276,6 @@ macro_rules! impl_validate_builder {
                 let $validate = crate::question::Validate::Sync(Box::new(validate));
                 $body
             }
-
-            pub fn validate_async<'a, F>(self, validate: F) -> $ty<$($pre_lifetime),*, 'a, $($post_lifetime),*>
-            where
-                F: Fn(&$t, &crate::Answers) -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<(), String>> + Send + Sync + 'a>> + Send + Sync + 'a,
-            {
-                let $self = self;
-                let $validate = crate::question::Validate::Async(Box::new(validate));
-                $body
-            }
         }
     };
 
@@ -351,15 +288,6 @@ macro_rules! impl_validate_builder {
             {
                 let $self = self;
                 let $validate = crate::question::ValidateByVal::Sync(Box::new(validate));
-                $body
-            }
-
-            pub fn validate_async<'a, F>(self, validate: F) -> $ty<$($pre_lifetime),*, 'a, $($post_lifetime),*>
-            where
-                F: Fn($t, &crate::Answers) -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<(), String>> + Send + Sync + 'a>> + Send + Sync + 'a,
-            {
-                let $self = self;
-                let $validate = crate::question::ValidateByVal::Async(Box::new(validate));
                 $body
             }
         }
@@ -380,15 +308,6 @@ macro_rules! impl_transform_builder {
                 let $transform = crate::question::Transform::Sync(Box::new(transform));
                 $body
             }
-
-            pub fn transform_async<'a, F>(self, transform: F) -> $ty<$($pre_lifetime),*, 'a, $($post_lifetime),*>
-            where
-                F: FnOnce(&$t, &crate::Answers, &mut dyn Backend) -> std::pin::Pin<Box<dyn std::future::Future<Output = ui::error::Result<()>> + Send + Sync + 'a>> + Send + Sync + 'a,
-            {
-                let $self = self;
-                let $transform = crate::question::Transform::Async(Box::new(transform));
-                $body
-            }
         }
     };
 
@@ -401,15 +320,6 @@ macro_rules! impl_transform_builder {
             {
                 let $self = self;
                 let $transform = crate::question::TransformByVal::Sync(Box::new(transform));
-                $body
-            }
-
-            pub fn transform_async<'a, F>(self, transform: F) -> $ty<$($pre_lifetime),*, 'a, $($post_lifetime),*>
-            where
-                F: FnOnce($t, &crate::Answers, &mut dyn Backend) -> std::pin::Pin<Box<dyn std::future::Future<Output = ui::error::Result<()>> + Send + Sync + 'a>> + Send + Sync + 'a,
-            {
-                let $self = self;
-                let $transform = crate::question::TransformByVal::Async(Box::new(transform));
                 $body
             }
         }

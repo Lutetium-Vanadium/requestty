@@ -74,19 +74,6 @@ impl Prompt for RawSelectPrompt<'_> {
     }
 }
 
-crate::cfg_async! {
-#[async_trait::async_trait]
-impl ui::AsyncPrompt for RawSelectPrompt<'_> {
-    async fn finish_async(self) -> Self::Output {
-        self.finish()
-    }
-
-    fn try_validate_sync(&mut self) -> Option<Result<Validation, Self::ValidateErr>> {
-        Some(self.validate())
-    }
-}
-}
-
 const ANSWER_PROMPT: &[u8] = b"  Answer: ";
 
 impl Widget for RawSelectPrompt<'_> {
@@ -244,49 +231,6 @@ impl RawSelect<'_> {
         }
 
         Ok(Answer::ListItem(ans))
-    }
-
-    crate::cfg_async! {
-    pub(crate) async fn ask_async<B: Backend>(
-        mut self,
-        message: String,
-        answers: &Answers,
-        b: &mut B,
-        events: &mut ui::events::AsyncEvents,
-    ) -> error::Result<Answer> {
-        let transform = self.transform.take();
-
-        let mut list = widgets::ListPicker::new(self);
-        if let Some(default) = list.list.choices.default() {
-            list.set_at(default);
-        }
-
-        let ans = ui::Input::new(RawSelectPrompt {
-            input: widgets::StringInput::new(|c| {
-                if c.is_digit(10) {
-                    Some(c)
-                } else {
-                    None
-                }
-            }),
-            list,
-            message,
-        }, b)
-        .run_async(events)
-        .await?;
-
-        match transform {
-            Transform::Async(transform) => transform(&ans, answers, b).await?,
-            Transform::Sync(transform) => transform(&ans, answers, b)?,
-            _ => {
-                b.write_styled(ans.name.lines().next().unwrap().cyan())?;
-                b.write_all(b"\n")?;
-                b.flush()?
-            }
-        }
-
-        Ok(Answer::ListItem(ans))
-    }
     }
 }
 

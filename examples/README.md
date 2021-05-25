@@ -7,8 +7,7 @@ questions.
 
 ## Required features
 
-Most of the examples are feature agnostic, except for `tokio`, `async-std`,
-and `smol` which require enabling the feature of the same name.
+All of the examples work with all features.
 
 ## Run examples
 

@@ -89,19 +89,6 @@ impl Prompt for ConfirmPrompt<'_> {
     }
 }
 
-crate::cfg_async! {
-#[async_trait::async_trait]
-impl ui::AsyncPrompt for ConfirmPrompt<'_> {
-    async fn finish_async(self) -> Self::Output {
-        self.finish()
-    }
-
-    fn try_validate_sync(&mut self) -> Option<Result<Validation, Self::ValidateErr>> {
-        Some(self.validate())
-    }
-}
-}
-
 impl Confirm<'_> {
     pub(crate) fn ask<B: Backend>(
         mut self,
@@ -133,39 +120,6 @@ impl Confirm<'_> {
         }
 
         Ok(Answer::Bool(ans))
-    }
-
-    crate::cfg_async! {
-    pub(crate) async fn ask_async<B: Backend>(
-        mut self,
-        message: String,
-        answers: &Answers,
-        b: &mut B,
-        events: &mut ui::events::AsyncEvents,
-    ) -> error::Result<Answer> {
-        let transform = self.transform.take();
-
-        let ans = ui::Input::new(ConfirmPrompt {
-            confirm: self,
-            message,
-            input: widgets::CharInput::new(only_yn),
-        }, b)
-        .run_async(events)
-        .await?;
-
-        match transform {
-            Transform::Async(transform) => transform(ans, answers, b).await?,
-            Transform::Sync(transform) => transform(ans, answers, b)?,
-            _ => {
-                let ans = if ans { "Yes" } else { "No" };
-                b.write_styled(ans.cyan())?;
-                b.write_all(b"\n")?;
-                b.flush()?;
-            }
-        }
-
-        Ok(Answer::Bool(ans))
-    }
     }
 }
 

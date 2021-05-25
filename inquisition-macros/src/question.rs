@@ -141,9 +141,6 @@ pub(crate) struct QuestionOpts {
     pub(crate) validate: Option<syn::Expr>,
     pub(crate) filter: Option<syn::Expr>,
     pub(crate) transform: Option<syn::Expr>,
-    pub(crate) validate_async: Option<syn::Expr>,
-    pub(crate) filter_async: Option<syn::Expr>,
-    pub(crate) transform_async: Option<syn::Expr>,
 
     pub(crate) choices: Option<Choices>,
     pub(crate) page_size: Option<syn::Expr>,
@@ -167,9 +164,6 @@ impl Default for QuestionOpts {
             validate: None,
             filter: None,
             transform: None,
-            validate_async: None,
-            filter_async: None,
-            transform_async: None,
 
             choices: None,
             page_size: None,
@@ -194,14 +188,11 @@ fn check_disallowed(
          (ident == "default" &&
           !allowed.contains(BuilderMethods::DEFAULT)) ||
 
-        ((ident == "transform_async" ||
-          ident == "transform") &&
+        ((ident == "transform") &&
           !allowed.contains(BuilderMethods::TRANSFORM)) ||
 
-        ((ident == "validate_async" ||
-          ident == "validate" ||
-          ident == "filter" ||
-          ident == "filter_async") &&
+        ((ident == "validate" ||
+          ident == "filter") &&
           !allowed.contains(BuilderMethods::VAL_FIL)) ||
 
         ((ident == "choices" ||
@@ -247,94 +238,64 @@ impl Parse for Question {
         let allowed_methods = kind.get_builder_methods();
 
         while !content.is_empty() {
-            if content.peek(Token![async]) {
-                let asynct = content.parse::<Token![async]>()?;
-                let ident = content.parse::<syn::Ident>()?;
+            let ident = content.parse::<syn::Ident>()?;
 
-                content.parse::<Token![:]>()?;
+            content.parse::<Token![:]>()?;
 
-                let full_ident_str = format!("{}_async", ident);
-                let full_ident = syn::Ident::new(
-                    &full_ident_str,
-                    asynct
-                        .span
-                        .join(ident.span())
-                        .unwrap_or_else(|| ident.span()),
-                );
+            // it is not an issue if ident doesn't correspond to valid option
+            // since check_allowed only checks if valid idents are disallowed
+            check_disallowed(&ident, kind, allowed_methods)?;
 
-                check_disallowed(&full_ident, kind, allowed_methods)?;
-                if ident == "validate" {
-                    insert_non_dup(full_ident, &mut opts.validate_async, &content)?;
-                } else if ident == "filter" {
-                    insert_non_dup(full_ident, &mut opts.filter_async, &content)?;
-                } else if ident == "transform" {
-                    insert_non_dup(full_ident, &mut opts.transform_async, &content)?;
-                } else {
-                    return Err(syn::Error::new(
-                        ident.span(),
-                        format!("unknown question option `{}`", full_ident_str),
-                    ));
-                }
+            // default options which are always there
+            if ident == "name" {
+                insert_non_dup(ident, &mut name, &content)?;
+            } else if ident == "message" {
+                insert_non_dup(ident, &mut opts.message, &content)?;
+            } else if ident == "when" {
+                insert_non_dup(ident, &mut opts.when, &content)?;
+            } else if ident == "ask_if_answered" {
+                insert_non_dup(ident, &mut opts.ask_if_answered, &content)?;
             } else {
-                let ident = content.parse::<syn::Ident>()?;
-
-                content.parse::<Token![:]>()?;
-
+                // the rest may or may not be there, so must be checked
                 // it is not an issue if ident doesn't correspond to valid option
                 // since check_allowed only checks if valid idents are disallowed
                 check_disallowed(&ident, kind, allowed_methods)?;
 
-                // default options which are always there
-                if ident == "name" {
-                    insert_non_dup(ident, &mut name, &content)?;
-                } else if ident == "message" {
-                    insert_non_dup(ident, &mut opts.message, &content)?;
-                } else if ident == "when" {
-                    insert_non_dup(ident, &mut opts.when, &content)?;
-                } else if ident == "ask_if_answered" {
-                    insert_non_dup(ident, &mut opts.ask_if_answered, &content)?;
+                if ident == "default" {
+                    insert_non_dup(ident, &mut opts.default, &content)?;
+                } else if ident == "validate" {
+                    insert_non_dup(ident, &mut opts.validate, &content)?;
+                } else if ident == "filter" {
+                    insert_non_dup(ident, &mut opts.filter, &content)?;
+                } else if ident == "transform" {
+                    insert_non_dup(ident, &mut opts.transform, &content)?;
+                } else if ident == "choices" {
+                    let parser = match kind {
+                        QuestionKind::Checkbox => Choices::parse_checkbox_choice,
+                        _ => Choices::parse_choice,
+                    };
+
+                    insert_non_dup_parse(
+                        ident,
+                        &mut opts.choices,
+                        &content,
+                        parser,
+                    )?;
+                } else if ident == "page_size" {
+                    insert_non_dup(ident, &mut opts.page_size, &content)?;
+                } else if ident == "should_loop" {
+                    insert_non_dup(ident, &mut opts.should_loop, &content)?;
+                } else if ident == "mask" {
+                    insert_non_dup(ident, &mut opts.mask, &content)?;
+                } else if ident == "extension" {
+                    insert_non_dup(ident, &mut opts.extension, &content)?;
+                } else if ident == "plugin" {
+                    insert_non_dup(ident, &mut opts.plugin, &content)?;
                 } else {
-                    // the rest may or may not be there, so must be checked
-                    // it is not an issue if ident doesn't correspond to valid option
-                    // since check_allowed only checks if valid idents are disallowed
-                    check_disallowed(&ident, kind, allowed_methods)?;
-
-                    if ident == "default" {
-                        insert_non_dup(ident, &mut opts.default, &content)?;
-                    } else if ident == "validate" {
-                        insert_non_dup(ident, &mut opts.validate, &content)?;
-                    } else if ident == "filter" {
-                        insert_non_dup(ident, &mut opts.filter, &content)?;
-                    } else if ident == "transform" {
-                        insert_non_dup(ident, &mut opts.transform, &content)?;
-                    } else if ident == "choices" {
-                        let parser = match kind {
-                            QuestionKind::Checkbox => Choices::parse_checkbox_choice,
-                            _ => Choices::parse_choice,
-                        };
-
-                        insert_non_dup_parse(
-                            ident,
-                            &mut opts.choices,
-                            &content,
-                            parser,
-                        )?;
-                    } else if ident == "page_size" {
-                        insert_non_dup(ident, &mut opts.page_size, &content)?;
-                    } else if ident == "should_loop" {
-                        insert_non_dup(ident, &mut opts.should_loop, &content)?;
-                    } else if ident == "mask" {
-                        insert_non_dup(ident, &mut opts.mask, &content)?;
-                    } else if ident == "extension" {
-                        insert_non_dup(ident, &mut opts.extension, &content)?;
-                    } else if ident == "plugin" {
-                        insert_non_dup(ident, &mut opts.plugin, &content)?;
-                    } else {
-                        return Err(syn::Error::new(
-                            ident.span(),
-                            format!("unknown question option `{}`", ident),
-                        ));
-                    }
+                    return Err(syn::Error::new(
+                        ident.span(),
+                        format!("unknown question option `{}`", ident),
+                    ));
                 }
             }
 
@@ -413,28 +374,13 @@ impl quote::ToTokens for Question {
             tokens
                 .extend(quote_spanned! { validate.span() => .validate(#validate) });
         }
-        if let Some(ref validate_async) = self.opts.validate_async {
-            tokens.extend(quote_spanned! {
-                validate_async.span() => .validate_async(#validate_async)
-            });
-        }
         if let Some(ref filter) = self.opts.filter {
             tokens.extend(quote_spanned! { filter.span() => .filter(#filter) });
-        }
-        if let Some(ref filter_async) = self.opts.filter_async {
-            tokens.extend(quote_spanned! {
-                filter_async.span() => .filter_async(#filter_async)
-            });
         }
         if let Some(ref transform) = self.opts.transform {
             tokens.extend(
                 quote_spanned! { transform.span() => .transform(#transform) },
             );
-        }
-        if let Some(ref transform_async) = self.opts.transform_async {
-            tokens.extend(quote_spanned! {
-                transform_async.span() => .transform_async(#transform_async)
-            });
         }
         if let Some(ref choices) = self.opts.choices {
             tokens.extend(match self.kind {

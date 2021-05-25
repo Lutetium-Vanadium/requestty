@@ -1,5 +1,0 @@
-error: unknown question option `unknown_async`
- --> $DIR/async-unknown.rs:2:51
-  |
-2 |     let q = inquisition::questions![Input { async unknown: 0 }];
-  |                                                   ^^^^^^^

@@ -117,19 +117,6 @@ impl<F: Fn(char) -> Option<char>> Prompt for ExpandPrompt<'_, F> {
     }
 }
 
-crate::cfg_async! {
-#[async_trait::async_trait]
-impl<F: Fn(char) -> Option<char> + Send + Sync> ui::AsyncPrompt for ExpandPrompt<'_, F> {
-    async fn finish_async(self) -> Self::Output {
-        self.finish()
-    }
-
-    fn try_validate_sync(&mut self) -> Option<Result<Validation, Self::ValidateErr>> {
-        Some(self.validate())
-    }
-}
-}
-
 const ANSWER_PROMPT: &[u8] = b"  Answer: ";
 
 impl<F: Fn(char) -> Option<char>> ui::Widget for ExpandPrompt<'_, F> {
@@ -356,48 +343,6 @@ impl Expand<'_> {
         }
 
         Ok(Answer::ExpandItem(ans))
-    }
-
-    crate::cfg_async! {
-    pub(crate) async fn ask_async<B: Backend>(
-        mut self,
-        message: String,
-        answers: &Answers,
-        b: &mut B,
-        events: &mut ui::events::AsyncEvents,
-    ) -> error::Result<Answer> {
-        let (choices, hint) = self.get_choices_and_hint();
-        let transform = self.transform.take();
-
-        let ans = ui::Input::new(ExpandPrompt {
-            message,
-            input: widgets::CharInput::new(|c| {
-                let c = c.to_ascii_lowercase();
-                if choices.contains(c) {
-                    Some(c)
-                } else {
-                    None
-                }
-            }),
-            list: widgets::ListPicker::new(self),
-            hint,
-            expanded: false,
-        }, b)
-        .run_async(events)
-        .await?;
-
-        match transform {
-            Transform::Async(transform) => transform(&ans, answers, b).await?,
-            Transform::Sync(transform) => transform(&ans, answers, b)?,
-            _ => {
-                b.write_styled(ans.name.lines().next().unwrap().cyan())?;
-                b.write_all(b"\n")?;
-                b.flush()?;
-            }
-        }
-
-        Ok(Answer::ExpandItem(ans))
-    }
     }
 }
 

@@ -78,7 +78,10 @@ macro_rules! impl_number_prompt {
 
         impl $prompt_name<'_, '_, '_, '_> {
             fn parse(&self) -> Result<$inner_ty, String> {
-                self.input.value().parse::<$inner_ty>().map_err(|e| e.to_string())
+                self.input
+                    .value()
+                    .parse::<$inner_ty>()
+                    .map_err(|e| e.to_string())
             }
         }
 
@@ -148,51 +151,6 @@ macro_rules! impl_number_prompt {
                 self.number.default.unwrap()
             }
         }
-
-        crate::cfg_async! {
-        #[async_trait::async_trait]
-        impl ui::AsyncPrompt for $prompt_name<'_, '_, '_, '_> {
-            async fn finish_async(self) -> Self::Output {
-                if self.input.value().is_empty() && self.has_default() {
-                    return self.number.default.unwrap();
-                }
-
-                let n = self.parse().unwrap();
-                match self.number.filter {
-                    Filter::Async(filter) => filter(n, self.answers).await,
-                    Filter::Sync(filter) => filter(n, self.answers),
-                    Filter::None => n,
-                }
-            }
-
-            fn try_validate_sync(&mut self) -> Option<Result<Validation, Self::ValidateErr>> {
-                if self.input.value().is_empty() && self.has_default() {
-                    return Some(Ok(Validation::Finish));
-                }
-
-                let n = match self.parse() {
-                    Ok(n) => n,
-                    Err(e) => return Some(Err(e)),
-                };
-
-
-                match self.number.validate {
-                    Validate::Sync(ref validate) => {
-                        Some(validate(n, self.answers).map(|_| Validation::Finish))
-                    }
-                    _ => None,
-                }
-            }
-
-            async fn validate_async(&mut self) -> Result<Validation, Self::ValidateErr> {
-                if let Validate::Async(ref validate) = self.number.validate {
-                    validate(self.parse().unwrap(), self.answers).await?;
-                }
-
-                Ok(Validation::Finish)
-            }
-        }
-        }
     };
 }
 
@@ -229,36 +187,6 @@ macro_rules! impl_ask {
                 }
 
                 Ok(Answer::$t(ans))
-            }
-
-            crate::cfg_async! {
-            pub(crate) async fn ask_async<B: Backend>(
-                mut self,
-                message: String,
-                answers: &Answers,
-                b: &mut B,
-                events: &mut ui::events::AsyncEvents,
-            ) -> error::Result<Answer> {
-                let transform = self.transform.take();
-
-                let ans = ui::Input::new($prompt_name {
-                    hint: self.default.map(|default| format!("({})", default)),
-                    input: widgets::StringInput::new(Self::filter_map_char),
-                    number: self,
-                    message,
-                    answers,
-                }, b)
-                .run_async(events)
-                .await?;
-
-                match transform {
-                    Transform::Async(transform) => transform(ans, answers, b).await?,
-                    Transform::Sync(transform) => transform(ans, answers, b)?,
-                    _ => Self::write(ans, b)?,
-                }
-
-                Ok(Answer::$t(ans))
-            }
             }
         }
     };

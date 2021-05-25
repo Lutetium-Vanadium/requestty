@@ -1,5 +1,0 @@
-error: duplicate option `filter_async`
- --> $DIR/filter_async.rs:4:15
-  |
-4 |         async filter: todo!(),
-  |               ^^^^^^

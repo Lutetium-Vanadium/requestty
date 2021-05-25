@@ -93,50 +93,6 @@ impl Prompt for InputPrompt<'_, '_, '_, '_> {
     }
 }
 
-crate::cfg_async! {
-#[async_trait::async_trait]
-impl ui::AsyncPrompt for InputPrompt<'_, '_, '_, '_> {
-    async fn finish_async(self) -> Self::Output {
-        let hint = self.input_opts.default;
-        let ans = self
-            .input
-            .finish()
-            .unwrap_or_else(|| remove_brackets(hint.unwrap()));
-
-        match self.input_opts.filter {
-            Filter::Sync(filter) => filter(ans, self.answers),
-            Filter::Async(filter) => filter(ans, self.answers).await,
-            Filter::None => ans,
-        }
-    }
-
-    fn try_validate_sync(&mut self) -> Option<Result<Validation, Self::ValidateErr>> {
-        if !self.input.has_value() {
-            if self.has_default() {
-                return Some(Ok(Validation::Finish));
-            } else {
-                return Some(Err("Please enter a string".into()));
-            }
-        }
-
-        match self.input_opts.validate {
-            Validate::Sync(ref validate) => {
-                Some(validate(self.input.value(), self.answers).map(|_| Validation::Finish))
-            }
-            _ => None,
-        }
-    }
-
-    async fn validate_async(&mut self) -> Result<Validation, Self::ValidateErr> {
-        if let Validate::Async(ref validate) = self.input_opts.validate {
-            validate(self.input.value(), self.answers).await?;
-        }
-
-        Ok(Validation::Finish)
-    }
-}
-}
-
 impl Input<'_, '_, '_> {
     pub(crate) fn ask<B: Backend>(
         mut self,
@@ -173,44 +129,6 @@ impl Input<'_, '_, '_> {
         }
 
         Ok(Answer::String(ans))
-    }
-
-    crate::cfg_async! {
-    pub(crate) async fn ask_async<B: Backend>(
-        mut self,
-        message: String,
-        answers: &Answers,
-        b: &mut B,
-        events: &mut ui::events::AsyncEvents,
-    ) -> error::Result<Answer> {
-        if let Some(ref mut default) = self.default {
-            default.insert(0, '(');
-            default.push(')');
-        }
-
-        let transform = self.transform.take();
-
-        let ans = ui::Input::new(InputPrompt {
-            message,
-            input_opts: self,
-            input: widgets::StringInput::default(),
-            answers,
-        }, b)
-        .run_async(events)
-        .await?;
-
-        match transform {
-            Transform::Async(transform) => transform(&ans, answers, b).await?,
-            Transform::Sync(transform) => transform(&ans, answers, b)?,
-            _ => {
-                b.write_styled(ans.as_str().cyan())?;
-                b.write_all(b"\n")?;
-                b.flush()?;
-            }
-        }
-
-        Ok(Answer::String(ans))
-    }
     }
 }
 

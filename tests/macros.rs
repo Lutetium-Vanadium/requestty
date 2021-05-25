@@ -33,9 +33,6 @@ fn duplicate() {
     t.compile_fail("validate");
     t.compile_fail("filter");
     t.compile_fail("transform");
-    t.compile_fail("validate_async");
-    t.compile_fail("filter_async");
-    t.compile_fail("transform_async");
     t.compile_fail("choices");
     t.compile_fail("page_size");
     t.compile_fail("should_loop");
@@ -49,8 +46,6 @@ fn unknown() {
     let t = Runner::new("unknown");
     t.compile_fail("kind");
     t.compile_fail("option");
-    t.compile_fail("async-unknown");
-    t.compile_fail("async-option");
 }
 
 #[test]
@@ -78,9 +73,7 @@ fn confirm() {
 
     t.pass("valid");
     t.compile_fail("filter");
-    t.compile_fail("filter_async");
     t.compile_fail("validate");
-    t.compile_fail("validate_async");
     t.compile_fail("choices");
     t.compile_fail("should_loop");
     t.compile_fail("page_size");
@@ -107,9 +100,7 @@ fn expand() {
 
     t.pass("valid");
     t.compile_fail("filter");
-    t.compile_fail("filter_async");
     t.compile_fail("validate");
-    t.compile_fail("validate_async");
     t.compile_fail("mask");
     t.compile_fail("extension");
     t.compile_fail("plugin");
@@ -160,9 +151,7 @@ fn select() {
 
     t.pass("valid");
     t.compile_fail("filter");
-    t.compile_fail("filter_async");
     t.compile_fail("validate");
-    t.compile_fail("validate_async");
     t.compile_fail("mask");
     t.compile_fail("extension");
     t.compile_fail("plugin");
@@ -188,11 +177,8 @@ fn plugin() {
     t.pass("valid");
     t.compile_fail("default");
     t.compile_fail("transform");
-    t.compile_fail("transform_async");
     t.compile_fail("filter");
-    t.compile_fail("filter_async");
     t.compile_fail("validate");
-    t.compile_fail("validate_async");
     t.compile_fail("choices");
     t.compile_fail("should_loop");
     t.compile_fail("page_size");
@@ -206,9 +192,7 @@ fn raw_select() {
 
     t.pass("valid");
     t.compile_fail("filter");
-    t.compile_fail("filter_async");
     t.compile_fail("validate");
-    t.compile_fail("validate_async");
     t.compile_fail("mask");
     t.compile_fail("extension");
     t.compile_fail("plugin");

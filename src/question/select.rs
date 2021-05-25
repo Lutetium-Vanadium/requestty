@@ -62,19 +62,6 @@ impl Prompt for SelectPrompt<'_> {
     }
 }
 
-crate::cfg_async! {
-#[async_trait::async_trait]
-impl ui::AsyncPrompt for SelectPrompt<'_> {
-    async fn finish_async(self) -> Self::Output {
-        self.finish()
-    }
-
-    fn try_validate_sync(&mut self) -> Option<Result<ui::Validation, Self::ValidateErr>> {
-        Some(self.validate())
-    }
-}
-}
-
 impl Widget for SelectPrompt<'_> {
     fn render<B: Backend>(
         &mut self,
@@ -168,38 +155,6 @@ impl Select<'_> {
         }
 
         Ok(Answer::ListItem(ans))
-    }
-
-    crate::cfg_async! {
-    pub(crate) async fn ask_async<B: Backend>(
-        mut self,
-        message: String,
-        answers: &Answers,
-        b: &mut B,
-        events: &mut ui::events::AsyncEvents,
-    ) -> error::Result<Answer> {
-        let transform = self.transform.take();
-        let mut picker = widgets::ListPicker::new(self);
-        if let Some(default) = picker.list.choices.default() {
-            picker.set_at(default);
-        }
-        let ans = ui::Input::new(SelectPrompt { message, picker }, b)
-            .hide_cursor()
-            .run_async(events)
-            .await?;
-
-        match transform {
-            Transform::Async(transform) => transform(&ans, answers, b).await?,
-            Transform::Sync(transform) => transform(&ans, answers, b)?,
-            _ => {
-                b.write_styled(ans.name.lines().next().unwrap().cyan())?;
-                b.write_all(b"\n")?;
-                b.flush()?;
-            }
-        }
-
-        Ok(Answer::ListItem(ans))
-    }
     }
 }
 

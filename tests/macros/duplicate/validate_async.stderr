@@ -1,5 +1,0 @@
-error: duplicate option `validate_async`
- --> $DIR/validate_async.rs:4:15
-  |
-4 |         async validate: todo!(),
-  |               ^^^^^^^^

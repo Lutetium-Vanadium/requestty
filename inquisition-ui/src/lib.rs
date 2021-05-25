@@ -1,7 +1,7 @@
 //! A widget based cli ui rendering library
 use std::ops::{Deref, DerefMut};
 
-pub use sync_input::{Input, Prompt};
+pub use input::{Input, Prompt};
 pub use widget::Widget;
 
 /// In build widgets
@@ -20,18 +20,13 @@ pub mod widgets {
     }
 }
 
-cfg_async! {
-pub use async_input::AsyncPrompt;
-mod async_input;
-}
-
 pub mod backend;
 mod char_input;
 pub mod error;
 pub mod events;
+mod input;
 mod list;
 mod string_input;
-mod sync_input;
 mod text;
 mod widget;
 
@@ -193,15 +188,4 @@ impl<B: backend::Backend> DerefMut for TerminalState<B> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.backend
     }
-}
-
-#[doc(hidden)]
-#[macro_export]
-macro_rules! cfg_async {
-    ($($item:item)*) => {
-        $(
-            #[cfg(any(feature = "tokio", feature = "async-std", feature = "smol"))]
-            $item
-        )*
-    };
 }

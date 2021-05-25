@@ -83,44 +83,6 @@ impl Prompt for CheckboxPrompt<'_, '_, '_, '_> {
     }
 }
 
-crate::cfg_async! {
-#[async_trait::async_trait]
-impl ui::AsyncPrompt for CheckboxPrompt<'_, '_, '_, '_> {
-    async fn finish_async(self) -> Self::Output {
-        let Checkbox {
-            mut selected,
-            choices,
-            filter,
-            ..
-        } = self.picker.finish();
-
-        selected = match filter {
-            Filter::Async(filter) => filter(selected, self.answers).await,
-            Filter::Sync(filter) => filter(selected, self.answers),
-            Filter::None => selected,
-        };
-
-        create_list_items(selected, choices)
-    }
-
-    fn try_validate_sync(&mut self) -> Option<Result<Validation, Self::ValidateErr>> {
-        match self.picker.list.validate {
-            Validate::Sync(ref validate) => {
-                Some(validate(&self.picker.list.selected, self.answers).map(|_| Validation::Finish))
-            }
-            _ => None,
-        }
-    }
-
-    async fn validate_async(&mut self) -> Result<Validation, Self::ValidateErr> {
-        if let Validate::Async(ref validate) = self.picker.list.validate {
-            validate(&self.picker.list.selected, self.answers).await?;
-        }
-        Ok(Validation::Finish)
-    }
-}
-}
-
 impl Widget for CheckboxPrompt<'_, '_, '_, '_> {
     fn render<B: Backend>(
         &mut self,
@@ -260,48 +222,6 @@ impl Checkbox<'_, '_, '_> {
         }
 
         Ok(Answer::ListItems(ans))
-    }
-
-    crate::cfg_async! {
-    pub(crate) async fn ask_async<B: Backend>(
-        mut self,
-        message: String,
-        answers: &Answers,
-        b: &mut B,
-        events: &mut ui::events::AsyncEvents,
-    ) -> error::Result<Answer> {
-        let transform = self.transform.take();
-
-        let ans = ui::Input::new(
-            CheckboxPrompt {
-                message,
-                picker: widgets::ListPicker::new(self),
-                answers,
-            },
-            b,
-        )
-        .hide_cursor()
-        .run_async(events)
-        .await?;
-
-        match transform {
-            Transform::Async(transform) => transform(&ans, answers, b).await?,
-            Transform::Sync(transform) => transform(&ans, answers, b)?,
-            _ => {
-                b.set_fg(Color::Cyan)?;
-                print_comma_separated(
-                    ans.iter().map(|item| item.name.lines().next().unwrap()),
-                    b,
-                )?;
-                b.set_fg(Color::Reset)?;
-
-                b.write_all(b"\n")?;
-                b.flush()?;
-            }
-        }
-
-        Ok(Answer::ListItems(ans))
-    }
     }
 }
 

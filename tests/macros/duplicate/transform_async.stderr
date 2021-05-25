@@ -1,5 +1,0 @@
-error: duplicate option `transform_async`
- --> $DIR/transform_async.rs:4:15
-  |
-4 |         async transform: todo!(),
-  |               ^^^^^^^^^

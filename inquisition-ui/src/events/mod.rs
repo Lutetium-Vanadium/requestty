@@ -3,11 +3,6 @@ use std::io::{stdin, Stdin};
 
 use crate::error;
 
-crate::cfg_async! {
-mod async_events;
-pub use async_events::AsyncEvents;
-}
-
 #[cfg(feature = "crossterm")]
 mod crossterm;
 #[cfg(feature = "termion")]

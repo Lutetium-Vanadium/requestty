@@ -62,38 +62,6 @@ impl ui::Prompt for PasswordPrompt<'_, '_, '_, '_> {
     }
 }
 
-crate::cfg_async! {
-#[async_trait::async_trait]
-impl ui::AsyncPrompt for PasswordPrompt<'_, '_, '_, '_> {
-    async fn finish_async(self) -> Self::Output {
-        let ans = self.input.finish().unwrap_or_else(String::new);
-
-        match self.password.filter {
-            Filter::Async(filter) => filter(ans, self.answers).await,
-            Filter::Sync(filter) => filter(ans, self.answers),
-            Filter::None => ans,
-        }
-    }
-
-    fn try_validate_sync(&mut self) -> Option<Result<Validation, Self::ValidateErr>> {
-        match self.password.validate {
-            Validate::Sync(ref validate) => {
-                Some(validate(self.input.value(), self.answers).map(|_| Validation::Finish))
-            }
-            _ => None,
-        }
-    }
-
-    async fn validate_async(&mut self) -> Result<Validation, Self::ValidateErr> {
-        if let Validate::Async(ref validate) = self.password.validate {
-            validate(self.input.value(), self.answers).await?;
-        }
-
-        Ok(Validation::Finish)
-    }
-}
-}
-
 impl Widget for PasswordPrompt<'_, '_, '_, '_> {
     fn render<B: Backend>(
         &mut self,
@@ -147,39 +115,6 @@ impl Password<'_, '_, '_> {
         }
 
         Ok(Answer::String(ans))
-    }
-
-    crate::cfg_async! {
-    pub(crate) async fn ask_async<B: Backend>(
-        mut self,
-        message: String,
-        answers: &Answers,
-        b: &mut B,
-        events: &mut ui::events::AsyncEvents,
-    ) -> error::Result<Answer> {
-        let transform = self.transform.take();
-
-        let ans = ui::Input::new(PasswordPrompt {
-            message,
-            input: widgets::StringInput::default().password(self.mask),
-            password: self,
-            answers,
-        }, b)
-        .run_async(events)
-        .await?;
-
-        match transform {
-            Transform::Async(transform) => transform(&ans, answers, b).await?,
-            Transform::Sync(transform) => transform(&ans, answers, b)?,
-            _ => {
-                b.write_styled("[hidden]".dark_grey())?;
-                b.write_all(b"\n")?;
-                b.flush()?;
-            }
-        }
-
-        Ok(Answer::String(ans))
-    }
     }
 }
 

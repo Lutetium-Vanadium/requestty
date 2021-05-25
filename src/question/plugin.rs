@@ -11,16 +11,6 @@ pub trait Plugin: std::fmt::Debug {
         stdout: &mut dyn Backend,
         events: &mut events::Events,
     ) -> error::Result<Answer>;
-
-    crate::cfg_async! {
-    fn ask_async<'future>(
-        &mut self,
-        message: String,
-        answers: &Answers,
-        stdout: &mut dyn Backend,
-        events: &mut events::AsyncEvents,
-    ) -> crate::question::BoxFuture<'future, error::Result<Answer>>;
-    }
 }
 
 pub struct PluginBuilder<'m, 'w, 'p> {

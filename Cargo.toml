@@ -18,36 +18,13 @@ ui = { package = "inquisition-ui", path = "./inquisition-ui" }
 macros = { package = "inquisition-macros", path = "./inquisition-macros" }
 
 ahash = { version = "0.7", optional = true }
-async-trait = { version = "0.1", optional = true }
-
-# The following dependencies are renamed in the form `<dep-name>-dep` to allow
-# a feature name with the same name to be present. This is necessary since
-# these features are required to enable other dependencies
-smol-dep = { package = "smol", version = "1.2", optional = true }
-tokio-dep = { package = "tokio", version = "1.5", optional = true, features = ["fs", "process", "io-util"] }
-async-std-dep = { package = "async-std", version = "1.9", optional = true, features = ["unstable"] }
 
 [dev-dependencies]
 trybuild = "1.0.42"
 csscolorparser = "0.4" # examples/input.rs
-regex = "1.5"          # examples/templates/pizza.rs
+regex = "1.5"          # examples/prompt_module.rs
 
 [features]
 default = ["crossterm", "ahash"]
 crossterm = ["ui/crossterm"]
 termion = ["ui/termion"]
-tokio = ["tokio-dep", "async-trait", "ui/tokio"]
-smol = ["smol-dep", "async-trait", "ui/smol"]
-async-std = ["async-std-dep", "async-trait", "ui/async-std"]
-
-[[example]]
-name = "async-std"
-required-features = ["async-std"]
-
-[[example]]
-name = "smol"
-required-features = ["smol"]
-
-[[example]]
-name = "tokio"
-required-features = ["tokio"]

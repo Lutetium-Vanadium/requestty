@@ -1,5 +1,0 @@
-error: option `validate_async` does not exist for kind `plugin`
- --> $DIR/validate_async.rs:2:52
-  |
-2 |     let q = inquisition::questions![Plugin { async validate: todo!() }];
-  |                                                    ^^^^^^^^
