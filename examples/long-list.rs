@@ -8,7 +8,7 @@ fn main() {
                 i
             )
         }))
-        .choice("Super long option:\n Lorem ipsum dolor sit amet, consectetuer \
+        .choice("Super long option:\nLorem ipsum dolor sit amet, consectetuer \
         adipiscing elit. Aenean commodo ligula e get dolor. Aenean massa. Cum sociis \
         natoque penatibus et magnis dis parturient montes, nascetur ridiculus mus. \
         Donec quam felis, ultricies nec, pellentesque eu, pretium quis, sem. Nulla \

@@ -40,6 +40,20 @@ pub enum Validation {
     Continue,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+/// The part of the text to render if the full text cannot be rendered
+pub enum RenderRegion {
+    Top,
+    Middle,
+    Bottom,
+}
+
+impl Default for RenderRegion {
+    fn default() -> Self {
+        RenderRegion::Middle
+    }
+}
+
 /// Assume the highlighted part of the block below is the place available for rendering
 /// in the given box
 /// ```text
@@ -81,32 +95,46 @@ pub struct Layout {
     pub offset_y: u16,
     /// ```text
     ///  ____________
-    /// |  vvvvvvvvvv-- width
+    /// |            |
     /// |     ███████|
     /// |  ██████████|
     /// |  ██████████|
     /// '------------'
+    ///  ^^^^^^^^^^^^-- width
     /// ```
     pub width: u16,
     /// ```text
+    ///  _____ height --.
+    /// |            | <'
+    /// |     ███████| <'
+    /// |  ██████████| <'
+    /// |  ██████████| <'
+    /// '------------'
+    /// ```
+    pub height: u16,
+    /// ```text
     ///  ____________
-    /// |.-- height  |
+    /// |.-- max_height
     /// |'>   ███████|
     /// |'>██████████|
     /// |'>██████████|
     /// '------------'
     /// ```
-    pub height: u16,
+    pub max_height: u16,
+    /// The region to render if full text cannot be rendered
+    pub render_region: RenderRegion,
 }
 
 impl Layout {
-    pub fn new(line_offset: u16, terminal_size: backend::Size) -> Self {
+    pub fn new(line_offset: u16, size: backend::Size) -> Self {
         Self {
             line_offset,
             offset_x: 0,
             offset_y: 0,
-            width: terminal_size.width,
-            height: terminal_size.height,
+            width: size.width,
+            height: size.height,
+            max_height: size.height,
+            render_region: RenderRegion::Middle,
         }
     }
 
@@ -115,8 +143,8 @@ impl Layout {
         self
     }
 
-    pub fn with_terminal_size(mut self, terminal_size: backend::Size) -> Self {
-        self.set_terminal_size(terminal_size);
+    pub fn with_size(mut self, size: backend::Size) -> Self {
+        self.set_size(size);
         self
     }
 
@@ -126,13 +154,35 @@ impl Layout {
         self
     }
 
-    pub fn set_terminal_size(&mut self, terminal_size: backend::Size) {
+    pub fn with_render_region(mut self, region: RenderRegion) -> Self {
+        self.render_region = region;
+        self
+    }
+
+    pub fn with_max_height(mut self, max_height: u16) -> Self {
+        self.max_height = max_height;
+        self
+    }
+
+    pub fn set_size(&mut self, terminal_size: backend::Size) {
         self.width = terminal_size.width;
         self.height = terminal_size.height;
     }
 
     pub fn line_width(&self) -> u16 {
         self.width - self.line_offset - self.offset_x
+    }
+
+    pub fn get_start(&self, height: u16) -> u16 {
+        if height > self.max_height {
+            match self.render_region {
+                RenderRegion::Top => 0,
+                RenderRegion::Middle => (height - self.max_height) / 2,
+                RenderRegion::Bottom => height - self.max_height,
+            }
+        } else {
+            0
+        }
     }
 }
 

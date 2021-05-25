@@ -17,28 +17,8 @@ impl<S: AsRef<str>> Text<S> {
             line_offset: 0,
         }
     }
-}
 
-impl<S: AsRef<str>> Widget for Text<S> {
-    fn render<B: backend::Backend>(
-        &mut self,
-        layout: Layout,
-        backend: &mut B,
-    ) -> error::Result<()> {
-        // Update just in case the layout is out of date
-        if self.height(layout) == 1 {
-            backend.write_all(self.wrapped.as_bytes())?;
-        } else {
-            for (i, line) in self.wrapped.lines().enumerate() {
-                backend.set_cursor(layout.offset_x, layout.offset_y + i as u16)?;
-                backend.write_all(line.as_bytes())?;
-            }
-        }
-
-        Ok(())
-    }
-
-    fn height(&mut self, layout: crate::Layout) -> u16 {
+    fn raw_height(&mut self, layout: crate::Layout) -> u16 {
         let width = layout.width - layout.offset_x;
 
         if self.width != width || self.line_offset != layout.line_offset {
@@ -48,6 +28,41 @@ impl<S: AsRef<str>> Widget for Text<S> {
         }
 
         self.wrapped.lines().count() as u16
+    }
+}
+
+impl<S: AsRef<str>> Widget for Text<S> {
+    fn render<B: backend::Backend>(
+        &mut self,
+        layout: Layout,
+        backend: &mut B,
+    ) -> error::Result<()> {
+        if layout.max_height == 0 {
+            return Err(std::fmt::Error.into());
+        }
+
+        // Update just in case the layout is out of date
+        let height = self.raw_height(layout);
+
+        if height == 1 {
+            backend.write_all(self.wrapped.as_bytes())?;
+        } else {
+            let start = layout.get_start(height) as usize;
+            let length = height.min(layout.max_height) as usize;
+
+            for (i, line) in
+                self.wrapped.lines().skip(start).take(length).enumerate()
+            {
+                backend.set_cursor(layout.offset_x, layout.offset_y + i as u16)?;
+                backend.write_all(line.as_bytes())?;
+            }
+        }
+
+        Ok(())
+    }
+
+    fn height(&mut self, layout: crate::Layout) -> u16 {
+        self.raw_height(layout).min(layout.max_height)
     }
 }
 

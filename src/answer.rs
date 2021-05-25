@@ -211,9 +211,15 @@ impl<S: ui::Widget> ui::Widget for ExpandItem<S> {
     }
 }
 
-#[derive(Debug, Default, Clone, PartialEq)]
+#[derive(Default, Clone, PartialEq)]
 pub struct Answers {
     answers: HashMap<String, Answer>,
+}
+
+impl std::fmt::Debug for Answers {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.answers.fmt(f)
+    }
 }
 
 impl Answers {
