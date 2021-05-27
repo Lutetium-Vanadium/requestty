@@ -79,7 +79,7 @@ impl Prompt for InputPrompt<'_, '_> {
             }
         }
 
-        if let Validate::Sync(ref validate) = self.input_opts.validate {
+        if let Validate::Sync(ref mut validate) = self.input_opts.validate {
             validate(self.input.value(), self.answers)?;
         }
 

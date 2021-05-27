@@ -40,7 +40,7 @@ impl ui::Prompt for PasswordPrompt<'_, '_> {
     }
 
     fn validate(&mut self) -> Result<Validation, Self::ValidateErr> {
-        if let Validate::Sync(ref validate) = self.password.validate {
+        if let Validate::Sync(ref mut validate) = self.password.validate {
             validate(self.input.value(), self.answers)?;
         }
 

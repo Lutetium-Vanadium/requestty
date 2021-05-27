@@ -104,7 +104,7 @@ impl_getter_from_val!(String, char, c => c.to_string());
 
 impl<'a, F> From<F> for Getter<'a, String>
 where
-    F: Fn(&Answers) -> String + 'a,
+    F: FnOnce(&Answers) -> String + 'a,
 {
     fn from(f: F) -> Self {
         Getter::Function(Box::new(f))
@@ -114,7 +114,7 @@ where
 impl_getter_from_val!(bool, bool);
 impl<'a, F> From<F> for Getter<'a, bool>
 where
-    F: Fn(&Answers) -> bool + 'a,
+    F: FnOnce(&Answers) -> bool + 'a,
 {
     fn from(f: F) -> Self {
         Getter::Function(Box::new(f))

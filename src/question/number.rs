@@ -125,7 +125,7 @@ macro_rules! impl_number_prompt {
                 }
                 let n = self.parse()?;
 
-                if let Validate::Sync(ref validate) = self.number.validate {
+                if let Validate::Sync(ref mut validate) = self.number.validate {
                     validate(n, self.answers)?;
                 }
 

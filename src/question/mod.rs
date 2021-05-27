@@ -210,8 +210,8 @@ macro_rules! handler {
 }
 
 handler!(Filter, FnOnce(T, &Answers) -> T);
-handler!(Validate, ?Sized Fn(&T, &Answers) -> Result<(), String>);
-handler!(ValidateByVal, Fn(T, &Answers) -> Result<(), String>);
+handler!(Validate, ?Sized FnMut(&T, &Answers) -> Result<(), String>);
+handler!(ValidateByVal, FnMut(T, &Answers) -> Result<(), String>);
 handler!(Transform, ?Sized FnOnce(&T, &Answers, &mut dyn Backend) -> error::Result<()>);
 handler!(
     TransformByVal,
@@ -238,7 +238,7 @@ macro_rules! impl_validate_builder {
     ($t:ty; $inner:ident) => {
         pub fn validate<F>(mut self, filter: F) -> Self
         where
-            F: Fn(&$t, &crate::Answers) -> Result<(), String> + Send + Sync + 'a,
+            F: FnMut(&$t, &crate::Answers) -> Result<(), String> + Send + Sync + 'a,
         {
             self.$inner.validate = crate::question::Validate::Sync(Box::new(filter));
             self
@@ -248,7 +248,7 @@ macro_rules! impl_validate_builder {
     (by val $t:ty; $inner:ident) => {
         pub fn validate<F>(mut self, filter: F) -> Self
         where
-            F: Fn($t, &crate::Answers) -> Result<(), String> + Send + Sync + 'a,
+            F: FnMut($t, &crate::Answers) -> Result<(), String> + Send + Sync + 'a,
         {
             self.$inner.validate =
                 crate::question::ValidateByVal::Sync(Box::new(filter));

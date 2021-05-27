@@ -98,7 +98,7 @@ impl ui::Prompt for EditorPrompt<'_, '_> {
         self.file.read_to_string(&mut self.ans)?;
         self.file.seek(SeekFrom::Start(0))?;
 
-        if let Validate::Sync(ref validate) = self.editor.validate {
+        if let Validate::Sync(ref mut validate) = self.editor.validate {
             validate(&self.ans, self.answers)
                 .map_err(|err| io::Error::new(io::ErrorKind::InvalidInput, err))?;
         }

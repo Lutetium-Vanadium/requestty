@@ -57,7 +57,7 @@ impl Prompt for CheckboxPrompt<'_, '_> {
     }
 
     fn validate(&mut self) -> Result<Validation, Self::ValidateErr> {
-        if let Validate::Sync(ref validate) = self.picker.list.validate {
+        if let Validate::Sync(ref mut validate) = self.picker.list.validate {
             validate(&self.picker.list.selected, self.answers)?;
         }
         Ok(Validation::Finish)
