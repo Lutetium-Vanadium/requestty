@@ -15,14 +15,14 @@ use super::{Choice, Options, Transform};
 use crate::{Answer, Answers, ExpandItem};
 
 #[derive(Debug)]
-pub struct Expand<'t> {
+pub struct Expand<'a> {
     choices: super::ChoiceList<ExpandItem<Text<String>>>,
     selected: Option<char>,
     default: char,
-    transform: Transform<'t, ExpandItem<String>>,
+    transform: Transform<'a, ExpandItem<String>>,
 }
 
-impl Default for Expand<'static> {
+impl<'a> Default for Expand<'a> {
     fn default() -> Self {
         Expand {
             default: 'h',
@@ -33,10 +33,10 @@ impl Default for Expand<'static> {
     }
 }
 
-struct ExpandPrompt<'t, F> {
+struct ExpandPrompt<'a, F> {
     message: String,
     hint: String,
-    list: widgets::ListPicker<Expand<'t>>,
+    list: widgets::ListPicker<Expand<'a>>,
     input: widgets::CharInput<F>,
     expanded: bool,
 }
@@ -346,13 +346,13 @@ impl Expand<'_> {
     }
 }
 
-pub struct ExpandBuilder<'m, 'w, 't> {
-    opts: Options<'m, 'w>,
-    expand: Expand<'t>,
+pub struct ExpandBuilder<'a> {
+    opts: Options<'a>,
+    expand: Expand<'a>,
     keys: HashSet<char>,
 }
 
-impl ExpandBuilder<'static, 'static, 'static> {
+impl<'a> ExpandBuilder<'a> {
     pub(crate) fn new(name: String) -> Self {
         ExpandBuilder {
             opts: Options::new(name),
@@ -360,9 +360,7 @@ impl ExpandBuilder<'static, 'static, 'static> {
             keys: HashSet::default(),
         }
     }
-}
 
-impl<'m, 'w, 't> ExpandBuilder<'m, 'w, 't> {
     pub fn default(mut self, default: char) -> Self {
         self.expand.default = default;
         self
@@ -447,36 +445,16 @@ impl<'m, 'w, 't> ExpandBuilder<'m, 'w, 't> {
         self
     }
 
-    pub fn build(self) -> super::Question<'m, 'w, 'static, 'static, 't> {
+    crate::impl_options_builder!();
+    crate::impl_transform_builder!(ExpandItem<String>; expand);
+
+    pub fn build(self) -> super::Question<'a> {
         super::Question::new(self.opts, super::QuestionKind::Expand(self.expand))
     }
 }
 
-impl<'m, 'w, 't> From<ExpandBuilder<'m, 'w, 't>>
-    for super::Question<'m, 'w, 'static, 'static, 't>
-{
-    fn from(builder: ExpandBuilder<'m, 'w, 't>) -> Self {
+impl<'a> From<ExpandBuilder<'a>> for super::Question<'a> {
+    fn from(builder: ExpandBuilder<'a>) -> Self {
         builder.build()
     }
 }
-
-crate::impl_options_builder!(ExpandBuilder<'t>; (this, opts) => {
-    ExpandBuilder {
-        opts,
-        expand: this.expand,
-        keys: this.keys,
-    }
-});
-
-crate::impl_transform_builder!(ExpandBuilder<'m, 'w, t> ExpandItem<String>; (this, transform) => {
-    ExpandBuilder {
-        opts: this.opts,
-        keys: this.keys,
-        expand: Expand {
-            transform,
-            choices: this.expand.choices,
-            default: this.expand.default,
-            selected: this.expand.selected,
-        }
-    }
-});

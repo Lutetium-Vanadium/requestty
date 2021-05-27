@@ -9,21 +9,21 @@ use super::{Filter, Options, Transform, Validate};
 use crate::{Answer, Answers};
 
 #[derive(Debug, Default)]
-pub struct Input<'f, 'v, 't> {
+pub struct Input<'i> {
     default: Option<String>,
-    filter: Filter<'f, String>,
-    validate: Validate<'v, str>,
-    transform: Transform<'t, str>,
+    filter: Filter<'i, String>,
+    validate: Validate<'i, str>,
+    transform: Transform<'i, str>,
 }
 
-struct InputPrompt<'f, 'v, 't, 'a> {
+struct InputPrompt<'i, 'a> {
     message: String,
-    input_opts: Input<'f, 'v, 't>,
+    input_opts: Input<'i>,
     input: widgets::StringInput,
     answers: &'a Answers,
 }
 
-impl Widget for InputPrompt<'_, '_, '_, '_> {
+impl Widget for InputPrompt<'_, '_> {
     fn render<B: Backend>(
         &mut self,
         layout: ui::Layout,
@@ -45,7 +45,7 @@ impl Widget for InputPrompt<'_, '_, '_, '_> {
     }
 }
 
-impl Prompt for InputPrompt<'_, '_, '_, '_> {
+impl Prompt for InputPrompt<'_, '_> {
     type ValidateErr = String;
     type Output = String;
 
@@ -93,7 +93,7 @@ impl Prompt for InputPrompt<'_, '_, '_, '_> {
     }
 }
 
-impl Input<'_, '_, '_> {
+impl Input<'_> {
     pub(crate) fn ask<B: Backend>(
         mut self,
         message: String,
@@ -132,12 +132,12 @@ impl Input<'_, '_, '_> {
     }
 }
 
-pub struct InputBuilder<'m, 'w, 'f, 'v, 't> {
-    opts: Options<'m, 'w>,
-    input: Input<'f, 'v, 't>,
+pub struct InputBuilder<'a> {
+    opts: Options<'a>,
+    input: Input<'a>,
 }
 
-impl<'m, 'w, 'f, 'v, 't> InputBuilder<'m, 'w, 'f, 'v, 't> {
+impl<'a> InputBuilder<'a> {
     pub(crate) fn new(name: String) -> Self {
         InputBuilder {
             opts: Options::new(name),
@@ -150,59 +150,21 @@ impl<'m, 'w, 'f, 'v, 't> InputBuilder<'m, 'w, 'f, 'v, 't> {
         self
     }
 
-    pub fn build(self) -> super::Question<'m, 'w, 'f, 'v, 't> {
+    crate::impl_options_builder!();
+    crate::impl_filter_builder!(String; input);
+    crate::impl_validate_builder!(str; input);
+    crate::impl_transform_builder!(str; input);
+
+    pub fn build(self) -> super::Question<'a> {
         super::Question::new(self.opts, super::QuestionKind::Input(self.input))
     }
 }
 
-crate::impl_filter_builder!(InputBuilder<'m, 'w, f, 'v, 't> String; (this, filter) => {
-    InputBuilder {
-        opts: this.opts,
-        input: Input {
-            filter,
-            default: this.input.default,
-            validate: this.input.validate,
-            transform: this.input.transform,
-        }
-    }
-});
-crate::impl_validate_builder!(InputBuilder<'m, 'w, 'f, v, 't> str; (this, validate) => {
-    InputBuilder {
-        opts: this.opts,
-        input: Input {
-            validate,
-            default: this.input.default,
-            filter: this.input.filter,
-            transform: this.input.transform,
-        }
-    }
-});
-crate::impl_transform_builder!(InputBuilder<'m, 'w, 'f, 'v, t> str; (this, transform) => {
-    InputBuilder {
-        opts: this.opts,
-        input: Input {
-            transform,
-            validate: this.input.validate,
-            default: this.input.default,
-            filter: this.input.filter,
-        }
-    }
-});
-
-impl<'m, 'w, 'f, 'v, 't> From<InputBuilder<'m, 'w, 'f, 'v, 't>>
-    for super::Question<'m, 'w, 'f, 'v, 't>
-{
-    fn from(builder: InputBuilder<'m, 'w, 'f, 'v, 't>) -> Self {
+impl<'a> From<InputBuilder<'a>> for super::Question<'a> {
+    fn from(builder: InputBuilder<'a>) -> Self {
         builder.build()
     }
 }
-
-crate::impl_options_builder!(InputBuilder<'f, 'v, 't>; (this, opts) => {
-    InputBuilder {
-        opts,
-        input: this.input,
-    }
-});
 
 fn remove_brackets(mut s: String) -> String {
     s.remove(0);

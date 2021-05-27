@@ -12,17 +12,17 @@ use super::{Choice, Filter, Options, Transform, Validate};
 use crate::{Answer, Answers, ListItem};
 
 #[derive(Debug, Default)]
-pub struct Checkbox<'f, 'v, 't> {
+pub struct Checkbox<'a> {
     choices: super::ChoiceList<Text<String>>,
     selected: Vec<bool>,
-    filter: Filter<'f, Vec<bool>>,
-    validate: Validate<'v, [bool]>,
-    transform: Transform<'t, [ListItem]>,
+    filter: Filter<'a, Vec<bool>>,
+    validate: Validate<'a, [bool]>,
+    transform: Transform<'a, [ListItem]>,
 }
 
-struct CheckboxPrompt<'f, 'v, 't, 'a> {
+struct CheckboxPrompt<'a, 'c> {
     message: String,
-    picker: widgets::ListPicker<Checkbox<'f, 'v, 't>>,
+    picker: widgets::ListPicker<Checkbox<'c>>,
     answers: &'a Answers,
 }
 
@@ -44,7 +44,7 @@ fn create_list_items(
         .collect()
 }
 
-impl Prompt for CheckboxPrompt<'_, '_, '_, '_> {
+impl Prompt for CheckboxPrompt<'_, '_> {
     type ValidateErr = String;
     type Output = Vec<ListItem>;
 
@@ -83,7 +83,7 @@ impl Prompt for CheckboxPrompt<'_, '_, '_, '_> {
     }
 }
 
-impl Widget for CheckboxPrompt<'_, '_, '_, '_> {
+impl Widget for CheckboxPrompt<'_, '_> {
     fn render<B: Backend>(
         &mut self,
         layout: ui::Layout,
@@ -124,7 +124,7 @@ impl Widget for CheckboxPrompt<'_, '_, '_, '_> {
     }
 }
 
-impl widgets::List for Checkbox<'_, '_, '_> {
+impl widgets::List for Checkbox<'_> {
     fn render_item<B: Backend>(
         &mut self,
         index: usize,
@@ -185,7 +185,7 @@ impl widgets::List for Checkbox<'_, '_, '_> {
     }
 }
 
-impl Checkbox<'_, '_, '_> {
+impl Checkbox<'_> {
     pub(crate) fn ask<B: Backend>(
         mut self,
         message: String,
@@ -225,12 +225,12 @@ impl Checkbox<'_, '_, '_> {
     }
 }
 
-pub struct CheckboxBuilder<'m, 'w, 'f, 'v, 't> {
-    opts: Options<'m, 'w>,
-    checkbox: Checkbox<'f, 'v, 't>,
+pub struct CheckboxBuilder<'a> {
+    opts: Options<'a>,
+    checkbox: Checkbox<'a>,
 }
 
-impl<'m, 'w, 'f, 'v, 't> CheckboxBuilder<'m, 'w, 'f, 'v, 't> {
+impl<'a> CheckboxBuilder<'a> {
     pub(crate) fn new(name: String) -> Self {
         CheckboxBuilder {
             opts: Options::new(name),
@@ -335,64 +335,21 @@ impl<'m, 'w, 'f, 'v, 't> CheckboxBuilder<'m, 'w, 'f, 'v, 't> {
         self
     }
 
-    pub fn build(self) -> super::Question<'m, 'w, 'f, 'v, 't> {
+    crate::impl_options_builder!();
+    crate::impl_filter_builder!(Vec<bool>; checkbox);
+    crate::impl_validate_builder!([bool]; checkbox);
+    crate::impl_transform_builder!([ListItem]; checkbox);
+
+    pub fn build(self) -> super::Question<'a> {
         super::Question::new(self.opts, super::QuestionKind::Checkbox(self.checkbox))
     }
 }
 
-impl<'m, 'w, 'f, 'v, 't> From<CheckboxBuilder<'m, 'w, 'f, 'v, 't>>
-    for super::Question<'m, 'w, 'f, 'v, 't>
-{
-    fn from(builder: CheckboxBuilder<'m, 'w, 'f, 'v, 't>) -> Self {
+impl<'a> From<CheckboxBuilder<'a>> for super::Question<'a> {
+    fn from(builder: CheckboxBuilder<'a>) -> Self {
         builder.build()
     }
 }
-
-crate::impl_options_builder!(CheckboxBuilder<'f, 'v, 't>; (this, opts) => {
-    CheckboxBuilder {
-        opts,
-        checkbox: this.checkbox,
-    }
-});
-
-crate::impl_filter_builder!(CheckboxBuilder<'m, 'w, f, 'v, 't> Vec<bool>; (this, filter) => {
-    CheckboxBuilder {
-        opts: this.opts,
-        checkbox: Checkbox {
-            filter,
-            choices: this.checkbox.choices,
-            validate: this.checkbox.validate,
-            transform: this.checkbox.transform,
-            selected: this.checkbox.selected,
-        }
-    }
-});
-
-crate::impl_validate_builder!(CheckboxBuilder<'m, 'w, 'f, v, 't> [bool]; (this, validate) => {
-    CheckboxBuilder {
-        opts: this.opts,
-        checkbox: Checkbox {
-            validate,
-            choices: this.checkbox.choices,
-            filter: this.checkbox.filter,
-            transform: this.checkbox.transform,
-            selected: this.checkbox.selected,
-        }
-    }
-});
-
-crate::impl_transform_builder!(CheckboxBuilder<'m, 'w, 'f, 'v, t> [ListItem]; (this, transform) => {
-    CheckboxBuilder {
-        opts: this.opts,
-        checkbox: Checkbox {
-            transform,
-            choices: this.checkbox.choices,
-            filter: this.checkbox.filter,
-            validate: this.checkbox.validate,
-            selected: this.checkbox.selected,
-        }
-    }
-});
 
 fn print_comma_separated<'a, B: Backend>(
     iter: impl Iterator<Item = &'a str>,

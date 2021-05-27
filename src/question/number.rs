@@ -11,22 +11,22 @@ use super::{
 use crate::{Answer, Answers};
 
 #[derive(Debug, Default)]
-pub struct Float<'f, 'v, 't> {
+pub struct Float<'a> {
     default: Option<f64>,
-    filter: Filter<'f, f64>,
-    validate: Validate<'v, f64>,
-    transform: Transform<'t, f64>,
+    filter: Filter<'a, f64>,
+    validate: Validate<'a, f64>,
+    transform: Transform<'a, f64>,
 }
 
 #[derive(Debug, Default)]
-pub struct Int<'f, 'v, 't> {
+pub struct Int<'a> {
     default: Option<i64>,
-    filter: Filter<'f, i64>,
-    validate: Validate<'v, i64>,
-    transform: Transform<'t, i64>,
+    filter: Filter<'a, i64>,
+    validate: Validate<'a, i64>,
+    transform: Transform<'a, i64>,
 }
 
-impl Int<'_, '_, '_> {
+impl Int<'_> {
     fn write<B: Backend>(i: i64, b: &mut B) -> error::Result<()> {
         b.set_fg(Color::Cyan)?;
         write!(b, "{}", i)?;
@@ -44,7 +44,7 @@ impl Int<'_, '_, '_> {
     }
 }
 
-impl Float<'_, '_, '_> {
+impl Float<'_> {
     fn write<B: Backend>(f: f64, b: &mut B) -> error::Result<()> {
         b.set_fg(Color::Cyan)?;
         if f.log10().abs() > 19.0 {
@@ -68,15 +68,15 @@ impl Float<'_, '_, '_> {
 
 macro_rules! impl_number_prompt {
     ($prompt_name:ident, $type:ident, $inner_ty:ty) => {
-        struct $prompt_name<'f, 'v, 't, 'a> {
-            number: $type<'f, 'v, 't>,
+        struct $prompt_name<'n, 'a> {
+            number: $type<'n>,
             message: String,
             input: widgets::StringInput,
             hint: Option<String>,
             answers: &'a Answers,
         }
 
-        impl $prompt_name<'_, '_, '_, '_> {
+        impl $prompt_name<'_, '_> {
             fn parse(&self) -> Result<$inner_ty, String> {
                 self.input
                     .value()
@@ -85,7 +85,7 @@ macro_rules! impl_number_prompt {
             }
         }
 
-        impl Widget for $prompt_name<'_, '_, '_, '_> {
+        impl Widget for $prompt_name<'_, '_> {
             fn render<B: Backend>(
                 &mut self,
                 layout: ui::Layout,
@@ -107,7 +107,7 @@ macro_rules! impl_number_prompt {
             }
         }
 
-        impl Prompt for $prompt_name<'_, '_, '_, '_> {
+        impl Prompt for $prompt_name<'_, '_> {
             type ValidateErr = String;
             type Output = $inner_ty;
 
@@ -159,7 +159,7 @@ impl_number_prompt!(FloatPrompt, Float, f64);
 
 macro_rules! impl_ask {
     ($t:ident, $prompt_name:ident) => {
-        impl $t<'_, '_, '_> {
+        impl $t<'_> {
             pub(crate) fn ask<B: Backend>(
                 mut self,
                 message: String,
@@ -197,12 +197,12 @@ impl_ask!(Float, FloatPrompt);
 
 macro_rules! builder {
     ($builder_name:ident, $type:ident, $inner_ty:ty, $kind:expr) => {
-        pub struct $builder_name<'m, 'w, 'f, 'v, 't> {
-            opts: Options<'m, 'w>,
-            inner: $type<'f, 'v, 't>,
+        pub struct $builder_name<'a> {
+            opts: Options<'a>,
+            inner: $type<'a>,
         }
 
-        impl<'m, 'w, 'f, 'v, 't> $builder_name<'m, 'w, 'f, 'v, 't> {
+        impl<'a> $builder_name<'a> {
             pub(crate) fn new(name: String) -> Self {
                 $builder_name {
                     opts: Options::new(name),
@@ -215,59 +215,21 @@ macro_rules! builder {
                 self
             }
 
-            pub fn build(self) -> super::Question<'m, 'w, 'f, 'v, 't> {
+            crate::impl_options_builder!();
+            crate::impl_filter_builder!($inner_ty; inner);
+            crate::impl_validate_builder!(by val $inner_ty; inner);
+            crate::impl_transform_builder!(by val $inner_ty; inner);
+
+            pub fn build(self) -> super::Question<'a> {
                 super::Question::new(self.opts, $kind(self.inner))
             }
         }
 
-        impl<'m, 'w, 'f, 'v, 't> From<$builder_name<'m, 'w, 'f, 'v, 't>> for super::Question<'m, 'w, 'f, 'v, 't> {
-            fn from(builder: $builder_name<'m, 'w, 'f, 'v, 't>) -> Self {
+        impl<'a> From<$builder_name<'a>> for super::Question<'a> {
+            fn from(builder: $builder_name<'a>) -> Self {
                 builder.build()
             }
         }
-
-        crate::impl_options_builder!($builder_name<'f, 'v, 't>; (this, opts) => {
-            $builder_name {
-                opts,
-                inner: this.inner,
-            }
-        });
-
-        crate::impl_filter_builder!($builder_name<'m, 'w, f, 'v, 't> $inner_ty; (this, filter) => {
-            $builder_name {
-                opts: this.opts,
-                inner: $type {
-                    filter,
-                    default: this.inner.default,
-                    validate: this.inner.validate,
-                    transform: this.inner.transform,
-                }
-            }
-        });
-
-        crate::impl_validate_builder!(by val $builder_name<'m, 'w, 'f, v, 't> $inner_ty; (this, validate) => {
-            $builder_name {
-                opts: this.opts,
-                inner: $type {
-                    validate,
-                    default: this.inner.default,
-                    filter: this.inner.filter,
-                    transform: this.inner.transform,
-                }
-            }
-        });
-
-        crate::impl_transform_builder!(by val $builder_name<'m, 'w, 'f, 'v, t> $inner_ty; (this, transform) => {
-            $builder_name {
-                opts: this.opts,
-                inner: $type {
-                    transform,
-                    validate: this.inner.validate,
-                    default: this.inner.default,
-                    filter: this.inner.filter,
-                }
-            }
-        });
     };
 }
 

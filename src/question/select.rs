@@ -10,14 +10,14 @@ use super::{Options, Transform};
 use crate::{Answer, Answers, ListItem};
 
 #[derive(Debug, Default)]
-pub struct Select<'t> {
+pub struct Select<'a> {
     choices: super::ChoiceList<Text<String>>,
-    transform: Transform<'t, ListItem>,
+    transform: Transform<'a, ListItem>,
 }
 
-struct SelectPrompt<'t> {
+struct SelectPrompt<'a> {
     message: String,
-    picker: widgets::ListPicker<Select<'t>>,
+    picker: widgets::ListPicker<Select<'a>>,
 }
 
 impl SelectPrompt<'_> {
@@ -158,12 +158,12 @@ impl Select<'_> {
     }
 }
 
-pub struct SelectBuilder<'m, 'w, 't> {
-    opts: Options<'m, 'w>,
-    list: Select<'t>,
+pub struct SelectBuilder<'a> {
+    opts: Options<'a>,
+    list: Select<'a>,
 }
 
-impl<'m, 'w, 't> SelectBuilder<'m, 'w, 't> {
+impl<'a> SelectBuilder<'a> {
     pub(crate) fn new(name: String) -> Self {
         SelectBuilder {
             opts: Options::new(name),
@@ -226,32 +226,16 @@ impl<'m, 'w, 't> SelectBuilder<'m, 'w, 't> {
         self
     }
 
-    pub fn build(self) -> super::Question<'m, 'w, 'static, 'static, 't> {
+    crate::impl_options_builder!();
+    crate::impl_transform_builder!(ListItem; list);
+
+    pub fn build(self) -> super::Question<'a> {
         super::Question::new(self.opts, super::QuestionKind::Select(self.list))
     }
 }
 
-impl<'m, 'w, 't> From<SelectBuilder<'m, 'w, 't>>
-    for super::Question<'m, 'w, 'static, 'static, 't>
-{
-    fn from(builder: SelectBuilder<'m, 'w, 't>) -> Self {
+impl<'a> From<SelectBuilder<'a>> for super::Question<'a> {
+    fn from(builder: SelectBuilder<'a>) -> Self {
         builder.build()
     }
 }
-
-crate::impl_options_builder!(SelectBuilder<'t>; (this, opts) => {
-    SelectBuilder {
-        opts,
-        list: this.list,
-    }
-});
-
-crate::impl_transform_builder!(SelectBuilder<'m, 'w, t> ListItem; (this, transform) => {
-    SelectBuilder {
-        opts: this.opts,
-        list: Select {
-            transform,
-            choices: this.list.choices,
-        }
-    }
-});

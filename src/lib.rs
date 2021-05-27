@@ -31,13 +31,13 @@ pub struct PromptModule<Q> {
     answers: Answers,
 }
 
-impl<'m, 'w, 'f, 'v, 't, Q> PromptModule<Q>
+impl<'a, Q> PromptModule<Q>
 where
-    Q: Iterator<Item = Question<'m, 'w, 'f, 'v, 't>>,
+    Q: Iterator<Item = Question<'a>>,
 {
     pub fn new<I>(questions: I) -> Self
     where
-        I: IntoIterator<IntoIter = Q, Item = Question<'m, 'w, 'f, 'v, 't>>,
+        I: IntoIterator<IntoIter = Q, Item = Question<'a>>,
     {
         Self {
             answers: Answers::default(),
@@ -97,16 +97,14 @@ where
     }
 }
 
-pub fn prompt<'m, 'w, 'f, 'v, 't, Q>(questions: Q) -> error::Result<Answers>
+pub fn prompt<'a, Q>(questions: Q) -> error::Result<Answers>
 where
-    Q: IntoIterator<Item = Question<'m, 'w, 'f, 'v, 't>>,
+    Q: IntoIterator<Item = Question<'a>>,
 {
     PromptModule::new(questions).prompt_all()
 }
 
-pub fn prompt_one<'m, 'w, 'f, 'v, 't, I: Into<Question<'m, 'w, 'f, 'v, 't>>>(
-    question: I,
-) -> error::Result<Answer> {
+pub fn prompt_one<'a, I: Into<Question<'a>>>(question: I) -> error::Result<Answer> {
     let ans = prompt(std::iter::once(question.into()))?;
     Ok(ans.into_iter().next().unwrap().1)
 }

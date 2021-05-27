@@ -11,14 +11,14 @@ use crate::{Answer, Answers, ListItem};
 
 // Kind of a bad name
 #[derive(Debug, Default)]
-pub struct RawSelect<'t> {
+pub struct RawSelect<'a> {
     choices: super::ChoiceList<(usize, Text<String>)>,
-    transform: Transform<'t, ListItem>,
+    transform: Transform<'a, ListItem>,
 }
 
-struct RawSelectPrompt<'t> {
+struct RawSelectPrompt<'a> {
     message: String,
-    list: widgets::ListPicker<RawSelect<'t>>,
+    list: widgets::ListPicker<RawSelect<'a>>,
     input: widgets::StringInput,
 }
 
@@ -234,13 +234,13 @@ impl RawSelect<'_> {
     }
 }
 
-pub struct RawSelectBuilder<'m, 'w, 't> {
-    opts: Options<'m, 'w>,
-    list: RawSelect<'t>,
+pub struct RawSelectBuilder<'a> {
+    opts: Options<'a>,
+    list: RawSelect<'a>,
     choice_count: usize,
 }
 
-impl<'m, 'w, 't> RawSelectBuilder<'m, 'w, 't> {
+impl<'a> RawSelectBuilder<'a> {
     pub(crate) fn new(name: String) -> Self {
         RawSelectBuilder {
             opts: Options::new(name),
@@ -308,34 +308,16 @@ impl<'m, 'w, 't> RawSelectBuilder<'m, 'w, 't> {
         self
     }
 
-    pub fn build(self) -> super::Question<'m, 'w, 'static, 'static, 't> {
+    crate::impl_options_builder!();
+    crate::impl_transform_builder!(ListItem; list);
+
+    pub fn build(self) -> super::Question<'a> {
         super::Question::new(self.opts, super::QuestionKind::RawSelect(self.list))
     }
 }
 
-impl<'m, 'w, 't> From<RawSelectBuilder<'m, 'w, 't>>
-    for super::Question<'m, 'w, 'static, 'static, 't>
-{
-    fn from(builder: RawSelectBuilder<'m, 'w, 't>) -> Self {
+impl<'a> From<RawSelectBuilder<'a>> for super::Question<'a> {
+    fn from(builder: RawSelectBuilder<'a>) -> Self {
         builder.build()
     }
 }
-
-crate::impl_options_builder!(RawSelectBuilder<'t>; (this, opts) => {
-    RawSelectBuilder {
-        opts,
-        list: this.list,
-        choice_count: this.choice_count,
-    }
-});
-
-crate::impl_transform_builder!(RawSelectBuilder<'m, 'w, t> ListItem; (this, transform) => {
-    RawSelectBuilder {
-        opts: this.opts,
-        choice_count: this.choice_count,
-        list: RawSelect {
-            transform,
-            choices: this.list.choices,
-        }
-    }
-});

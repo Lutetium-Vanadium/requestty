@@ -4,7 +4,7 @@ use inquisition::{DefaultSeparator, Question, Separator};
 use std::env;
 
 fn main() {
-    println!("{}", std::mem::size_of::<Question>());
+    let s = String::from("Hello there 1");
 
     let q = match env::args().nth(1).as_deref() {
         Some("b") => vec![
@@ -15,15 +15,18 @@ fn main() {
                 .build(),
         ],
         Some("s") => vec![
-            Question::input("a").message("Hello there 1").into(),
+            Question::input("a").message("Hello there 2").into(),
             Question::input("b")
-                .message("Hello there 2")
+                .message(|_: &inquisition::Answers| s.clone())
+                .filter(|ans, _| ans + &s)
+                .validate(|_, _| Ok(()))
                 .default("Yes")
                 .into(),
         ],
         Some("p") => vec![
             Question::password("a")
                 .message("password 1")
+                .filter(|ans, _| ans + &s)
                 .mask('*')
                 .into(),
             Question::password("b").message("password 2").into(),

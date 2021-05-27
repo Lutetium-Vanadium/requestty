@@ -33,85 +33,59 @@ use ui::{backend::Backend, error};
 use std::fmt;
 
 #[derive(Debug)]
-pub struct Question<'m, 'w, 'f, 'v, 't> {
-    kind: QuestionKind<'f, 'v, 't>,
-    opts: Options<'m, 'w>,
+pub struct Question<'a> {
+    kind: QuestionKind<'a>,
+    opts: Options<'a>,
 }
 
-impl<'m, 'w, 'f, 'v, 't> Question<'m, 'w, 'f, 'v, 't> {
-    pub(crate) fn new(
-        opts: Options<'m, 'w>,
-        kind: QuestionKind<'f, 'v, 't>,
-    ) -> Self {
+impl<'a> Question<'a> {
+    pub(crate) fn new(opts: Options<'a>, kind: QuestionKind<'a>) -> Self {
         Self { kind, opts }
     }
 }
 
-impl Question<'static, 'static, 'static, 'static, 'static> {
-    pub fn input<N: Into<String>>(
-        name: N,
-    ) -> InputBuilder<'static, 'static, 'static, 'static, 'static> {
+impl Question<'static> {
+    pub fn input<N: Into<String>>(name: N) -> InputBuilder<'static> {
         InputBuilder::new(name.into())
     }
 
-    pub fn int<N: Into<String>>(
-        name: N,
-    ) -> IntBuilder<'static, 'static, 'static, 'static, 'static> {
+    pub fn int<N: Into<String>>(name: N) -> IntBuilder<'static> {
         IntBuilder::new(name.into())
     }
 
-    pub fn float<N: Into<String>>(
-        name: N,
-    ) -> FloatBuilder<'static, 'static, 'static, 'static, 'static> {
+    pub fn float<N: Into<String>>(name: N) -> FloatBuilder<'static> {
         FloatBuilder::new(name.into())
     }
 
-    pub fn confirm<N: Into<String>>(
-        name: N,
-    ) -> ConfirmBuilder<'static, 'static, 'static> {
+    pub fn confirm<N: Into<String>>(name: N) -> ConfirmBuilder<'static> {
         ConfirmBuilder::new(name.into())
     }
 
-    pub fn select<N: Into<String>>(
-        name: N,
-    ) -> SelectBuilder<'static, 'static, 'static> {
+    pub fn select<N: Into<String>>(name: N) -> SelectBuilder<'static> {
         SelectBuilder::new(name.into())
     }
 
-    pub fn raw_select<N: Into<String>>(
-        name: N,
-    ) -> RawSelectBuilder<'static, 'static, 'static> {
+    pub fn raw_select<N: Into<String>>(name: N) -> RawSelectBuilder<'static> {
         RawSelectBuilder::new(name.into())
     }
 
-    pub fn expand<N: Into<String>>(
-        name: N,
-    ) -> ExpandBuilder<'static, 'static, 'static> {
+    pub fn expand<N: Into<String>>(name: N) -> ExpandBuilder<'static> {
         ExpandBuilder::new(name.into())
     }
 
-    pub fn checkbox<N: Into<String>>(
-        name: N,
-    ) -> CheckboxBuilder<'static, 'static, 'static, 'static, 'static> {
+    pub fn checkbox<N: Into<String>>(name: N) -> CheckboxBuilder<'static> {
         CheckboxBuilder::new(name.into())
     }
 
-    pub fn password<N: Into<String>>(
-        name: N,
-    ) -> PasswordBuilder<'static, 'static, 'static, 'static, 'static> {
+    pub fn password<N: Into<String>>(name: N) -> PasswordBuilder<'static> {
         PasswordBuilder::new(name.into())
     }
 
-    pub fn editor<N: Into<String>>(
-        name: N,
-    ) -> EditorBuilder<'static, 'static, 'static, 'static, 'static> {
+    pub fn editor<N: Into<String>>(name: N) -> EditorBuilder<'static> {
         EditorBuilder::new(name.into())
     }
 
-    pub fn plugin<'a, N, P>(
-        name: N,
-        plugin: P,
-    ) -> PluginBuilder<'static, 'static, 'a>
+    pub fn plugin<'a, N, P>(name: N, plugin: P) -> PluginBuilder<'a>
     where
         N: Into<String>,
         P: Into<Box<dyn Plugin + 'a>>,
@@ -121,22 +95,22 @@ impl Question<'static, 'static, 'static, 'static, 'static> {
 }
 
 #[derive(Debug)]
-pub(crate) enum QuestionKind<'f, 'v, 't> {
-    Input(input::Input<'f, 'v, 't>),
-    Int(number::Int<'f, 'v, 't>),
-    Float(number::Float<'f, 'v, 't>),
-    Confirm(confirm::Confirm<'t>),
-    Select(select::Select<'t>),
-    RawSelect(raw_select::RawSelect<'t>),
-    Expand(expand::Expand<'t>),
-    Checkbox(checkbox::Checkbox<'f, 'v, 't>),
-    Password(password::Password<'f, 'v, 't>),
-    Editor(editor::Editor<'f, 'v, 't>),
+pub(crate) enum QuestionKind<'a> {
+    Input(input::Input<'a>),
+    Int(number::Int<'a>),
+    Float(number::Float<'a>),
+    Confirm(confirm::Confirm<'a>),
+    Select(select::Select<'a>),
+    RawSelect(raw_select::RawSelect<'a>),
+    Expand(expand::Expand<'a>),
+    Checkbox(checkbox::Checkbox<'a>),
+    Password(password::Password<'a>),
+    Editor(editor::Editor<'a>),
     // random lifetime so that it doesn't have to be static
-    Plugin(Box<dyn Plugin + 'f>),
+    Plugin(Box<dyn Plugin + 'a>),
 }
 
-impl Question<'_, '_, '_, '_, '_> {
+impl Question<'_> {
     pub(crate) fn ask<B: Backend>(
         mut self,
         answers: &Answers,
@@ -247,17 +221,13 @@ handler!(
 #[doc(hidden)]
 #[macro_export]
 macro_rules! impl_filter_builder {
-    // Unwieldy macro magic -- matches over lifetimes
-    ($ty:ident < $( $pre_lifetime:lifetime ),*, f $(,)? $( $post_lifetime:lifetime ),* > $t:ty; ($self:ident, $filter:ident) => $body:expr) => {
-        impl<$($pre_lifetime),*, 'f, $($post_lifetime),*> $ty<$($pre_lifetime),*, 'f, $($post_lifetime),*> {
-            pub fn filter<'a, F>(self, filter: F) -> $ty<$($pre_lifetime),*, 'a, $($post_lifetime),*>
-            where
-                F: FnOnce($t, &crate::Answers) -> $t + Send + Sync + 'a,
-            {
-                let $self = self;
-                let $filter = crate::question::Filter::Sync(Box::new(filter));
-                $body
-            }
+    ($t:ty; $inner:ident) => {
+        pub fn filter<F>(mut self, filter: F) -> Self
+        where
+            F: FnOnce($t, &crate::Answers) -> $t + Send + Sync + 'a,
+        {
+            self.$inner.filter = crate::question::Filter::Sync(Box::new(filter));
+            self
         }
     };
 }
@@ -265,31 +235,24 @@ macro_rules! impl_filter_builder {
 #[doc(hidden)]
 #[macro_export]
 macro_rules! impl_validate_builder {
-    // Unwieldy macro magic -- matches over lifetimes
-    ($ty:ident < $( $pre_lifetime:lifetime ),*, v $(,)? $( $post_lifetime:lifetime ),* > $t:ty; ($self:ident, $validate:ident) => $body:expr) => {
-        impl<$($pre_lifetime),*, 'v, $($post_lifetime),*> $ty<$($pre_lifetime),*, 'v, $($post_lifetime),*> {
-            pub fn validate<'a, F>(self, validate: F) -> $ty<$($pre_lifetime),*, 'a, $($post_lifetime),*>
-            where
-                F: Fn(&$t, &crate::Answers) -> Result<(), String> + Send + Sync + 'a,
-            {
-                let $self = self;
-                let $validate = crate::question::Validate::Sync(Box::new(validate));
-                $body
-            }
+    ($t:ty; $inner:ident) => {
+        pub fn validate<F>(mut self, filter: F) -> Self
+        where
+            F: Fn(&$t, &crate::Answers) -> Result<(), String> + Send + Sync + 'a,
+        {
+            self.$inner.validate = crate::question::Validate::Sync(Box::new(filter));
+            self
         }
     };
 
-    // Unwieldy macro magic -- matches over lifetimes
-    (by val $ty:ident < $( $pre_lifetime:lifetime ),*, v $(,)? $( $post_lifetime:lifetime ),* > $t:ty; ($self:ident, $validate:ident) => $body:expr) => {
-        impl<$($pre_lifetime),*, 'v, $($post_lifetime),*> $ty<$($pre_lifetime),*, 'v, $($post_lifetime),*> {
-            pub fn validate<'a, F>(self, validate: F) -> $ty<$($pre_lifetime),*, 'a, $($post_lifetime),*>
-            where
-                F: Fn($t, &crate::Answers) -> Result<(), String> + Send + Sync + 'a,
-            {
-                let $self = self;
-                let $validate = crate::question::ValidateByVal::Sync(Box::new(validate));
-                $body
-            }
+    (by val $t:ty; $inner:ident) => {
+        pub fn validate<F>(mut self, filter: F) -> Self
+        where
+            F: Fn($t, &crate::Answers) -> Result<(), String> + Send + Sync + 'a,
+        {
+            self.$inner.validate =
+                crate::question::ValidateByVal::Sync(Box::new(filter));
+            self
         }
     };
 }
@@ -297,31 +260,39 @@ macro_rules! impl_validate_builder {
 #[doc(hidden)]
 #[macro_export]
 macro_rules! impl_transform_builder {
-    // Unwieldy macro magic -- matches over lifetimes
-    ($ty:ident < $( $pre_lifetime:lifetime ),*, t $(,)? $( $post_lifetime:lifetime ),* > $t:ty; ($self:ident, $transform:ident) => $body:expr) => {
-        impl<$($pre_lifetime),*, 't, $($post_lifetime),*> $ty<$($pre_lifetime),*, 't, $($post_lifetime),*> {
-            pub fn transform<'a, F>(self, transform: F) -> $ty<$($pre_lifetime),*, 'a, $($post_lifetime),*>
-            where
-                F: FnOnce(&$t, &crate::Answers, &mut dyn Backend) -> ui::error::Result<()> + Send + Sync + 'a,
-            {
-                let $self = self;
-                let $transform = crate::question::Transform::Sync(Box::new(transform));
-                $body
-            }
+    ($t:ty; $inner:ident) => {
+        pub fn transform<F>(mut self, transform: F) -> Self
+        where
+            F: FnOnce(
+                    &$t,
+                    &crate::Answers,
+                    &mut dyn Backend,
+                ) -> ui::error::Result<()>
+                + Send
+                + Sync
+                + 'a,
+        {
+            self.$inner.transform =
+                crate::question::Transform::Sync(Box::new(transform));
+            self
         }
     };
 
-    // Unwieldy macro magic -- matches over lifetimes
-    (by val $ty:ident < $( $pre_lifetime:lifetime ),*, t $(,)? $( $post_lifetime:lifetime ),* > $t:ty; ($self:ident, $transform:ident) => $body:expr) => {
-        impl<$($pre_lifetime),*, 't, $($post_lifetime),*> $ty<$($pre_lifetime),*, 't, $($post_lifetime),*> {
-            pub fn transform<'a, F>(self, transform: F) -> $ty<$($pre_lifetime),*, 'a, $($post_lifetime),*>
-            where
-                F: FnOnce($t, &crate::Answers, &mut dyn Backend) -> ui::error::Result<()> + Send + Sync + 'a,
-            {
-                let $self = self;
-                let $transform = crate::question::TransformByVal::Sync(Box::new(transform));
-                $body
-            }
+    (by val $t:ty; $inner:ident) => {
+        pub fn transform<F>(mut self, transform: F) -> Self
+        where
+            F: FnOnce(
+                    $t,
+                    &crate::Answers,
+                    &mut dyn Backend,
+                ) -> ui::error::Result<()>
+                + Send
+                + Sync
+                + 'a,
+        {
+            self.$inner.transform =
+                crate::question::TransformByVal::Sync(Box::new(transform));
+            self
         }
-    }
+    };
 }

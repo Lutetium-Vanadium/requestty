@@ -16,7 +16,7 @@ fn main() -> inquisition::Result<()> {
             .build(),
         Question::input("phone")
             .message("What's your phone number?")
-            .validate(move |value, _| {
+            .validate(|value, _| {
                 if phone_validator.is_match(value) {
                     Ok(())
                 } else {

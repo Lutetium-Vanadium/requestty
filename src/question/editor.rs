@@ -17,16 +17,16 @@ use super::{Filter, Options, Transform, Validate};
 use crate::{Answer, Answers};
 
 #[derive(Debug)]
-pub struct Editor<'f, 'v, 't> {
+pub struct Editor<'a> {
     extension: Option<String>,
     default: Option<String>,
     editor: OsString,
-    filter: Filter<'f, String>,
-    validate: Validate<'v, str>,
-    transform: Transform<'t, str>,
+    filter: Filter<'a, String>,
+    validate: Validate<'a, str>,
+    transform: Transform<'a, str>,
 }
 
-impl Default for Editor<'static, 'static, 'static> {
+impl<'a> Default for Editor<'a> {
     fn default() -> Self {
         Self {
             editor: get_editor(),
@@ -51,16 +51,16 @@ fn get_editor() -> OsString {
         })
 }
 
-struct EditorPrompt<'f, 'v, 't, 'a> {
+struct EditorPrompt<'a, 'e> {
     file: File,
     path: TempPath,
     ans: String,
     message: String,
-    editor: Editor<'f, 'v, 't>,
+    editor: Editor<'e>,
     answers: &'a Answers,
 }
 
-impl Widget for EditorPrompt<'_, '_, '_, '_> {
+impl Widget for EditorPrompt<'_, '_> {
     fn render<B: Backend>(&mut self, _: ui::Layout, _: &mut B) -> error::Result<()> {
         Ok(())
     }
@@ -70,7 +70,7 @@ impl Widget for EditorPrompt<'_, '_, '_, '_> {
     }
 }
 
-impl ui::Prompt for EditorPrompt<'_, '_, '_, '_> {
+impl ui::Prompt for EditorPrompt<'_, '_> {
     type ValidateErr = io::Error;
     type Output = String;
 
@@ -118,7 +118,7 @@ impl ui::Prompt for EditorPrompt<'_, '_, '_, '_> {
     }
 }
 
-impl Editor<'_, '_, '_> {
+impl Editor<'_> {
     pub(crate) fn ask<B: Backend>(
         mut self,
         message: String,
@@ -170,21 +170,19 @@ impl Editor<'_, '_, '_> {
     }
 }
 
-pub struct EditorBuilder<'m, 'w, 'f, 'v, 't> {
-    opts: Options<'m, 'w>,
-    editor: Editor<'f, 'v, 't>,
+pub struct EditorBuilder<'a> {
+    opts: Options<'a>,
+    editor: Editor<'a>,
 }
 
-impl EditorBuilder<'static, 'static, 'static, 'static, 'static> {
+impl<'a> EditorBuilder<'a> {
     pub(crate) fn new(name: String) -> Self {
         EditorBuilder {
             opts: Options::new(name),
             editor: Default::default(),
         }
     }
-}
 
-impl<'m, 'w, 'f, 'v, 't> EditorBuilder<'m, 'w, 'f, 'v, 't> {
     pub fn default<I: Into<String>>(mut self, default: I) -> Self {
         self.editor.default = Some(default.into());
         self
@@ -195,62 +193,18 @@ impl<'m, 'w, 'f, 'v, 't> EditorBuilder<'m, 'w, 'f, 'v, 't> {
         self
     }
 
-    pub fn build(self) -> super::Question<'m, 'w, 'f, 'v, 't> {
+    crate::impl_options_builder!();
+    crate::impl_filter_builder!(String; editor);
+    crate::impl_validate_builder!(str; editor);
+    crate::impl_transform_builder!(str; editor);
+
+    pub fn build(self) -> super::Question<'a> {
         super::Question::new(self.opts, super::QuestionKind::Editor(self.editor))
     }
 }
 
-impl<'m, 'w, 'f, 'v, 't> From<EditorBuilder<'m, 'w, 'f, 'v, 't>>
-    for super::Question<'m, 'w, 'f, 'v, 't>
-{
-    fn from(builder: EditorBuilder<'m, 'w, 'f, 'v, 't>) -> Self {
+impl<'a> From<EditorBuilder<'a>> for super::Question<'a> {
+    fn from(builder: EditorBuilder<'a>) -> Self {
         builder.build()
     }
 }
-
-crate::impl_options_builder!(EditorBuilder<'f, 'v, 't>; (this, opts) => {
-    EditorBuilder {
-        opts,
-        editor: this.editor,
-    }
-});
-
-crate::impl_filter_builder!(EditorBuilder<'m, 'w, f, 'v, 't> String; (this, filter) => {
-    EditorBuilder {
-        opts: this.opts,
-        editor: Editor {
-            filter,
-            editor: this.editor.editor,
-            extension: this.editor.extension,
-            default: this.editor.default,
-            validate: this.editor.validate,
-            transform: this.editor.transform,
-        }
-    }
-});
-crate::impl_validate_builder!(EditorBuilder<'m, 'w, 'f, v, 't> str; (this, validate) => {
-    EditorBuilder {
-        opts: this.opts,
-        editor: Editor {
-            validate,
-            editor: this.editor.editor,
-            extension: this.editor.extension,
-            default: this.editor.default,
-            filter: this.editor.filter,
-            transform: this.editor.transform,
-        }
-    }
-});
-crate::impl_transform_builder!(EditorBuilder<'m, 'w, 'f, 'v, t> str; (this, transform) => {
-    EditorBuilder {
-        opts: this.opts,
-        editor: Editor {
-            transform,
-            editor: this.editor.editor,
-            extension: this.editor.extension,
-            validate: this.editor.validate,
-            default: this.editor.default,
-            filter: this.editor.filter,
-        }
-    }
-});

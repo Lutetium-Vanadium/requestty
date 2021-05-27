@@ -13,41 +13,34 @@ pub trait Plugin: std::fmt::Debug {
     ) -> error::Result<Answer>;
 }
 
-pub struct PluginBuilder<'m, 'w, 'p> {
-    opts: Options<'m, 'w>,
-    plugin: Box<dyn Plugin + 'p>,
+pub struct PluginBuilder<'a> {
+    opts: Options<'a>,
+    plugin: Box<dyn Plugin + 'a>,
 }
 
-impl<'p, P: Plugin + 'p> From<P> for Box<dyn Plugin + 'p> {
+impl<'a, P: Plugin + 'a> From<P> for Box<dyn Plugin + 'a> {
     fn from(plugin: P) -> Self {
         Box::new(plugin)
     }
 }
 
-crate::impl_options_builder!(PluginBuilder<'q>; (this, opts) => {
-    PluginBuilder {
-        opts,
-        plugin: this.plugin,
-    }
-});
-
-impl<'m, 'w, 'p> PluginBuilder<'m, 'w, 'p> {
-    pub(crate) fn new(name: String, plugin: Box<dyn Plugin + 'p>) -> Self {
+impl<'a> PluginBuilder<'a> {
+    pub(crate) fn new(name: String, plugin: Box<dyn Plugin + 'a>) -> Self {
         Self {
             opts: Options::new(name),
             plugin,
         }
     }
 
-    pub fn build(self) -> Question<'m, 'w, 'p, 'static, 'static> {
+    crate::impl_options_builder!();
+
+    pub fn build(self) -> Question<'a> {
         Question::new(self.opts, QuestionKind::Plugin(self.plugin))
     }
 }
 
-impl<'m, 'w, 'q> From<PluginBuilder<'m, 'w, 'q>>
-    for Question<'m, 'w, 'q, 'static, 'static>
-{
-    fn from(builder: PluginBuilder<'m, 'w, 'q>) -> Self {
+impl<'a> From<PluginBuilder<'a>> for Question<'a> {
+    fn from(builder: PluginBuilder<'a>) -> Self {
         builder.build()
     }
 }

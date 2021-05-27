@@ -3,14 +3,14 @@ use std::fmt;
 use crate::Answers;
 
 #[derive(Debug)]
-pub(crate) struct Options<'m, 'w> {
+pub(crate) struct Options<'a> {
     pub(crate) name: String,
-    pub(crate) message: Option<Getter<'m, String>>,
-    pub(crate) when: Getter<'w, bool>,
+    pub(crate) message: Option<Getter<'a, String>>,
+    pub(crate) when: Getter<'a, bool>,
     pub(crate) ask_if_answered: bool,
 }
 
-impl<'m, 'w> Options<'m, 'w> {
+impl<'a> Options<'a> {
     pub(crate) fn new(name: String) -> Self {
         Options {
             name,
@@ -24,49 +24,32 @@ impl<'m, 'w> Options<'m, 'w> {
 #[doc(hidden)]
 #[macro_export]
 macro_rules! impl_options_builder {
-    // Unwieldy macro magic -- matches over lifetimes
-    ($ty:ident < $( $lifetime:lifetime ),* >; ($self:ident, $opts:ident) => $body:expr) => {
-        impl<'m, 'w, $($lifetime),* > $ty<'m, 'w, $($lifetime),* > {
-            pub fn message<'a, M>(self, message: M) -> $ty<'a, 'w, $($lifetime),*>
-            where
-                M: Into<crate::question::options::Getter<'a, String>>
-            {
-                let $self = self;
-                let $opts = Options {
-                    message: Some(message.into()),
-                    when: $self.opts.when,
-                    name: $self.opts.name,
-                    ask_if_answered: $self.opts.ask_if_answered,
-                };
-                $body
-            }
-
-            pub fn when<'a, W>(self, when: W) -> $ty<'m, 'a, $($lifetime),*>
-            where
-                W: Into<crate::question::options::Getter<'a, bool>>
-            {
-                let $self = self;
-                let $opts = Options {
-                    when: when.into(),
-                    message: $self.opts.message,
-                    name: $self.opts.name,
-                    ask_if_answered: $self.opts.ask_if_answered,
-                };
-                $body
-            }
-
-            pub fn ask_if_answered(mut self, ask_if_answered: bool) -> Self {
-                self.opts.ask_if_answered = ask_if_answered;
-                self
-            }
+    () => {
+        pub fn message<M>(mut self, message: M) -> Self
+        where
+            M: Into<crate::question::options::Getter<'a, String>>,
+        {
+            self.opts.message = Some(message.into());
+            self
         }
 
+        pub fn when<W>(mut self, when: W) -> Self
+        where
+            W: Into<crate::question::options::Getter<'a, bool>>,
+        {
+            self.opts.when = when.into();
+            self
+        }
+
+        pub fn ask_if_answered(mut self, ask_if_answered: bool) -> Self {
+            self.opts.ask_if_answered = ask_if_answered;
+            self
+        }
     };
 
     ($t:ident; ($self:ident, $opts:ident) => $body:expr) => {
-        #[rustfmt::skip]
+#[rustfmt::skip]
         crate::impl_options_builder!($t<>; ($self, $opts) => $body);
-
     };
 }
 

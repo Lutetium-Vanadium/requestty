@@ -9,13 +9,13 @@ use super::{Options, TransformByVal as Transform};
 use crate::{Answer, Answers};
 
 #[derive(Debug, Default)]
-pub struct Confirm<'t> {
+pub struct Confirm<'a> {
     default: Option<bool>,
-    transform: Transform<'t, bool>,
+    transform: Transform<'a, bool>,
 }
 
-struct ConfirmPrompt<'t> {
-    confirm: Confirm<'t>,
+struct ConfirmPrompt<'a> {
+    confirm: Confirm<'a>,
     message: String,
     input: widgets::CharInput,
 }
@@ -123,12 +123,12 @@ impl Confirm<'_> {
     }
 }
 
-pub struct ConfirmBuilder<'m, 'w, 't> {
-    opts: Options<'m, 'w>,
-    confirm: Confirm<'t>,
+pub struct ConfirmBuilder<'a> {
+    opts: Options<'a>,
+    confirm: Confirm<'a>,
 }
 
-impl<'m, 'w, 't> ConfirmBuilder<'m, 'w, 't> {
+impl<'a> ConfirmBuilder<'a> {
     pub(crate) fn new(name: String) -> Self {
         ConfirmBuilder {
             opts: Options::new(name),
@@ -141,32 +141,16 @@ impl<'m, 'w, 't> ConfirmBuilder<'m, 'w, 't> {
         self
     }
 
-    pub fn build(self) -> super::Question<'m, 'w, 'static, 'static, 't> {
+    crate::impl_options_builder!();
+    crate::impl_transform_builder!(by val bool; confirm);
+
+    pub fn build(self) -> super::Question<'a> {
         super::Question::new(self.opts, super::QuestionKind::Confirm(self.confirm))
     }
 }
 
-impl<'m, 'w, 't> From<ConfirmBuilder<'m, 'w, 't>>
-    for super::Question<'m, 'w, 'static, 'static, 't>
-{
-    fn from(builder: ConfirmBuilder<'m, 'w, 't>) -> Self {
+impl<'a> From<ConfirmBuilder<'a>> for super::Question<'a> {
+    fn from(builder: ConfirmBuilder<'a>) -> Self {
         builder.build()
     }
 }
-
-crate::impl_options_builder!(ConfirmBuilder<'t>; (this, opts) => {
-    ConfirmBuilder {
-        opts,
-        confirm: this.confirm,
-    }
-});
-
-crate::impl_transform_builder!(by val ConfirmBuilder<'m, 'w, t> bool; (this, transform) => {
-    ConfirmBuilder {
-        opts: this.opts,
-        confirm: Confirm {
-            transform,
-            default: this.confirm.default,
-        }
-    }
-});

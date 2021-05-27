@@ -9,21 +9,21 @@ use super::{Filter, Options, Transform, Validate};
 use crate::{Answer, Answers};
 
 #[derive(Debug, Default)]
-pub struct Password<'f, 'v, 't> {
+pub struct Password<'a> {
     mask: Option<char>,
-    filter: Filter<'f, String>,
-    validate: Validate<'v, str>,
-    transform: Transform<'t, str>,
+    filter: Filter<'a, String>,
+    validate: Validate<'a, str>,
+    transform: Transform<'a, str>,
 }
 
-struct PasswordPrompt<'f, 'v, 't, 'a> {
+struct PasswordPrompt<'a, 'p> {
     message: String,
-    password: Password<'f, 'v, 't>,
+    password: Password<'p>,
     input: widgets::StringInput,
     answers: &'a Answers,
 }
 
-impl ui::Prompt for PasswordPrompt<'_, '_, '_, '_> {
+impl ui::Prompt for PasswordPrompt<'_, '_> {
     type ValidateErr = String;
     type Output = String;
 
@@ -62,7 +62,7 @@ impl ui::Prompt for PasswordPrompt<'_, '_, '_, '_> {
     }
 }
 
-impl Widget for PasswordPrompt<'_, '_, '_, '_> {
+impl Widget for PasswordPrompt<'_, '_> {
     fn render<B: Backend>(
         &mut self,
         layout: ui::Layout,
@@ -84,7 +84,7 @@ impl Widget for PasswordPrompt<'_, '_, '_, '_> {
     }
 }
 
-impl Password<'_, '_, '_> {
+impl Password<'_> {
     pub(crate) fn ask<B: Backend>(
         mut self,
         message: String,
@@ -118,12 +118,12 @@ impl Password<'_, '_, '_> {
     }
 }
 
-pub struct PasswordBuilder<'m, 'w, 'f, 'v, 't> {
-    opts: Options<'m, 'w>,
-    password: Password<'f, 'v, 't>,
+pub struct PasswordBuilder<'a> {
+    opts: Options<'a>,
+    password: Password<'a>,
 }
 
-impl<'m, 'w, 'f, 'v, 't> PasswordBuilder<'m, 'w, 'f, 'v, 't> {
+impl<'a> PasswordBuilder<'a> {
     pub(crate) fn new(name: String) -> Self {
         PasswordBuilder {
             opts: Options::new(name),
@@ -136,56 +136,18 @@ impl<'m, 'w, 'f, 'v, 't> PasswordBuilder<'m, 'w, 'f, 'v, 't> {
         self
     }
 
-    pub fn build(self) -> super::Question<'m, 'w, 'f, 'v, 't> {
+    crate::impl_options_builder!();
+    crate::impl_filter_builder!(String; password);
+    crate::impl_validate_builder!(str; password);
+    crate::impl_transform_builder!(str; password);
+
+    pub fn build(self) -> super::Question<'a> {
         super::Question::new(self.opts, super::QuestionKind::Password(self.password))
     }
 }
 
-impl<'m, 'w, 'f, 'v, 't> From<PasswordBuilder<'m, 'w, 'f, 'v, 't>>
-    for super::Question<'m, 'w, 'f, 'v, 't>
-{
-    fn from(builder: PasswordBuilder<'m, 'w, 'f, 'v, 't>) -> Self {
+impl<'a> From<PasswordBuilder<'a>> for super::Question<'a> {
+    fn from(builder: PasswordBuilder<'a>) -> Self {
         builder.build()
     }
 }
-
-crate::impl_options_builder!(PasswordBuilder<'f, 'v, 't>; (this, opts) => {
-    PasswordBuilder {
-        opts,
-        password: this.password
-    }
-});
-
-crate::impl_filter_builder!(PasswordBuilder<'m, 'w, f, 'v, 't> String; (this, filter) => {
-    PasswordBuilder {
-        opts: this.opts,
-        password: Password {
-            filter,
-            mask: this.password.mask,
-            validate: this.password.validate,
-            transform: this.password.transform,
-        }
-    }
-});
-crate::impl_validate_builder!(PasswordBuilder<'m, 'w, 'f, v, 't> str; (this, validate) => {
-    PasswordBuilder {
-        opts: this.opts,
-        password: Password {
-            validate,
-            mask: this.password.mask,
-            filter: this.password.filter,
-            transform: this.password.transform,
-        }
-    }
-});
-crate::impl_transform_builder!(PasswordBuilder<'m, 'w, 'f, 'v, t> str; (this, transform) => {
-    PasswordBuilder {
-        opts: this.opts,
-        password: Password {
-            transform,
-            validate: this.password.validate,
-            mask: this.password.mask,
-            filter: this.password.filter,
-        }
-    }
-});
