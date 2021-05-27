@@ -72,13 +72,13 @@ impl<P: Prompt, B: Backend> Input<P, B> {
         self.size = self.backend.size()?;
         self.backend.init()?;
 
-        self.backend.write_styled("? ".light_green())?;
-        self.backend.write_styled(prompt.bold())?;
+        self.backend.write_styled(&"? ".light_green())?;
+        self.backend.write_styled(&prompt.bold())?;
         self.backend.write_all(b" ")?;
 
         let hint_len = match self.prompt.hint() {
             Some(hint) => {
-                self.backend.write_styled(hint.dark_grey())?;
+                self.backend.write_styled(&hint.dark_grey())?;
                 self.backend.write_all(b" ")?;
                 u16::try_from(hint.chars().count() + 1).expect("really big prompt")
             }
@@ -148,7 +148,7 @@ impl<P: Prompt, B: Backend> Input<P, B> {
     pub(super) fn print_error(&mut self, e: P::ValidateErr) -> error::Result<()> {
         self.size = self.backend.size()?;
         self.goto_last_line()?;
-        self.backend.write_styled(">>".red())?;
+        self.backend.write_styled(&">>".red())?;
         write!(self.backend, " {}", e)?;
         self.flush()
     }

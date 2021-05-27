@@ -108,7 +108,7 @@ impl Password<'_> {
         match transform {
             Transform::Sync(transform) => transform(&ans, answers, b)?,
             _ => {
-                b.write_styled("[hidden]".dark_grey())?;
+                b.write_styled(&"[hidden]".dark_grey())?;
                 b.write_all(b"\n")?;
                 b.flush()?;
             }

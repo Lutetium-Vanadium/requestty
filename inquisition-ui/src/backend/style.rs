@@ -1,15 +1,17 @@
+use std::fmt::Display;
+
 use crate::error;
 
-pub struct Styled<'a> {
+pub struct Styled<T: ?Sized> {
     fg: Option<Color>,
     bg: Option<Color>,
     attributes: Attributes,
-    content: &'a str,
+    content: T,
 }
 
-impl Styled<'_> {
+impl<T: Display + ?Sized> Styled<T> {
     pub(super) fn write<B: super::Backend + ?Sized>(
-        self,
+        &self,
         backend: &mut B,
     ) -> error::Result<()> {
         if let Some(fg) = self.fg {
@@ -20,7 +22,7 @@ impl Styled<'_> {
         }
         backend.set_attributes(self.attributes)?;
 
-        write!(backend, "{}", self.content)?;
+        write!(backend, "{}", &self.content)?;
 
         if self.fg.is_some() {
             backend.set_fg(Color::Reset)?;
@@ -32,8 +34,8 @@ impl Styled<'_> {
     }
 }
 
-impl<'a> From<&'a str> for Styled<'a> {
-    fn from(content: &'a str) -> Self {
+impl<T: Display> From<T> for Styled<T> {
+    fn from(content: T) -> Self {
         Self {
             fg: None,
             bg: None,
@@ -88,286 +90,286 @@ bitflags::bitflags! {
 /// foreground color. Method names correspond to the [`Attributes`] names.
 ///
 /// Method names correspond to the [`Color`](enum.Color.html) enum variants.
-pub trait Stylize<'a> {
-    fn black(self) -> Styled<'a>;
-    fn dark_grey(self) -> Styled<'a>;
-    fn light_red(self) -> Styled<'a>;
-    fn red(self) -> Styled<'a>;
-    fn light_green(self) -> Styled<'a>;
-    fn green(self) -> Styled<'a>;
-    fn light_yellow(self) -> Styled<'a>;
-    fn yellow(self) -> Styled<'a>;
-    fn light_blue(self) -> Styled<'a>;
-    fn blue(self) -> Styled<'a>;
-    fn light_magenta(self) -> Styled<'a>;
-    fn magenta(self) -> Styled<'a>;
-    fn light_cyan(self) -> Styled<'a>;
-    fn cyan(self) -> Styled<'a>;
-    fn white(self) -> Styled<'a>;
-    fn grey(self) -> Styled<'a>;
-    fn rgb(self, r: u8, g: u8, b: u8) -> Styled<'a>;
-    fn ansi(self, ansi: u8) -> Styled<'a>;
+pub trait Stylize<T> {
+    fn black(self) -> Styled<T>;
+    fn dark_grey(self) -> Styled<T>;
+    fn light_red(self) -> Styled<T>;
+    fn red(self) -> Styled<T>;
+    fn light_green(self) -> Styled<T>;
+    fn green(self) -> Styled<T>;
+    fn light_yellow(self) -> Styled<T>;
+    fn yellow(self) -> Styled<T>;
+    fn light_blue(self) -> Styled<T>;
+    fn blue(self) -> Styled<T>;
+    fn light_magenta(self) -> Styled<T>;
+    fn magenta(self) -> Styled<T>;
+    fn light_cyan(self) -> Styled<T>;
+    fn cyan(self) -> Styled<T>;
+    fn white(self) -> Styled<T>;
+    fn grey(self) -> Styled<T>;
+    fn rgb(self, r: u8, g: u8, b: u8) -> Styled<T>;
+    fn ansi(self, ansi: u8) -> Styled<T>;
 
-    fn on_black(self) -> Styled<'a>;
-    fn on_dark_grey(self) -> Styled<'a>;
-    fn on_light_red(self) -> Styled<'a>;
-    fn on_red(self) -> Styled<'a>;
-    fn on_light_green(self) -> Styled<'a>;
-    fn on_green(self) -> Styled<'a>;
-    fn on_light_yellow(self) -> Styled<'a>;
-    fn on_yellow(self) -> Styled<'a>;
-    fn on_light_blue(self) -> Styled<'a>;
-    fn on_blue(self) -> Styled<'a>;
-    fn on_light_magenta(self) -> Styled<'a>;
-    fn on_magenta(self) -> Styled<'a>;
-    fn on_light_cyan(self) -> Styled<'a>;
-    fn on_cyan(self) -> Styled<'a>;
-    fn on_white(self) -> Styled<'a>;
-    fn on_grey(self) -> Styled<'a>;
-    fn on_rgb(self, r: u8, g: u8, b: u8) -> Styled<'a>;
-    fn on_ansi(self, ansi: u8) -> Styled<'a>;
+    fn on_black(self) -> Styled<T>;
+    fn on_dark_grey(self) -> Styled<T>;
+    fn on_light_red(self) -> Styled<T>;
+    fn on_red(self) -> Styled<T>;
+    fn on_light_green(self) -> Styled<T>;
+    fn on_green(self) -> Styled<T>;
+    fn on_light_yellow(self) -> Styled<T>;
+    fn on_yellow(self) -> Styled<T>;
+    fn on_light_blue(self) -> Styled<T>;
+    fn on_blue(self) -> Styled<T>;
+    fn on_light_magenta(self) -> Styled<T>;
+    fn on_magenta(self) -> Styled<T>;
+    fn on_light_cyan(self) -> Styled<T>;
+    fn on_cyan(self) -> Styled<T>;
+    fn on_white(self) -> Styled<T>;
+    fn on_grey(self) -> Styled<T>;
+    fn on_rgb(self, r: u8, g: u8, b: u8) -> Styled<T>;
+    fn on_ansi(self, ansi: u8) -> Styled<T>;
 
-    fn reset(self) -> Styled<'a>;
-    fn bold(self) -> Styled<'a>;
-    fn underlined(self) -> Styled<'a>;
-    fn reverse(self) -> Styled<'a>;
-    fn dim(self) -> Styled<'a>;
-    fn italic(self) -> Styled<'a>;
-    fn slow_blink(self) -> Styled<'a>;
-    fn rapid_blink(self) -> Styled<'a>;
-    fn hidden(self) -> Styled<'a>;
-    fn crossed_out(self) -> Styled<'a>;
+    fn reset(self) -> Styled<T>;
+    fn bold(self) -> Styled<T>;
+    fn underlined(self) -> Styled<T>;
+    fn reverse(self) -> Styled<T>;
+    fn dim(self) -> Styled<T>;
+    fn italic(self) -> Styled<T>;
+    fn slow_blink(self) -> Styled<T>;
+    fn rapid_blink(self) -> Styled<T>;
+    fn hidden(self) -> Styled<T>;
+    fn crossed_out(self) -> Styled<T>;
 }
 
-impl<'a, I: Into<Styled<'a>>> Stylize<'a> for I {
-    fn black(self) -> Styled<'a> {
+impl<T, I: Into<Styled<T>>> Stylize<T> for I {
+    fn black(self) -> Styled<T> {
         let mut styled = self.into();
         styled.fg = Some(Color::Black);
         styled
     }
-    fn dark_grey(self) -> Styled<'a> {
+    fn dark_grey(self) -> Styled<T> {
         let mut styled = self.into();
         styled.fg = Some(Color::DarkGrey);
         styled
     }
-    fn light_red(self) -> Styled<'a> {
+    fn light_red(self) -> Styled<T> {
         let mut styled = self.into();
         styled.fg = Some(Color::LightRed);
         styled
     }
-    fn red(self) -> Styled<'a> {
+    fn red(self) -> Styled<T> {
         let mut styled = self.into();
         styled.fg = Some(Color::Red);
         styled
     }
-    fn light_green(self) -> Styled<'a> {
+    fn light_green(self) -> Styled<T> {
         let mut styled = self.into();
         styled.fg = Some(Color::LightGreen);
         styled
     }
-    fn green(self) -> Styled<'a> {
+    fn green(self) -> Styled<T> {
         let mut styled = self.into();
         styled.fg = Some(Color::Green);
         styled
     }
-    fn light_yellow(self) -> Styled<'a> {
+    fn light_yellow(self) -> Styled<T> {
         let mut styled = self.into();
         styled.fg = Some(Color::LightYellow);
         styled
     }
-    fn yellow(self) -> Styled<'a> {
+    fn yellow(self) -> Styled<T> {
         let mut styled = self.into();
         styled.fg = Some(Color::Yellow);
         styled
     }
-    fn light_blue(self) -> Styled<'a> {
+    fn light_blue(self) -> Styled<T> {
         let mut styled = self.into();
         styled.fg = Some(Color::LightBlue);
         styled
     }
-    fn blue(self) -> Styled<'a> {
+    fn blue(self) -> Styled<T> {
         let mut styled = self.into();
         styled.fg = Some(Color::Blue);
         styled
     }
-    fn light_magenta(self) -> Styled<'a> {
+    fn light_magenta(self) -> Styled<T> {
         let mut styled = self.into();
         styled.fg = Some(Color::LightMagenta);
         styled
     }
-    fn magenta(self) -> Styled<'a> {
+    fn magenta(self) -> Styled<T> {
         let mut styled = self.into();
         styled.fg = Some(Color::Magenta);
         styled
     }
-    fn light_cyan(self) -> Styled<'a> {
+    fn light_cyan(self) -> Styled<T> {
         let mut styled = self.into();
         styled.fg = Some(Color::LightCyan);
         styled
     }
-    fn cyan(self) -> Styled<'a> {
+    fn cyan(self) -> Styled<T> {
         let mut styled = self.into();
         styled.fg = Some(Color::Cyan);
         styled
     }
-    fn white(self) -> Styled<'a> {
+    fn white(self) -> Styled<T> {
         let mut styled = self.into();
         styled.fg = Some(Color::White);
         styled
     }
-    fn grey(self) -> Styled<'a> {
+    fn grey(self) -> Styled<T> {
         let mut styled = self.into();
         styled.fg = Some(Color::Grey);
         styled
     }
-    fn rgb(self, r: u8, g: u8, b: u8) -> Styled<'a> {
+    fn rgb(self, r: u8, g: u8, b: u8) -> Styled<T> {
         let mut styled = self.into();
         styled.fg = Some(Color::Rgb(r, g, b));
         styled
     }
-    fn ansi(self, ansi: u8) -> Styled<'a> {
+    fn ansi(self, ansi: u8) -> Styled<T> {
         let mut styled = self.into();
         styled.fg = Some(Color::Ansi(ansi));
         styled
     }
 
-    fn on_black(self) -> Styled<'a> {
+    fn on_black(self) -> Styled<T> {
         let mut styled = self.into();
         styled.bg = Some(Color::Black);
         styled
     }
-    fn on_dark_grey(self) -> Styled<'a> {
+    fn on_dark_grey(self) -> Styled<T> {
         let mut styled = self.into();
         styled.bg = Some(Color::DarkGrey);
         styled
     }
-    fn on_light_red(self) -> Styled<'a> {
+    fn on_light_red(self) -> Styled<T> {
         let mut styled = self.into();
         styled.bg = Some(Color::LightRed);
         styled
     }
-    fn on_red(self) -> Styled<'a> {
+    fn on_red(self) -> Styled<T> {
         let mut styled = self.into();
         styled.bg = Some(Color::Red);
         styled
     }
-    fn on_light_green(self) -> Styled<'a> {
+    fn on_light_green(self) -> Styled<T> {
         let mut styled = self.into();
         styled.bg = Some(Color::LightGreen);
         styled
     }
-    fn on_green(self) -> Styled<'a> {
+    fn on_green(self) -> Styled<T> {
         let mut styled = self.into();
         styled.bg = Some(Color::Green);
         styled
     }
-    fn on_light_yellow(self) -> Styled<'a> {
+    fn on_light_yellow(self) -> Styled<T> {
         let mut styled = self.into();
         styled.bg = Some(Color::LightYellow);
         styled
     }
-    fn on_yellow(self) -> Styled<'a> {
+    fn on_yellow(self) -> Styled<T> {
         let mut styled = self.into();
         styled.bg = Some(Color::Yellow);
         styled
     }
-    fn on_light_blue(self) -> Styled<'a> {
+    fn on_light_blue(self) -> Styled<T> {
         let mut styled = self.into();
         styled.bg = Some(Color::LightBlue);
         styled
     }
-    fn on_blue(self) -> Styled<'a> {
+    fn on_blue(self) -> Styled<T> {
         let mut styled = self.into();
         styled.bg = Some(Color::Blue);
         styled
     }
-    fn on_light_magenta(self) -> Styled<'a> {
+    fn on_light_magenta(self) -> Styled<T> {
         let mut styled = self.into();
         styled.bg = Some(Color::LightMagenta);
         styled
     }
-    fn on_magenta(self) -> Styled<'a> {
+    fn on_magenta(self) -> Styled<T> {
         let mut styled = self.into();
         styled.bg = Some(Color::Magenta);
         styled
     }
-    fn on_light_cyan(self) -> Styled<'a> {
+    fn on_light_cyan(self) -> Styled<T> {
         let mut styled = self.into();
         styled.bg = Some(Color::LightCyan);
         styled
     }
-    fn on_cyan(self) -> Styled<'a> {
+    fn on_cyan(self) -> Styled<T> {
         let mut styled = self.into();
         styled.bg = Some(Color::Cyan);
         styled
     }
-    fn on_white(self) -> Styled<'a> {
+    fn on_white(self) -> Styled<T> {
         let mut styled = self.into();
         styled.bg = Some(Color::White);
         styled
     }
-    fn on_grey(self) -> Styled<'a> {
+    fn on_grey(self) -> Styled<T> {
         let mut styled = self.into();
         styled.bg = Some(Color::Grey);
         styled
     }
-    fn on_rgb(self, r: u8, g: u8, b: u8) -> Styled<'a> {
+    fn on_rgb(self, r: u8, g: u8, b: u8) -> Styled<T> {
         let mut styled = self.into();
         styled.bg = Some(Color::Rgb(r, g, b));
         styled
     }
-    fn on_ansi(self, ansi: u8) -> Styled<'a> {
+    fn on_ansi(self, ansi: u8) -> Styled<T> {
         let mut styled = self.into();
         styled.bg = Some(Color::Ansi(ansi));
         styled
     }
 
-    fn reset(self) -> Styled<'a> {
+    fn reset(self) -> Styled<T> {
         let mut styled = self.into();
         styled.attributes |= Attributes::RESET;
         styled
     }
-    fn bold(self) -> Styled<'a> {
+    fn bold(self) -> Styled<T> {
         let mut styled = self.into();
         styled.attributes |= Attributes::BOLD;
         styled
     }
-    fn underlined(self) -> Styled<'a> {
+    fn underlined(self) -> Styled<T> {
         let mut styled = self.into();
         styled.attributes |= Attributes::UNDERLINED;
         styled
     }
-    fn reverse(self) -> Styled<'a> {
+    fn reverse(self) -> Styled<T> {
         let mut styled = self.into();
         styled.attributes |= Attributes::REVERSED;
         styled
     }
-    fn dim(self) -> Styled<'a> {
+    fn dim(self) -> Styled<T> {
         let mut styled = self.into();
         styled.attributes |= Attributes::DIM;
         styled
     }
-    fn italic(self) -> Styled<'a> {
+    fn italic(self) -> Styled<T> {
         let mut styled = self.into();
         styled.attributes |= Attributes::ITALIC;
         styled
     }
-    fn slow_blink(self) -> Styled<'a> {
+    fn slow_blink(self) -> Styled<T> {
         let mut styled = self.into();
         styled.attributes |= Attributes::SLOW_BLINK;
         styled
     }
-    fn rapid_blink(self) -> Styled<'a> {
+    fn rapid_blink(self) -> Styled<T> {
         let mut styled = self.into();
         styled.attributes |= Attributes::RAPID_BLINK;
         styled
     }
-    fn hidden(self) -> Styled<'a> {
+    fn hidden(self) -> Styled<T> {
         let mut styled = self.into();
         styled.attributes |= Attributes::HIDDEN;
         styled
     }
-    fn crossed_out(self) -> Styled<'a> {
+    fn crossed_out(self) -> Styled<T> {
         let mut styled = self.into();
         styled.attributes |= Attributes::CROSSED_OUT;
         styled

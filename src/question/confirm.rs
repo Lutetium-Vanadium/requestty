@@ -113,7 +113,7 @@ impl Confirm<'_> {
             Transform::Sync(transform) => transform(ans, answers, b)?,
             _ => {
                 let ans = if ans { "Yes" } else { "No" };
-                b.write_styled(ans.cyan())?;
+                b.write_styled(&ans.cyan())?;
                 b.write_all(b"\n")?;
                 b.flush()?;
             }

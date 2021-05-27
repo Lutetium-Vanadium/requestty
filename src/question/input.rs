@@ -122,7 +122,7 @@ impl Input<'_> {
         match transform {
             Transform::Sync(transform) => transform(&ans, answers, b)?,
             _ => {
-                b.write_styled(ans.as_str().cyan())?;
+                b.write_styled(&ans.as_str().cyan())?;
                 b.write_all(b"\n")?;
                 b.flush()?;
             }

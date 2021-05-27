@@ -135,7 +135,7 @@ impl<F: Fn(char) -> Option<char>> ui::Widget for ExpandPrompt<'_, F> {
 
             if self.input.value().is_some() {
                 b.move_cursor(MoveDirection::NextLine(1))?;
-                b.write_styled(">> ".cyan())?;
+                b.write_styled(&">> ".cyan())?;
 
                 layout.offset_y += 1;
                 layout.offset_x += 3;
@@ -336,7 +336,7 @@ impl Expand<'_> {
         match transform {
             Transform::Sync(transform) => transform(&ans, answers, b)?,
             _ => {
-                b.write_styled(ans.name.lines().next().unwrap().cyan())?;
+                b.write_styled(&ans.name.lines().next().unwrap().cyan())?;
                 b.write_all(b"\n")?;
                 b.flush()?;
             }

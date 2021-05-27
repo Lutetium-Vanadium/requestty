@@ -531,7 +531,9 @@ impl<L: List> super::Widget for ListPicker<L> {
 
         if self.is_paginating() {
             // This is the message at the end that other places refer to
-            b.write_styled("(Move up and down to reveal more choices)".dark_grey())?;
+            b.write_styled(
+                &"(Move up and down to reveal more choices)".dark_grey(),
+            )?;
             b.move_cursor(MoveDirection::NextLine(1))?;
         }
 
