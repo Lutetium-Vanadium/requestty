@@ -1,5 +1,5 @@
 fn main() {
-    inquisition::questions![Editor {
+    discourse::questions![Editor {
         name: "name",
         default: "hello world",
         extension: ".rs",

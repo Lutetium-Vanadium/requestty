@@ -1,5 +1,5 @@
 [package]
-name = "inquisition"
+name = "discourse"
 version = "0.0.1"
 authors = ["Lutetium Vanadium"]
 edition = "2018"
@@ -7,15 +7,15 @@ edition = "2018"
 [workspace]
 members = [
     ".",
-    "inquisition-ui",
-    "inquisition-macros",
+    "discourse-ui",
+    "discourse-macros",
 ]
 
 [dependencies]
 tempfile = "3"
 atty = "0.2"
-ui = { package = "inquisition-ui", path = "./inquisition-ui" }
-macros = { package = "inquisition-macros", path = "./inquisition-macros" }
+ui = { package = "discourse-ui", path = "./discourse-ui" }
+macros = { package = "discourse-macros", path = "./discourse-macros" }
 
 ahash = { version = "0.7", optional = true }
 

@@ -1,5 +1,5 @@
 error: option `plugin` does not exist for kind `input`
- --> $DIR/plugin.rs:2:45
+ --> $DIR/plugin.rs:2:43
   |
-2 |     let q = inquisition::questions![Input { plugin: todo!() }];
-  |                                             ^^^^^^
+2 |     let q = discourse::questions![Input { plugin: todo!() }];
+  |                                           ^^^^^^

@@ -5,9 +5,9 @@ enum Direction {
     Back,
 }
 
-fn prompt() -> inquisition::Result<Direction> {
-    let answer = inquisition::prompt_one(
-        inquisition::Question::select("direction")
+fn prompt() -> discourse::Result<Direction> {
+    let answer = discourse::prompt_one(
+        discourse::Question::select("direction")
             .message("Which direction would you like to go?")
             .choice("Forward")
             .choice("Right")
@@ -32,7 +32,7 @@ fn main() {
     }
 }
 
-fn exit_house() -> inquisition::Result<()> {
+fn exit_house() -> discourse::Result<()> {
     loop {
         match prompt()? {
             Direction::Forward => {
@@ -46,7 +46,7 @@ fn exit_house() -> inquisition::Result<()> {
     }
 }
 
-fn encounter1() -> inquisition::Result<()> {
+fn encounter1() -> discourse::Result<()> {
     loop {
         match prompt()? {
             Direction::Forward => {
@@ -66,7 +66,7 @@ fn encounter1() -> inquisition::Result<()> {
     }
 }
 
-fn encounter2a() -> inquisition::Result<()> {
+fn encounter2a() -> discourse::Result<()> {
     loop {
         match prompt()? {
             Direction::Forward => {
@@ -85,9 +85,9 @@ fn encounter2a() -> inquisition::Result<()> {
     }
 }
 
-fn encounter2b() -> inquisition::Result<()> {
-    inquisition::prompt_one(
-        inquisition::Question::select("weapon")
+fn encounter2b() -> discourse::Result<()> {
+    discourse::prompt_one(
+        discourse::Question::select("weapon")
             .message("Pick one")
             .choice("Use the stick")
             .choice("Grab a large rock")

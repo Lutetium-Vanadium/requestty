@@ -1,3 +1,3 @@
 fn main() {
-    inquisition::questions![Input { choices: todo!() }];
+    discourse::questions![Input { choices: todo!() }];
 }

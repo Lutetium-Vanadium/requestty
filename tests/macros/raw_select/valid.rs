@@ -1,5 +1,5 @@
 fn main() {
-    inquisition::questions![RawSelect {
+    discourse::questions![RawSelect {
         name: "name",
         default: 0,
         transform: |_, _, _| Ok(()),

@@ -1,3 +1,3 @@
 fn main() {
-    let q = inquisition::questions![Select { plugin: todo!() }];
+    let q = discourse::questions![Select { plugin: todo!() }];
 }

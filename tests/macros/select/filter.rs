@@ -1,3 +1,3 @@
 fn main() {
-    let q = inquisition::questions![Select { filter: todo!() }];
+    let q = discourse::questions![Select { filter: todo!() }];
 }

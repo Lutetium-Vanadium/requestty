@@ -1,5 +1,5 @@
 error: option `mask` does not exist for kind `select`
- --> $DIR/mask.rs:2:46
+ --> $DIR/mask.rs:2:44
   |
-2 |     let q = inquisition::questions![Select { mask: todo!() }];
-  |                                              ^^^^
+2 |     let q = discourse::questions![Select { mask: todo!() }];
+  |                                            ^^^^

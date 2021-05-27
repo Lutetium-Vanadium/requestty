@@ -353,7 +353,7 @@ impl quote::ToTokens for Question {
                 name.span() => String::from(#name)
             };
             tokens.extend(quote_spanned! {
-                plugin.span() => ::inquisition::Question::plugin(#name, #plugin)
+                plugin.span() => ::discourse::Question::plugin(#name, #plugin)
             });
             self.write_main_opts(tokens);
             tokens.extend(quote! { .build() });
@@ -363,7 +363,7 @@ impl quote::ToTokens for Question {
         let kind = syn::Ident::new(self.kind.as_str(), name.span());
 
         tokens.extend(quote_spanned! {
-            name.span() => ::inquisition::Question::#kind(#name)
+            name.span() => ::discourse::Question::#kind(#name)
         });
 
         self.write_main_opts(tokens);

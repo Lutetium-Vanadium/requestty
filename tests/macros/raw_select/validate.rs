@@ -1,3 +1,3 @@
 fn main() {
-    let q = inquisition::questions![RawSelect { validate: todo!() }];
+    let q = discourse::questions![RawSelect { validate: todo!() }];
 }

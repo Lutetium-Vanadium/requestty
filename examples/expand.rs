@@ -1,5 +1,5 @@
 fn main() {
-    let question = inquisition::Question::expand("overwrite")
+    let question = discourse::Question::expand("overwrite")
         .message("Conflict on `file.rs`")
         .separator(" = The Meats = ")
         .choices(vec![
@@ -11,5 +11,5 @@ fn main() {
         .choice('x', "Abort")
         .build();
 
-    println!("{:#?}", inquisition::prompt_one(question));
+    println!("{:#?}", discourse::prompt_one(question));
 }

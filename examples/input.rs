@@ -1,6 +1,6 @@
 use csscolorparser::parse as parse_col;
-use inquisition::plugin::Stylize;
-use inquisition::Question;
+use discourse::plugin::Stylize;
+use discourse::Question;
 
 fn main() {
     let questions = vec![
@@ -26,5 +26,5 @@ fn main() {
             .build(),
     ];
 
-    println!("{:#?}", inquisition::prompt(questions));
+    println!("{:#?}", discourse::prompt(questions));
 }

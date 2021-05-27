@@ -123,7 +123,7 @@ impl ToTokens for Choice {
             Choice::Choice(elem) => ("Choice", elem),
             Choice::Separator(elem) => ("Separator", elem),
             Choice::DefaultSeparator => {
-                tokens.extend(quote! { ::inquisition::DefaultSeparator });
+                tokens.extend(quote! { ::discourse::DefaultSeparator });
                 return;
             }
         };
@@ -131,7 +131,7 @@ impl ToTokens for Choice {
         let ident = syn::Ident::new(ident_name, elem.span());
 
         tokens.extend(quote_spanned! {
-            elem.span() => ::inquisition::#ident(
+            elem.span() => ::discourse::#ident(
                 #[allow(clippy::useless_conversion)]
                 #elem.into()
             )

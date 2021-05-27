@@ -1,3 +1,3 @@
 fn main() {
-    let q = inquisition::questions![Confirm { validate: todo!() }];
+    let q = discourse::questions![Confirm { validate: todo!() }];
 }

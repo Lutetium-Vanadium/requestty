@@ -1,7 +1,7 @@
-use inquisition::{Choice, Separator};
+use discourse::{Choice, Separator};
 
 fn main() {
-    let question = inquisition::Question::checkbox("toppings")
+    let question = discourse::Question::checkbox("toppings")
         .message("Select toppings")
         .separator(" = The Meats = ")
         .choices(vec!["Pepperoni", "Ham", "Ground Meat", "Bacon"])
@@ -27,5 +27,5 @@ fn main() {
         })
         .build();
 
-    println!("{:#?}", inquisition::prompt_one(question));
+    println!("{:#?}", discourse::prompt_one(question));
 }

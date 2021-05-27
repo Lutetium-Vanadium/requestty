@@ -1,3 +1,3 @@
 fn main() {
-    let q = inquisition::questions![Expand { mask: todo!() }];
+    let q = discourse::questions![Expand { mask: todo!() }];
 }

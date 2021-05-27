@@ -1,5 +1,5 @@
 fn main() {
-    let q = inquisition::questions![Password {
+    let q = discourse::questions![Password {
         mask: todo!(),
         mask: todo!(),
     }];

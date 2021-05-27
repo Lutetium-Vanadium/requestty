@@ -1,3 +1,3 @@
 fn main() {
-    inquisition::questions![Int { page_size: todo!() }];
+    discourse::questions![Int { page_size: todo!() }];
 }

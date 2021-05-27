@@ -1,4 +1,4 @@
-# Inquisition Examples
+# Discourse Examples
 
 The examples given show some basic usage of the library in different
 ways. `templates/pizza.rs` has a question iterator declaration which is

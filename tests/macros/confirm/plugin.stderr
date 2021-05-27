@@ -1,5 +1,5 @@
 error: option `plugin` does not exist for kind `confirm`
- --> $DIR/plugin.rs:2:47
+ --> $DIR/plugin.rs:2:45
   |
-2 |     let q = inquisition::questions![Confirm { plugin: todo!() }];
-  |                                               ^^^^^^
+2 |     let q = discourse::questions![Confirm { plugin: todo!() }];
+  |                                             ^^^^^^

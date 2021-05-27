@@ -1,5 +1,5 @@
 error: option `choices` does not exist for kind `confirm`
- --> $DIR/choices.rs:2:39
+ --> $DIR/choices.rs:2:37
   |
-2 |     inquisition::questions![Confirm { choices: todo!() }];
-  |                                       ^^^^^^^
+2 |     discourse::questions![Confirm { choices: todo!() }];
+  |                                     ^^^^^^^

@@ -1,5 +1,5 @@
 fn main() {
-    let question = inquisition::Question::editor("bio")
+    let question = discourse::Question::editor("bio")
         .message("Please write a short bio of at least 3 lines.")
         .validate(|answer, _| {
             if answer.lines().count() < 3 {
@@ -10,5 +10,5 @@ fn main() {
         })
         .build();
 
-    println!("{:#?}", inquisition::prompt_one(question));
+    println!("{:#?}", discourse::prompt_one(question));
 }

@@ -1,5 +1,5 @@
 error: unknown question kind unknown
- --> $DIR/kind.rs:2:37
+ --> $DIR/kind.rs:2:35
   |
-2 |     let q = inquisition::questions![unknown {}];
-  |                                     ^^^^^^^
+2 |     let q = discourse::questions![unknown {}];
+  |                                   ^^^^^^^

@@ -1,5 +1,5 @@
 fn main() {
-    let question = inquisition::Question::select("long-list")
+    let question = discourse::Question::select("long-list")
         .message("Select from this super long list")
         .choices(('A'..='Z').map(|c| c.to_string()))
         .choices((1..=5).map(|i| {
@@ -18,5 +18,5 @@ fn main() {
         .default_separator()
         .build();
 
-    println!("{:#?}", inquisition::prompt_one(question));
+    println!("{:#?}", discourse::prompt_one(question));
 }

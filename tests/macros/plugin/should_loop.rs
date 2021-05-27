@@ -1,5 +1,5 @@
 fn main() {
-    inquisition::questions![Plugin {
+    discourse::questions![Plugin {
         should_loop: todo!()
     }];
 }

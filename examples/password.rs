@@ -1,9 +1,6 @@
-use inquisition::Question;
+use discourse::Question;
 
-fn letter_and_numbers(
-    password: &str,
-    _: &inquisition::Answers,
-) -> Result<(), String> {
+fn letter_and_numbers(password: &str, _: &discourse::Answers) -> Result<(), String> {
     if password.contains(|c: char| c.is_ascii_digit())
         && password.contains(char::is_alphabetic)
     {
@@ -26,5 +23,5 @@ fn main() {
             .build(),
     ];
 
-    println!("{:#?}", inquisition::prompt(questions));
+    println!("{:#?}", discourse::prompt(questions));
 }

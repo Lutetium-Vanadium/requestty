@@ -1,15 +1,15 @@
-use inquisition::{Choice, DefaultSeparator, Question, Separator};
+use discourse::{Choice, DefaultSeparator, Question, Separator};
 
-fn main() -> inquisition::Result<()> {
+fn main() -> discourse::Result<()> {
     let phone_validator = regex::RegexBuilder::new(r"^([01]{1})?[-.\s]?\(?(\d{3})\)?[-.\s]?(\d{3})[-.\s]?(\d{4})\s?((?:#|ext\.?\s?|x\.?\s?){1}(?:\d+)?)?$")
         .case_insensitive(true)
         .build()
         .unwrap();
 
-    let answers = inquisition::Answers::default();
+    let answers = discourse::Answers::default();
 
-    // the prompt module can also be created with the `inquisition::prompt_module` macro
-    let mut module = inquisition::PromptModule::new(vec![
+    // the prompt module can also be created with the `discourse::prompt_module` macro
+    let mut module = discourse::PromptModule::new(vec![
         Question::confirm("to_be_delivered")
             .message("Is this for delivery?")
             .default(false)
@@ -46,7 +46,7 @@ fn main() -> inquisition::Result<()> {
             .build(),
         Question::expand("toppings")
             .message("What about the toppings?")
-            .when(|answers: &inquisition::Answers| {
+            .when(|answers: &discourse::Answers| {
                 !answers["custom_toppings"].as_bool().unwrap()
             })
             .choice('p', "Pepperoni and cheese")
@@ -55,7 +55,7 @@ fn main() -> inquisition::Result<()> {
             .build(),
         Question::checkbox("toppings")
             .message("Select toppings")
-            .when(|answers: &inquisition::Answers| {
+            .when(|answers: &discourse::Answers| {
                 answers["custom_toppings"].as_bool().unwrap()
             })
             .separator(" = The Meats = ")
@@ -88,7 +88,7 @@ fn main() -> inquisition::Result<()> {
         Question::select("prize")
             .message("For leaving a comment, you get a freebie")
             .choices(vec!["cake", "fries"])
-            .when(|answers: &inquisition::Answers| {
+            .when(|answers: &discourse::Answers| {
                 return answers["comments"].as_string().unwrap()
                     != "Nope, all good!";
             })

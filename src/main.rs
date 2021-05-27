@@ -1,6 +1,6 @@
 // TODO: delete
 // this is a temporary file, for testing out the prompts
-use inquisition::{DefaultSeparator, Question, Separator};
+use discourse::{DefaultSeparator, Question, Separator};
 use std::env;
 
 fn main() {
@@ -17,7 +17,7 @@ fn main() {
         Some("s") => vec![
             Question::input("a").message("Hello there 2").into(),
             Question::input("b")
-                .message(|_: &inquisition::Answers| s.clone())
+                .message(|_: &discourse::Answers| s.clone())
                 .filter(|ans, _| ans + &s)
                 .validate(|_, _| Ok(()))
                 .default("Yes")
@@ -173,5 +173,5 @@ fn main() {
         _ => panic!("no arg"),
     };
 
-    println!("{:#?}", inquisition::prompt(q));
+    println!("{:#?}", discourse::prompt(q));
 }

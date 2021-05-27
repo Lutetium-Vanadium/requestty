@@ -1,3 +1,3 @@
 fn main() {
-    let q = inquisition::questions![RawSelect { extension: todo!() }];
+    let q = discourse::questions![RawSelect { extension: todo!() }];
 }

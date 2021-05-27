@@ -1,5 +1,5 @@
 fn main() {
-    inquisition::questions![Expand {
+    discourse::questions![Expand {
         name: "name",
         default: 'c',
         transform: |_, _, _| Ok(()),

@@ -6,3 +6,4 @@
 ## Would be nice
 - vi bindings / custom bindings
 - better base prompts
+- themes

@@ -1,5 +1,5 @@
 error: option `mask` does not exist for kind `raw_select`
- --> $DIR/mask.rs:2:49
+ --> $DIR/mask.rs:2:47
   |
-2 |     let q = inquisition::questions![RawSelect { mask: todo!() }];
-  |                                                 ^^^^
+2 |     let q = discourse::questions![RawSelect { mask: todo!() }];
+  |                                               ^^^^

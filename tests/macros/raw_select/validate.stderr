@@ -1,5 +1,5 @@
 error: option `validate` does not exist for kind `raw_select`
- --> $DIR/validate.rs:2:49
+ --> $DIR/validate.rs:2:47
   |
-2 |     let q = inquisition::questions![RawSelect { validate: todo!() }];
-  |                                                 ^^^^^^^^
+2 |     let q = discourse::questions![RawSelect { validate: todo!() }];
+  |                                               ^^^^^^^^

@@ -2,7 +2,7 @@ fn main() {
     let choice = "choice";
     let default_choice = true;
 
-    inquisition::questions! [
+    discourse::questions! [
         Checkbox {
             name: "name",
             transform: |_, _, _| Ok(()),

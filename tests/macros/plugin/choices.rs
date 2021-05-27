@@ -1,3 +1,3 @@
 fn main() {
-    inquisition::questions![Plugin { choices: todo!() }];
+    discourse::questions![Plugin { choices: todo!() }];
 }

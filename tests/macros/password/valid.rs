@@ -1,5 +1,5 @@
 fn main() {
-    inquisition::questions![Password {
+    discourse::questions![Password {
         name: "name",
         mask: '*',
         transform: |_, _, _| Ok(()),

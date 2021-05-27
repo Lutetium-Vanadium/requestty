@@ -1,3 +1,3 @@
 fn main() {
-    let q = inquisition::questions![Checkbox { plugin: todo!() }];
+    let q = discourse::questions![Checkbox { plugin: todo!() }];
 }

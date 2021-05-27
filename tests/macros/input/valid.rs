@@ -1,5 +1,5 @@
 fn main() {
-    inquisition::questions![Input {
+    discourse::questions![Input {
         name: "name",
         default: "hello world",
         transform: |_, _, _| Ok(()),

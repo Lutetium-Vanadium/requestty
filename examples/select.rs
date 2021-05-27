@@ -1,4 +1,4 @@
-use inquisition::{DefaultSeparator, Question};
+use discourse::{DefaultSeparator, Question};
 
 fn main() {
     let questions = vec![
@@ -21,5 +21,5 @@ fn main() {
             .build(),
     ];
 
-    println!("{:#?}", inquisition::prompt(questions));
+    println!("{:#?}", discourse::prompt(questions));
 }

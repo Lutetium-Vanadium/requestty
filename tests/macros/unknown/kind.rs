@@ -1,3 +1,3 @@
 fn main() {
-    let q = inquisition::questions![unknown {}];
+    let q = discourse::questions![unknown {}];
 }

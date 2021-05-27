@@ -1,5 +1,5 @@
 [package]
-name = "inquisition-macros"
+name = "discourse-macros"
 version = "0.0.1"
 authors = ["Lutetium Vanadium"]
 edition = "2018"

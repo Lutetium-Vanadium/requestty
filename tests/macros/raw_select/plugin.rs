@@ -1,3 +1,3 @@
 fn main() {
-    let q = inquisition::questions![RawSelect { plugin: todo!() }];
+    let q = discourse::questions![RawSelect { plugin: todo!() }];
 }

@@ -1,3 +1,3 @@
 fn main() {
-    inquisition::questions![Editor { choices: todo!() }];
+    discourse::questions![Editor { choices: todo!() }];
 }

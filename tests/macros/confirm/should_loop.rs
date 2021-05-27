@@ -1,5 +1,5 @@
 fn main() {
-    inquisition::questions![Confirm {
+    discourse::questions![Confirm {
         should_loop: todo!()
     }];
 }

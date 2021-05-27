@@ -1,3 +1,3 @@
 fn main() {
-    let q = inquisition::questions![Plugin { transform: todo!() }];
+    let q = discourse::questions![Plugin { transform: todo!() }];
 }

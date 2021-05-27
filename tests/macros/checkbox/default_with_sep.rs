@@ -1,5 +1,5 @@
 fn main() {
-    inquisition::questions! [
+    discourse::questions! [
         Checkbox {
             name: "name",
             choices: [

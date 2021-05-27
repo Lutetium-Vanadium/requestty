@@ -1,5 +1,5 @@
 error: option `extension` does not exist for kind `password`
- --> $DIR/extension.rs:2:48
+ --> $DIR/extension.rs:2:46
   |
-2 |     let q = inquisition::questions![Password { extension: todo!() }];
-  |                                                ^^^^^^^^^
+2 |     let q = discourse::questions![Password { extension: todo!() }];
+  |                                              ^^^^^^^^^

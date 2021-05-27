@@ -1,5 +1,5 @@
 error: option `transform` does not exist for kind `plugin`
- --> $DIR/transform.rs:2:46
+ --> $DIR/transform.rs:2:44
   |
-2 |     let q = inquisition::questions![Plugin { transform: todo!() }];
-  |                                              ^^^^^^^^^
+2 |     let q = discourse::questions![Plugin { transform: todo!() }];
+  |                                            ^^^^^^^^^

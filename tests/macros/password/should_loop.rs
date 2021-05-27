@@ -1,5 +1,5 @@
 fn main() {
-    inquisition::questions![Password {
+    discourse::questions![Password {
         should_loop: todo!()
     }];
 }

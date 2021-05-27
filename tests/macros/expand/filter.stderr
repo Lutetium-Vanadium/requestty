@@ -1,5 +1,5 @@
 error: option `filter` does not exist for kind `expand`
- --> $DIR/filter.rs:2:46
+ --> $DIR/filter.rs:2:44
   |
-2 |     let q = inquisition::questions![Expand { filter: todo!() }];
-  |                                              ^^^^^^
+2 |     let q = discourse::questions![Expand { filter: todo!() }];
+  |                                            ^^^^^^

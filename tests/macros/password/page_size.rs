@@ -1,3 +1,3 @@
 fn main() {
-    inquisition::questions![Password { page_size: todo!() }];
+    discourse::questions![Password { page_size: todo!() }];
 }
