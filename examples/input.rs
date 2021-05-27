@@ -20,7 +20,8 @@ fn main() {
             .transform(|ans, _, backend| {
                 let (r, g, b, _) = parse_col(ans).unwrap().rgba_u8();
 
-                backend.write_styled(ans.rgb(r, g, b))
+                backend.write_styled(&ans.rgb(r, g, b))?;
+                writeln!(backend).map_err(Into::into)
             })
             .build(),
     ];

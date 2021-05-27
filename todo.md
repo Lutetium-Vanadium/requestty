@@ -1,5 +1,5 @@
 ## Required
-- when and message as functions cannot infer argument type
+- when and message as functions cannot infer correct argument lifetime
 - tests
 - docs
 
