@@ -8,13 +8,14 @@ use crate::helpers::*;
 
 bitflags::bitflags! {
     pub struct BuilderMethods: u8 {
-        const DEFAULT   = 0b000_0001;
-        const TRANSFORM = 0b000_0010;
-        const VAL_FIL   = 0b000_0100;
-        const LIST      = 0b000_1000;
-        const MASK      = 0b001_0000;
-        const EXTENSION   = 0b010_0000;
-        const PLUGIN    = 0b100_0000;
+        const DEFAULT       = 0b0000_0001;
+        const TRANSFORM     = 0b0000_0010;
+        const VAL_FIL       = 0b0000_0100;
+        const AUTO_COMPLETE = 0b0000_1000;
+        const LIST          = 0b0001_0000;
+        const MASK          = 0b0010_0000;
+        const EXTENSION     = 0b0100_0000;
+        const PLUGIN        = 0b1000_0000;
     }
 }
 
@@ -52,7 +53,13 @@ impl QuestionKind {
 
     fn get_builder_methods(&self) -> BuilderMethods {
         match *self {
-            QuestionKind::Input | QuestionKind::Int | QuestionKind::Float => {
+            QuestionKind::Input => {
+                BuilderMethods::DEFAULT
+                    | BuilderMethods::TRANSFORM
+                    | BuilderMethods::VAL_FIL
+                    | BuilderMethods::AUTO_COMPLETE
+            }
+            QuestionKind::Int | QuestionKind::Float => {
                 BuilderMethods::DEFAULT
                     | BuilderMethods::TRANSFORM
                     | BuilderMethods::VAL_FIL
@@ -141,6 +148,7 @@ pub(crate) struct QuestionOpts {
     pub(crate) validate: Option<syn::Expr>,
     pub(crate) filter: Option<syn::Expr>,
     pub(crate) transform: Option<syn::Expr>,
+    pub(crate) auto_complete: Option<syn::Expr>,
 
     pub(crate) choices: Option<Choices>,
     pub(crate) page_size: Option<syn::Expr>,
@@ -164,6 +172,7 @@ impl Default for QuestionOpts {
             validate: None,
             filter: None,
             transform: None,
+            auto_complete: None,
 
             choices: None,
             page_size: None,
@@ -194,6 +203,9 @@ fn check_disallowed(
         ((ident == "validate" ||
           ident == "filter") &&
           !allowed.contains(BuilderMethods::VAL_FIL)) ||
+
+        ((ident == "auto_complete") &&
+          !allowed.contains(BuilderMethods::AUTO_COMPLETE)) ||
 
         ((ident == "choices" ||
           ident == "page_size" ||
@@ -269,6 +281,8 @@ impl Parse for Question {
                     insert_non_dup(ident, &mut opts.filter, &content)?;
                 } else if ident == "transform" {
                     insert_non_dup(ident, &mut opts.transform, &content)?;
+                } else if ident == "auto_complete" {
+                    insert_non_dup(ident, &mut opts.auto_complete, &content)?;
                 } else if ident == "choices" {
                     let parser = match kind {
                         QuestionKind::Checkbox => Choices::parse_checkbox_choice,
@@ -380,6 +394,11 @@ impl quote::ToTokens for Question {
         if let Some(ref transform) = self.opts.transform {
             tokens.extend(
                 quote_spanned! { transform.span() => .transform(#transform) },
+            );
+        }
+        if let Some(ref auto_complete) = self.opts.auto_complete {
+            tokens.extend(
+                quote_spanned! { auto_complete.span() => .auto_complete(#auto_complete) },
             );
         }
         if let Some(ref choices) = self.opts.choices {

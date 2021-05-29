@@ -1,5 +1,7 @@
 use std::ops::{Index, IndexMut};
 
+use ui::{backend::Color, widgets::List, Widget};
+
 use crate::ExpandItem;
 
 #[derive(Debug)]
@@ -67,6 +69,15 @@ impl<T> IndexMut<usize> for ChoiceList<T> {
     }
 }
 
+impl<T> std::iter::FromIterator<T> for ChoiceList<T> {
+    fn from_iter<I: IntoIterator<Item = T>>(iter: I) -> Self {
+        Self {
+            choices: iter.into_iter().map(|c| Choice::Choice(c)).collect(),
+            ..Default::default()
+        }
+    }
+}
+
 impl<T> Default for ChoiceList<T> {
     fn default() -> Self {
         Self {
@@ -76,6 +87,54 @@ impl<T> Default for ChoiceList<T> {
             has_default: false,
             should_loop: true,
         }
+    }
+}
+
+impl<T: Widget> List for ChoiceList<T> {
+    fn render_item<B: ui::backend::Backend>(
+        &mut self,
+        index: usize,
+        hovered: bool,
+        mut layout: ui::Layout,
+        b: &mut B,
+    ) -> ui::error::Result<()> {
+        if hovered {
+            b.set_fg(Color::Cyan)?;
+            b.write_all("❯ ".as_bytes())?;
+        } else {
+            b.write_all(b"  ")?;
+
+            if !self.is_selectable(index) {
+                b.set_fg(Color::DarkGrey)?;
+            }
+        }
+
+        layout.offset_x += 2;
+        self.choices[index].render(layout, b)?;
+
+        b.set_fg(Color::Reset)
+    }
+
+    fn is_selectable(&self, index: usize) -> bool {
+        matches!(self.choices[index], Choice::Choice(_))
+    }
+
+    fn page_size(&self) -> usize {
+        self.page_size
+    }
+
+    fn should_loop(&self) -> bool {
+        self.should_loop
+    }
+
+    fn height_at(&mut self, index: usize, mut layout: ui::Layout) -> u16 {
+        layout.offset_x += 2;
+
+        self[index].height(layout)
+    }
+
+    fn len(&self) -> usize {
+        self.choices.len()
     }
 }
 

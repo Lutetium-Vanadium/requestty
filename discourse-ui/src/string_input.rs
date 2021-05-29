@@ -58,6 +58,14 @@ impl<F> StringInput<F> {
         }
     }
 
+    pub fn get_at(&self) -> usize {
+        self.at
+    }
+
+    pub fn set_at(&mut self, at: usize) {
+        self.at = at.min(self.value_len);
+    }
+
     /// The currently inputted value
     pub fn value(&self) -> &str {
         &self.value
@@ -68,6 +76,18 @@ impl<F> StringInput<F> {
         self.value_len = value.chars().count();
         self.at = self.value_len;
         self.value = value;
+    }
+
+    /// Replaces the value with the result of the function
+    pub fn replace_with<W: FnOnce(String) -> String>(&mut self, with: W) {
+        self.value = with(std::mem::take(&mut self.value));
+        let old_len = self.value_len;
+        self.value_len = self.value.chars().count();
+        if self.at == old_len {
+            self.at = self.value_len;
+        } else {
+            self.set_at(self.at);
+        }
     }
 
     /// Check whether any character has come to the input
@@ -320,9 +340,9 @@ where
 
     fn height(&mut self, layout: Layout) -> u16 {
         if self.value_len as u16 > layout.line_width() {
-            1 + (self.value_len as u16 - layout.line_width()) / layout.width
+            2 + (self.value_len as u16 - layout.line_width()) / layout.width
         } else {
-            0
+            1
         }
     }
 

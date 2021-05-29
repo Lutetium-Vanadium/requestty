@@ -1,5 +1,5 @@
 use ui::{
-    backend::{Backend, Color, Stylize},
+    backend::{Backend, Stylize},
     error,
     events::KeyEvent,
     widgets::{self, Text},
@@ -85,34 +85,18 @@ impl widgets::List for Select<'_> {
         &mut self,
         index: usize,
         hovered: bool,
-        mut layout: ui::Layout,
-        b: &mut B,
+        layout: ui::Layout,
+        backend: &mut B,
     ) -> error::Result<()> {
-        if hovered {
-            b.set_fg(Color::Cyan)?;
-            b.write_all("❯ ".as_bytes())?;
-        } else {
-            b.write_all(b"  ")?;
-
-            if !self.is_selectable(index) {
-                b.set_fg(Color::DarkGrey)?;
-            }
-        }
-
-        layout.offset_x += 2;
-        self.choices[index].render(layout, b)?;
-
-        b.set_fg(Color::Reset)
+        self.choices.render_item(index, hovered, layout, backend)
     }
 
     fn is_selectable(&self, index: usize) -> bool {
-        !self.choices[index].is_separator()
+        self.choices.is_selectable(index)
     }
 
-    fn height_at(&mut self, index: usize, mut layout: ui::Layout) -> u16 {
-        layout.offset_x += 2;
-
-        self.choices[index].height(layout)
+    fn height_at(&mut self, index: usize, layout: ui::Layout) -> u16 {
+        self.choices.height_at(index, layout)
     }
 
     fn len(&self) -> usize {

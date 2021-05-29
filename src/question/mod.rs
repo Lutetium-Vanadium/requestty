@@ -151,7 +151,7 @@ impl Question<'_> {
 macro_rules! handler {
     ($name:ident, $fn_trait:ident ( $($type:ty),* ) -> $return:ty) => {
         pub(crate) enum $name<'a, T> {
-            Sync(Box<dyn $fn_trait( $($type),* ) -> $return + Send + Sync + 'a>),
+            Sync(Box<dyn $fn_trait( $($type),* ) -> $return + 'a>),
             None,
         }
 
@@ -181,7 +181,7 @@ macro_rules! handler {
     // The type signature of the function must only contain &T
     ($name:ident, ?Sized $fn_trait:ident ( $($type:ty),* ) -> $return:ty) => {
         pub(crate) enum $name<'a, T: ?Sized> {
-            Sync(Box<dyn $fn_trait( $($type),* ) -> $return + Send + Sync + 'a>),
+            Sync(Box<dyn $fn_trait( $($type),* ) -> $return + 'a>),
             None,
         }
 
@@ -210,6 +210,7 @@ macro_rules! handler {
 }
 
 handler!(Filter, FnOnce(T, &Answers) -> T);
+handler!(AutoComplete, FnMut(T, &Answers) -> Vec<T>);
 handler!(Validate, ?Sized FnMut(&T, &Answers) -> Result<(), String>);
 handler!(ValidateByVal, FnMut(T, &Answers) -> Result<(), String>);
 handler!(Transform, ?Sized FnOnce(&T, &Answers, &mut dyn Backend) -> error::Result<()>);
@@ -224,9 +225,24 @@ macro_rules! impl_filter_builder {
     ($t:ty; $inner:ident) => {
         pub fn filter<F>(mut self, filter: F) -> Self
         where
-            F: FnOnce($t, &crate::Answers) -> $t + Send + Sync + 'a,
+            F: FnOnce($t, &crate::Answers) -> $t + 'a,
         {
             self.$inner.filter = crate::question::Filter::Sync(Box::new(filter));
+            self
+        }
+    };
+}
+
+#[doc(hidden)]
+#[macro_export]
+macro_rules! impl_auto_complete_builder {
+    ($t:ty; $inner:ident) => {
+        pub fn auto_complete<F>(mut self, auto_complete: F) -> Self
+        where
+            F: FnMut($t, &crate::Answers) -> Vec<$t> + 'a,
+        {
+            self.$inner.auto_complete =
+                crate::question::AutoComplete::Sync(Box::new(auto_complete));
             self
         }
     };
@@ -238,7 +254,7 @@ macro_rules! impl_validate_builder {
     ($t:ty; $inner:ident) => {
         pub fn validate<F>(mut self, filter: F) -> Self
         where
-            F: FnMut(&$t, &crate::Answers) -> Result<(), String> + Send + Sync + 'a,
+            F: FnMut(&$t, &crate::Answers) -> Result<(), String> + 'a,
         {
             self.$inner.validate = crate::question::Validate::Sync(Box::new(filter));
             self
@@ -248,7 +264,7 @@ macro_rules! impl_validate_builder {
     (by val $t:ty; $inner:ident) => {
         pub fn validate<F>(mut self, filter: F) -> Self
         where
-            F: FnMut($t, &crate::Answers) -> Result<(), String> + Send + Sync + 'a,
+            F: FnMut($t, &crate::Answers) -> Result<(), String> + 'a,
         {
             self.$inner.validate =
                 crate::question::ValidateByVal::Sync(Box::new(filter));
@@ -268,8 +284,6 @@ macro_rules! impl_transform_builder {
                     &crate::Answers,
                     &mut dyn Backend,
                 ) -> ui::error::Result<()>
-                + Send
-                + Sync
                 + 'a,
         {
             self.$inner.transform =
@@ -286,8 +300,6 @@ macro_rules! impl_transform_builder {
                     &crate::Answers,
                     &mut dyn Backend,
                 ) -> ui::error::Result<()>
-                + Send
-                + Sync
                 + 'a,
         {
             self.$inner.transform =

@@ -28,7 +28,7 @@ pub trait Widget {
     }
 }
 
-impl Widget for &str {
+impl<T: std::ops::Deref<Target = str>> Widget for T {
     /// Does not allow multi-line strings
     fn render<B: Backend>(
         &mut self,
@@ -69,6 +69,6 @@ impl Widget for &str {
 
     /// Does not allow multi-line strings
     fn height(&mut self, _: Layout) -> u16 {
-        0
+        1
     }
 }

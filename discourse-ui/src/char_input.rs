@@ -83,7 +83,7 @@ where
     }
 
     fn height(&mut self, _: Layout) -> u16 {
-        0
+        1
     }
 
     fn cursor_pos(&mut self, layout: Layout) -> (u16, u16) {

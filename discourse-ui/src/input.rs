@@ -86,7 +86,7 @@ impl<P: Prompt, B: Backend> Input<P, B> {
         };
 
         self.base_row = self.backend.get_cursor()?.1;
-        let height = self.prompt.height(self.layout());
+        let height = self.prompt.height(self.layout()).saturating_sub(1);
         self.base_row = self.adjust_scrollback(height)?;
         self.base_col = prompt_len + hint_len;
 
@@ -119,7 +119,7 @@ impl<P: Prompt, B: Backend> Input<P, B> {
     }
 
     pub(super) fn render(&mut self) -> error::Result<()> {
-        let height = self.prompt.height(self.layout());
+        let height = self.prompt.height(self.layout()).saturating_sub(1);
         self.base_row = self.adjust_scrollback(height)?;
         self.clear(self.base_col)?;
         self.backend.set_cursor(self.base_col, self.base_row)?;
@@ -140,7 +140,7 @@ impl<P: Prompt, B: Backend> Input<P, B> {
     }
 
     pub(super) fn goto_last_line(&mut self) -> error::Result<()> {
-        let height = self.prompt.height(self.layout()) + 1;
+        let height = self.prompt.height(self.layout());
         self.base_row = self.adjust_scrollback(height)?;
         self.backend.set_cursor(0, self.base_row + height as u16)
     }

@@ -1,3 +1,5 @@
+use std::ops::{Index, IndexMut};
+
 use crate::{
     backend::{Backend, MoveDirection, Stylize},
     error,
@@ -56,6 +58,18 @@ pub struct ListPicker<L> {
     heights: Option<Heights>,
     /// The underlying list
     pub list: L,
+}
+
+impl<L: Index<usize>> ListPicker<L> {
+    pub fn selected(&self) -> &L::Output {
+        &self.list[self.at]
+    }
+}
+
+impl<L: IndexMut<usize>> ListPicker<L> {
+    pub fn selected_mut(&mut self) -> &mut L::Output {
+        &mut self.list[self.at]
+    }
 }
 
 impl<L: List> ListPicker<L> {
@@ -548,7 +562,8 @@ impl<L: List> super::Widget for ListPicker<L> {
         self.update_heights(layout);
 
         // Try to show everything
-        self.height
+        1 + self // Add one since we go to the next line
+            .height
             // otherwise show whatever is possible
             .min(self.page_size())
             // but do not show less than a single element
@@ -559,7 +574,8 @@ impl<L: List> super::Widget for ListPicker<L> {
                     .heights
                     .get(self.at)
                     .unwrap_or(&0)
-                    + 1, // +1 since the message at the end takes one line
+                    // +1 if paginating since the message at the end takes one line
+                    + self.is_paginating() as u16,
             )
     }
 }

@@ -1,0 +1,5 @@
+error: duplicate option `auto_complete`
+ --> $DIR/auto_complete.rs:4:9
+  |
+4 |         auto_complete: todo!()
+  |         ^^^^^^^^^^^^^

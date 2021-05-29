@@ -20,9 +20,10 @@ macros = { package = "discourse-macros", path = "./discourse-macros" }
 ahash = { version = "0.7", optional = true }
 
 [dev-dependencies]
-trybuild = "1.0.42"
-csscolorparser = "0.4" # examples/input.rs
-regex = "1.5"          # examples/prompt_module.rs
+trybuild = { version = "1.0.42", features = ["diff"] }
+csscolorparser = "0.4"  # examples/input.rs
+regex = "1.5"           # examples/prompt_module.rs
+fuzzy-matcher = "0.3"   # examples/file.rs
 
 [features]
 default = ["crossterm", "ahash"]

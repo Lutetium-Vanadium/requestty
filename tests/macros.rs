@@ -33,6 +33,7 @@ fn duplicate() {
     t.compile_fail("validate");
     t.compile_fail("filter");
     t.compile_fail("transform");
+    t.compile_fail("auto_complete");
     t.compile_fail("choices");
     t.compile_fail("page_size");
     t.compile_fail("should_loop");
@@ -62,6 +63,7 @@ fn checkbox() {
     t.pass("valid");
     t.compile_fail("default");
     t.compile_fail("default_with_sep");
+    t.compile_fail("auto_complete");
     t.compile_fail("mask");
     t.compile_fail("extension");
     t.compile_fail("plugin");
@@ -74,6 +76,7 @@ fn confirm() {
     t.pass("valid");
     t.compile_fail("filter");
     t.compile_fail("validate");
+    t.compile_fail("auto_complete");
     t.compile_fail("choices");
     t.compile_fail("should_loop");
     t.compile_fail("page_size");
@@ -87,6 +90,7 @@ fn editor() {
     let t = Runner::new("editor");
 
     t.pass("valid");
+    t.compile_fail("auto_complete");
     t.compile_fail("choices");
     t.compile_fail("should_loop");
     t.compile_fail("page_size");
@@ -101,6 +105,7 @@ fn expand() {
     t.pass("valid");
     t.compile_fail("filter");
     t.compile_fail("validate");
+    t.compile_fail("auto_complete");
     t.compile_fail("mask");
     t.compile_fail("extension");
     t.compile_fail("plugin");
@@ -111,6 +116,7 @@ fn float() {
     let t = Runner::new("float");
 
     t.pass("valid");
+    t.compile_fail("auto_complete");
     t.compile_fail("choices");
     t.compile_fail("should_loop");
     t.compile_fail("page_size");
@@ -137,6 +143,7 @@ fn int() {
     let t = Runner::new("int");
 
     t.pass("valid");
+    t.compile_fail("auto_complete");
     t.compile_fail("choices");
     t.compile_fail("should_loop");
     t.compile_fail("page_size");
@@ -152,6 +159,7 @@ fn select() {
     t.pass("valid");
     t.compile_fail("filter");
     t.compile_fail("validate");
+    t.compile_fail("auto_complete");
     t.compile_fail("mask");
     t.compile_fail("extension");
     t.compile_fail("plugin");
@@ -163,6 +171,7 @@ fn password() {
 
     t.pass("valid");
     t.compile_fail("default");
+    t.compile_fail("auto_complete");
     t.compile_fail("choices");
     t.compile_fail("should_loop");
     t.compile_fail("page_size");
@@ -179,6 +188,7 @@ fn plugin() {
     t.compile_fail("transform");
     t.compile_fail("filter");
     t.compile_fail("validate");
+    t.compile_fail("auto_complete");
     t.compile_fail("choices");
     t.compile_fail("should_loop");
     t.compile_fail("page_size");
@@ -193,6 +203,7 @@ fn raw_select() {
     t.pass("valid");
     t.compile_fail("filter");
     t.compile_fail("validate");
+    t.compile_fail("auto_complete");
     t.compile_fail("mask");
     t.compile_fail("extension");
     t.compile_fail("plugin");

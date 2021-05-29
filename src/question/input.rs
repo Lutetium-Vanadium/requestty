@@ -1,26 +1,54 @@
 use ui::{
     backend::{Backend, Stylize},
     error,
-    events::KeyEvent,
+    events::{KeyCode, KeyEvent},
     widgets, Prompt, Validation, Widget,
 };
 
-use super::{Filter, Options, Transform, Validate};
+use super::{AutoComplete, ChoiceList, Filter, Options, Transform, Validate};
 use crate::{Answer, Answers};
 
 #[derive(Debug, Default)]
-pub struct Input<'i> {
+pub struct Input<'a> {
     default: Option<String>,
-    filter: Filter<'i, String>,
-    validate: Validate<'i, str>,
-    transform: Transform<'i, str>,
+    filter: Filter<'a, String>,
+    validate: Validate<'a, str>,
+    transform: Transform<'a, str>,
+    auto_complete: AutoComplete<'a, String>,
 }
 
 struct InputPrompt<'i, 'a> {
     message: String,
     input_opts: Input<'i>,
     input: widgets::StringInput,
+    /// When the picker is Some, then currently the user is selecting from the
+    /// auto complete options. The picker must not be used directly, and instead by used
+    /// through `picker_op`. See `picker_op`s documentation for more.
+    picker: Option<widgets::ListPicker<ChoiceList<String>>>,
     answers: &'a Answers,
+}
+
+#[inline]
+/// Calls a function with the given picker. Anytime the picker is used, it must be used
+/// through this function. This is is because the selected element of the picker doesn't
+/// actually contain the element, it is contained by the input. This function
+/// temporarily swaps the picker's selected item and the input, performs the function,
+/// and swaps back.
+fn picker_op<T, F: FnOnce(&mut widgets::ListPicker<ChoiceList<String>>) -> T>(
+    input: &mut widgets::StringInput,
+    picker: &mut widgets::ListPicker<ChoiceList<String>>,
+    op: F,
+) -> T {
+    let mut res = None;
+
+    input.replace_with(|mut s| {
+        std::mem::swap(&mut s, picker.selected_mut().as_mut().unwrap_choice());
+        res = Some(op(picker));
+        std::mem::swap(&mut s, picker.selected_mut().as_mut().unwrap_choice());
+        s
+    });
+
+    res.unwrap()
 }
 
 impl Widget for InputPrompt<'_, '_> {
@@ -29,15 +57,66 @@ impl Widget for InputPrompt<'_, '_> {
         layout: ui::Layout,
         b: &mut B,
     ) -> error::Result<()> {
-        self.input.render(layout, b)
+        self.input.render(layout, b)?;
+        if let Some(ref mut picker) = self.picker {
+            picker_op(&mut self.input, picker, |picker| picker.render(layout, b))?;
+        }
+        Ok(())
     }
 
     fn height(&mut self, layout: ui::Layout) -> u16 {
-        self.input.height(layout)
+        let mut height = self.input.height(layout);
+        if let Some(ref mut picker) = self.picker {
+            height +=
+                picker_op(&mut self.input, picker, |picker| picker.height(layout))
+                    - 1;
+        }
+        height
     }
 
-    fn handle_key(&mut self, key: KeyEvent) -> bool {
-        self.input.handle_key(key)
+    fn handle_key(&mut self, mut key: KeyEvent) -> bool {
+        let Self {
+            answers,
+            input_opts,
+            input,
+            picker,
+            ..
+        } = self;
+
+        match input_opts.auto_complete {
+            AutoComplete::Sync(ref mut ac) if key.code == KeyCode::Tab => {
+                if picker.is_some() {
+                    key.code = KeyCode::Down;
+                } else {
+                    input.replace_with(|s| {
+                        let mut completions = ac(s, answers);
+                        assert!(!completions.is_empty());
+                        if completions.len() == 1 {
+                            completions.pop().unwrap()
+                        } else {
+                            let res = std::mem::take(&mut completions[0]);
+
+                            *picker = Some(widgets::ListPicker::new(
+                                completions.into_iter().collect(),
+                            ));
+
+                            res
+                        }
+                    });
+                    return true;
+                }
+            }
+            _ => {}
+        }
+
+        if input.handle_key(key) {
+            *picker = None;
+            true
+        } else if let Some(picker) = picker {
+            picker_op(input, picker, |picker| picker.handle_key(key))
+        } else {
+            false
+        }
     }
 
     fn cursor_pos(&mut self, layout: ui::Layout) -> (u16, u16) {
@@ -70,7 +149,13 @@ impl Prompt for InputPrompt<'_, '_> {
 
         ans
     }
+
     fn validate(&mut self) -> Result<Validation, Self::ValidateErr> {
+        if self.picker.is_some() {
+            self.picker = None;
+            return Ok(Validation::Continue);
+        }
+
         if !self.input.has_value() {
             if self.has_default() {
                 return Ok(Validation::Finish);
@@ -85,9 +170,11 @@ impl Prompt for InputPrompt<'_, '_> {
 
         Ok(Validation::Finish)
     }
+
     fn has_default(&self) -> bool {
         self.input_opts.default.is_some()
     }
+
     fn finish_default(self) -> <Self as ui::Prompt>::Output {
         remove_brackets(self.input_opts.default.unwrap())
     }
@@ -113,6 +200,7 @@ impl Input<'_> {
                 message,
                 input_opts: self,
                 input: widgets::StringInput::default(),
+                picker: None,
                 answers,
             },
             b,
@@ -151,6 +239,7 @@ impl<'a> InputBuilder<'a> {
     }
 
     crate::impl_options_builder!();
+    crate::impl_auto_complete_builder!(String; input);
     crate::impl_filter_builder!(String; input);
     crate::impl_validate_builder!(str; input);
     crate::impl_transform_builder!(str; input);
