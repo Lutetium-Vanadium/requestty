@@ -18,7 +18,7 @@ pub struct RawSelect<'a> {
 
 struct RawSelectPrompt<'a> {
     message: String,
-    list: widgets::ListPicker<RawSelect<'a>>,
+    select: widgets::Select<RawSelect<'a>>,
     input: widgets::StringInput,
 }
 
@@ -27,7 +27,7 @@ impl RawSelectPrompt<'_> {
         ListItem {
             index,
             name: self
-                .list
+                .select
                 .finish()
                 .choices
                 .choices
@@ -52,7 +52,7 @@ impl Prompt for RawSelectPrompt<'_> {
     }
 
     fn validate(&mut self) -> Result<Validation, Self::ValidateErr> {
-        if self.list.get_at() >= self.list.list.len() {
+        if self.select.get_at() >= self.select.list.len() {
             Err("Please enter a valid choice")
         } else {
             Ok(Validation::Finish)
@@ -60,16 +60,16 @@ impl Prompt for RawSelectPrompt<'_> {
     }
 
     fn finish(self) -> Self::Output {
-        let index = self.list.get_at();
+        let index = self.select.get_at();
         self.finish_index(index)
     }
 
     fn has_default(&self) -> bool {
-        self.list.list.choices.default().is_some()
+        self.select.list.choices.default().is_some()
     }
 
     fn finish_default(self) -> Self::Output {
-        let index = self.list.list.choices.default().unwrap();
+        let index = self.select.list.choices.default().unwrap();
         self.finish_index(index)
     }
 }
@@ -82,36 +82,36 @@ impl Widget for RawSelectPrompt<'_> {
         mut layout: ui::Layout,
         b: &mut B,
     ) -> error::Result<()> {
-        self.list.render(layout, b)?;
+        self.select.render(layout, b)?;
         b.write_all(ANSWER_PROMPT)?;
         layout.line_offset += ANSWER_PROMPT.len() as u16;
         self.input.render(layout, b)
     }
 
     fn height(&mut self, layout: ui::Layout) -> u16 {
-        self.list.height(layout) + 1
+        self.select.height(layout) + 1
     }
 
     fn handle_key(&mut self, key: KeyEvent) -> bool {
         if self.input.handle_key(key) {
             if let Ok(n) = self.input.value().parse::<usize>() {
-                if n <= self.list.list.len() && n > 0 {
-                    let pos = self.list.list.choices.choices[(n-1)..].iter().position(
+                if n <= self.select.list.len() && n > 0 {
+                    let pos = self.select.list.choices.choices[(n-1)..].iter().position(
                         |choice| matches!(choice, Choice::Choice((i, _)) if *i == n),
                     );
 
                     if let Some(pos) = pos {
-                        self.list.set_at(pos + n - 1);
+                        self.select.set_at(pos + n - 1);
                         return true;
                     }
                 }
             }
 
-            self.list.set_at(self.list.list.len() + 1);
+            self.select.set_at(self.select.list.len() + 1);
             true
-        } else if self.list.handle_key(key) {
-            let at = self.list.get_at();
-            let index = self.list.list.choices[at].as_ref().unwrap_choice().0;
+        } else if self.select.handle_key(key) {
+            let at = self.select.get_at();
+            let index = self.select.list.choices[at].as_ref().unwrap_choice().0;
             self.input.set_value(index.to_string());
             true
         } else {
@@ -124,7 +124,7 @@ impl Widget for RawSelectPrompt<'_> {
             .input
             .cursor_pos(layout.with_line_offset(ANSWER_PROMPT.len() as u16))
             .0;
-        (w, self.height(layout) as u16)
+        (w, self.height(layout) - 1)
     }
 }
 
@@ -200,9 +200,9 @@ impl RawSelect<'_> {
     ) -> error::Result<Answer> {
         let transform = self.transform.take();
 
-        let mut list = widgets::ListPicker::new(self);
-        if let Some(default) = list.list.choices.default() {
-            list.set_at(default);
+        let mut select = widgets::Select::new(self);
+        if let Some(default) = select.list.choices.default() {
+            select.set_at(default);
         }
 
         let ans = ui::Input::new(
@@ -214,7 +214,7 @@ impl RawSelect<'_> {
                         None
                     }
                 }),
-                list,
+                select,
                 message,
             },
             b,

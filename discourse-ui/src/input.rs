@@ -103,7 +103,7 @@ impl<P: Prompt, B: Backend> Input<P, B> {
         if self.base_row >= th - height {
             let dist = self.base_row + height - th + 1;
             base_row -= dist;
-            self.backend.scroll(-(dist as i32))?;
+            self.backend.scroll(-(dist as i16))?;
             self.backend.move_cursor(MoveDirection::Up(dist))?;
         }
 
@@ -142,7 +142,7 @@ impl<P: Prompt, B: Backend> Input<P, B> {
     pub(super) fn goto_last_line(&mut self) -> error::Result<()> {
         let height = self.prompt.height(self.layout());
         self.base_row = self.adjust_scrollback(height)?;
-        self.backend.set_cursor(0, self.base_row + height as u16)
+        self.backend.set_cursor(0, self.base_row + height)
     }
 
     pub(super) fn print_error(&mut self, e: P::ValidateErr) -> error::Result<()> {

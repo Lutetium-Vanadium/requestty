@@ -9,6 +9,17 @@ pub struct Styled<T: ?Sized> {
     content: T,
 }
 
+impl<T: Display> Styled<T> {
+    pub fn new(content: T) -> Self {
+        Self {
+            fg: None,
+            bg: None,
+            attributes: Attributes::empty(),
+            content,
+        }
+    }
+}
+
 impl<T: Display + ?Sized> Styled<T> {
     pub(super) fn write<B: super::Backend + ?Sized>(
         &self,
@@ -20,7 +31,9 @@ impl<T: Display + ?Sized> Styled<T> {
         if let Some(bg) = self.bg {
             backend.set_bg(bg)?;
         }
-        backend.set_attributes(self.attributes)?;
+        if !self.attributes.is_empty() {
+            backend.set_attributes(self.attributes)?;
+        }
 
         write!(backend, "{}", &self.content)?;
 
@@ -30,18 +43,16 @@ impl<T: Display + ?Sized> Styled<T> {
         if self.bg.is_some() {
             backend.set_bg(Color::Reset)?;
         }
-        backend.set_attributes(Attributes::RESET)
+        if !self.attributes.is_empty() {
+            backend.set_attributes(Attributes::RESET)?;
+        }
+        Ok(())
     }
 }
 
 impl<T: Display> From<T> for Styled<T> {
     fn from(content: T) -> Self {
-        Self {
-            fg: None,
-            bg: None,
-            attributes: Attributes::empty(),
-            content,
-        }
+        Self::new(content)
     }
 }
 

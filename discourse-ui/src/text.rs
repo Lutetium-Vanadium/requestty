@@ -98,3 +98,96 @@ fn fill(text: &str, layout: Layout) -> String {
 
     text
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::{
+        backend::{TestBackend, TestBackendOp::*},
+        test_consts::*,
+    };
+
+    use super::*;
+
+    #[test]
+    fn test_fill() {
+        fn test(text: &str, indent: usize, max_width: usize, nlines: usize) {
+            let layout = Layout::new(indent as u16, (max_width as u16, 100).into());
+            let filled = fill(text, layout);
+
+            assert_eq!(nlines, filled.lines().count());
+            let mut lines = filled.lines();
+
+            assert!(lines.next().unwrap().chars().count() <= max_width - indent);
+
+            for line in lines {
+                assert!(line.chars().count() <= max_width);
+            }
+        }
+
+        test("Hello World", 0, 80, 1);
+
+        test("Hello World", 0, 6, 2);
+
+        test(LOREM, 40, 80, 7);
+        test(UNICODE, 40, 80, 7);
+    }
+
+    #[test]
+    fn test_text_height() {
+        let mut layout = Layout::new(40, (80, 100).into());
+        let mut text = Text::new(LOREM);
+
+        assert_eq!(text.raw_height(layout), 7);
+        assert_eq!(text.height(layout.with_max_height(5)), 5);
+        layout.line_offset = 0;
+        layout.width = 110;
+        assert_eq!(text.height(layout), text.raw_height(layout));
+        assert_eq!(text.height(layout), 5);
+
+        let mut layout = Layout::new(40, (80, 100).into());
+        let mut text = Text::new(UNICODE);
+
+        assert_eq!(text.raw_height(layout), 7);
+        assert_eq!(text.height(layout.with_max_height(5)), 5);
+        layout.line_offset = 0;
+        layout.width = 110;
+        assert_eq!(text.height(layout), text.raw_height(layout));
+        assert_eq!(text.height(layout), 5);
+    }
+
+    #[test]
+    fn test_render_single_line() {
+        let size = (100, 100).into();
+        let layout = Layout::new(0, size);
+        let mut backend =
+            TestBackend::new(Some(Write(b"Hello, World!".to_vec())), size);
+        let mut text = Text::new("Hello, World!");
+        text.render(layout, &mut backend).unwrap();
+    }
+
+    #[test]
+    fn test_render_multiline() {
+        let size = (100, 100).into();
+        let layout = Layout::new(0, size);
+
+        let mut ops = Vec::new();
+        for (i, line) in fill(LOREM, layout).lines().enumerate() {
+            ops.push(SetCursor(0, i as u16));
+            ops.push(Write(line.into()));
+        }
+
+        let mut backend = TestBackend::new(ops, size);
+        let mut text = Text::new(LOREM);
+        text.render(layout, &mut backend).unwrap();
+
+        let mut ops = Vec::new();
+        for (i, line) in fill(UNICODE, layout).lines().enumerate() {
+            ops.push(SetCursor(0, i as u16));
+            ops.push(Write(line.into()));
+        }
+
+        let mut backend = TestBackend::new(ops, size);
+        let mut text = Text::new(UNICODE);
+        text.render(layout, &mut backend).unwrap();
+    }
+}

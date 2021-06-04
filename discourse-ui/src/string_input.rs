@@ -74,8 +74,8 @@ impl<F> StringInput<F> {
     /// Sets the value
     pub fn set_value(&mut self, value: String) {
         self.value_len = value.chars().count();
-        self.at = self.value_len;
         self.value = value;
+        self.set_at(self.at);
     }
 
     /// Replaces the value with the result of the function
@@ -376,4 +376,313 @@ fn print_mask<W: Write>(len: usize, mask: char, w: &mut W) -> io::Result<()> {
     }
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::{
+        backend::{TestBackend, TestBackendOp::Write},
+        events::KeyModifiers,
+        test_consts::*,
+        widgets::no_filter,
+        Widget,
+    };
+
+    #[test]
+    fn test_print_mask() {
+        fn test(mask: char) {
+            let mut buf = [0u8; 100];
+            let mask_len = mask.len_utf8();
+            print_mask(25, mask, &mut &mut buf[..]).unwrap();
+            assert!(std::str::from_utf8(&buf[0..(25 * mask_len)])
+                .unwrap()
+                .chars()
+                .all(|c| c == mask));
+            assert!(buf[(25 * mask_len)..].iter().all(|&b| b == 0));
+        }
+
+        test('*');
+        test('‣');
+    }
+
+    #[test]
+    fn test_delete_movement() {
+        let mut input = StringInput::new(no_filter);
+
+        let backspace_movements = [
+            (
+                KeyEvent::new(KeyCode::Char('u'), KeyModifiers::CONTROL),
+                Movement::Home,
+            ),
+            (
+                KeyEvent::new(KeyCode::Backspace, KeyModifiers::ALT),
+                Movement::PrevWord,
+            ),
+            (
+                KeyEvent::new(KeyCode::Char('w'), KeyModifiers::ALT),
+                Movement::PrevWord,
+            ),
+            (
+                KeyEvent::new(KeyCode::Char('w'), KeyModifiers::CONTROL),
+                Movement::Left,
+            ),
+            (
+                KeyEvent::new(KeyCode::Backspace, KeyModifiers::empty()),
+                Movement::Left,
+            ),
+        ];
+
+        let delete_movements = [
+            (
+                KeyEvent::new(KeyCode::Char('k'), KeyModifiers::CONTROL),
+                Movement::End,
+            ),
+            (
+                KeyEvent::new(KeyCode::Delete, KeyModifiers::ALT),
+                Movement::NextWord,
+            ),
+            (
+                KeyEvent::new(KeyCode::Char('d'), KeyModifiers::ALT),
+                Movement::NextWord,
+            ),
+            (
+                KeyEvent::new(KeyCode::Char('d'), KeyModifiers::CONTROL),
+                Movement::Right,
+            ),
+            (
+                KeyEvent::new(KeyCode::Delete, KeyModifiers::empty()),
+                Movement::Right,
+            ),
+        ];
+
+        assert!(backspace_movements
+            .iter()
+            .copied()
+            .all(|(key, _)| input.get_delete_movement(key).is_none()));
+
+        assert!(delete_movements
+            .iter()
+            .copied()
+            .all(|(key, _)| input.get_delete_movement(key).is_none()));
+
+        input.set_value("Hello world".into());
+
+        assert!(backspace_movements
+            .iter()
+            .copied()
+            .all(|(key, _)| input.get_delete_movement(key).is_none()));
+        assert!(delete_movements
+            .iter()
+            .copied()
+            .all(|(key, mov)| input.get_delete_movement(key).unwrap() == mov));
+
+        input.set_at(11);
+
+        assert!(backspace_movements
+            .iter()
+            .copied()
+            .all(|(key, mov)| input.get_delete_movement(key).unwrap() == mov));
+        assert!(delete_movements
+            .iter()
+            .copied()
+            .all(|(key, _)| input.get_delete_movement(key).is_none()));
+
+        input.set_at(5);
+
+        assert!(backspace_movements
+            .iter()
+            .copied()
+            .all(|(key, mov)| input.get_delete_movement(key).unwrap() == mov));
+        assert!(delete_movements
+            .iter()
+            .copied()
+            .all(|(key, mov)| input.get_delete_movement(key).unwrap() == mov));
+    }
+
+    #[test]
+    fn test_render() {
+        fn test(text: &str) {
+            let size = (100, 40).into();
+            let layout = Layout::new(0, size);
+
+            let mut input = StringInput::new(no_filter);
+            input.set_value(text.into());
+            input
+                .render(
+                    layout,
+                    &mut TestBackend::new(Some(Write(text.into())), size),
+                )
+                .unwrap();
+        }
+
+        test("Hello, World!");
+        test(LOREM);
+        test(UNICODE);
+    }
+
+    #[test]
+    fn test_handle_key() {
+        let mut input = StringInput::new(|c| if c == 'i' { None } else { Some(c) });
+        input.set_value(LOREM.into());
+        input.set_at(40);
+
+        input.handle_key(KeyEvent::new(KeyCode::Left, KeyModifiers::empty()));
+        assert_eq!(input.get_at(), 39);
+        input.handle_key(KeyEvent::new(KeyCode::Left, KeyModifiers::CONTROL));
+        assert_eq!(input.get_at(), 28);
+        input.handle_key(KeyEvent::new(KeyCode::Right, KeyModifiers::empty()));
+        assert_eq!(input.get_at(), 29);
+        input.handle_key(KeyEvent::new(KeyCode::Right, KeyModifiers::CONTROL));
+        assert_eq!(input.get_at(), 41);
+        input.handle_key(KeyEvent::new(KeyCode::Home, KeyModifiers::empty()));
+        assert_eq!(input.get_at(), 0);
+        input.handle_key(KeyEvent::new(KeyCode::End, KeyModifiers::empty()));
+        assert_eq!(input.get_at(), 470);
+
+        input.set_at(40);
+        input.handle_key(KeyEvent::new(KeyCode::Backspace, KeyModifiers::empty()));
+        assert_eq!(input.get_at(), 39);
+        assert_eq!(input.value().chars().count(), 469);
+        input.handle_key(KeyEvent::new(KeyCode::Char('r'), KeyModifiers::empty()));
+        assert_eq!(input.get_at(), 40);
+        assert_eq!(input.value(), LOREM);
+
+        input.handle_key(KeyEvent::new(KeyCode::Char('u'), KeyModifiers::CONTROL));
+        assert_eq!(input.get_at(), 0);
+        assert_eq!(input.value().chars().count(), 430);
+        input.set_at(400);
+        input.handle_key(KeyEvent::new(KeyCode::Char('k'), KeyModifiers::CONTROL));
+        assert_eq!(input.get_at(), 400);
+        assert_eq!(input.value().chars().count(), 400);
+        input.handle_key(KeyEvent::new(KeyCode::Backspace, KeyModifiers::ALT));
+        assert_eq!(input.get_at(), 394);
+        assert_eq!(input.value().chars().count(), 394);
+
+        input.set_at(40);
+        input.handle_key(KeyEvent::new(KeyCode::Delete, KeyModifiers::empty()));
+        assert_eq!(input.get_at(), 40);
+        assert_eq!(input.value().chars().count(), 393);
+        input.handle_key(KeyEvent::new(KeyCode::Delete, KeyModifiers::ALT));
+        assert_eq!(input.get_at(), 40);
+        assert_eq!(input.value().chars().count(), 388);
+
+        input.handle_key(KeyEvent::new(KeyCode::Char('i'), KeyModifiers::empty()));
+        assert_eq!(input.get_at(), 40);
+        assert_eq!(input.value().chars().count(), 388);
+        input.handle_key(KeyEvent::new(KeyCode::Char('I'), KeyModifiers::empty()));
+        assert_eq!(input.get_at(), 41);
+        assert_eq!(input.value().chars().count(), 389);
+
+        let mut input = StringInput::new(|c| if c == 'ȼ' { None } else { Some(c) });
+        input.set_value(UNICODE.into());
+        input.set_at(40);
+
+        input.handle_key(KeyEvent::new(KeyCode::Left, KeyModifiers::empty()));
+        assert_eq!(input.get_at(), 39);
+        input.handle_key(KeyEvent::new(KeyCode::Left, KeyModifiers::CONTROL));
+        assert_eq!(input.get_at(), 31);
+        input.handle_key(KeyEvent::new(KeyCode::Right, KeyModifiers::empty()));
+        assert_eq!(input.get_at(), 32);
+        input.handle_key(KeyEvent::new(KeyCode::Right, KeyModifiers::CONTROL));
+        assert_eq!(input.get_at(), 39);
+        input.handle_key(KeyEvent::new(KeyCode::Home, KeyModifiers::empty()));
+        assert_eq!(input.get_at(), 0);
+        input.handle_key(KeyEvent::new(KeyCode::End, KeyModifiers::empty()));
+        assert_eq!(input.get_at(), 470);
+
+        input.set_at(41);
+        input.handle_key(KeyEvent::new(KeyCode::Backspace, KeyModifiers::empty()));
+        assert_eq!(input.get_at(), 40);
+        assert_eq!(input.value().chars().count(), 469);
+        input.handle_key(KeyEvent::new(KeyCode::Char('Æ'), KeyModifiers::empty()));
+        assert_eq!(input.get_at(), 41);
+        assert_eq!(input.value(), UNICODE);
+        input.set_at(40);
+
+        input.handle_key(KeyEvent::new(KeyCode::Char('u'), KeyModifiers::CONTROL));
+        assert_eq!(input.get_at(), 0);
+        assert_eq!(input.value().chars().count(), 430);
+        input.set_at(400);
+        input.handle_key(KeyEvent::new(KeyCode::Char('k'), KeyModifiers::CONTROL));
+        assert_eq!(input.get_at(), 400);
+        assert_eq!(input.value().chars().count(), 400);
+        input.handle_key(KeyEvent::new(KeyCode::Backspace, KeyModifiers::ALT));
+        assert_eq!(input.get_at(), 397);
+        assert_eq!(input.value().chars().count(), 397);
+
+        input.set_at(40);
+        input.handle_key(KeyEvent::new(KeyCode::Delete, KeyModifiers::empty()));
+        assert_eq!(input.get_at(), 40);
+        assert_eq!(input.value().chars().count(), 396);
+        input.handle_key(KeyEvent::new(KeyCode::Delete, KeyModifiers::ALT));
+        assert_eq!(input.get_at(), 40);
+        assert_eq!(input.value().chars().count(), 386);
+
+        input.handle_key(KeyEvent::new(KeyCode::Char('ȼ'), KeyModifiers::empty()));
+        assert_eq!(input.get_at(), 40);
+        assert_eq!(input.value().chars().count(), 386);
+    }
+
+    #[test]
+    fn test_height() {
+        fn test(text: &str, indent: usize, max_width: usize, height: u16) {
+            let layout = Layout::new(indent as u16, (max_width as u16, 100).into());
+            let mut input = StringInput::new(no_filter);
+            input.set_value(text.into());
+            assert_eq!(input.height(layout), height);
+        }
+
+        test("Hello, World!", 0, 100, 1);
+        test("Hello, World!", 0, 7, 2);
+        test("Hello, World!", 2, 7, 3);
+
+        test(LOREM, 0, 100, 5);
+        test(LOREM, 40, 100, 6);
+    }
+
+    #[test]
+    fn test_cursor_pos() {
+        let mut layout = Layout::new(0, (100, 100).into());
+        let mut input = StringInput::new(no_filter);
+        input.set_value("Hello, World!".into());
+        input.set_at(0);
+        assert_eq!(input.cursor_pos(layout), (0, 0));
+        input.set_at(4);
+        assert_eq!(input.cursor_pos(layout), (4, 0));
+
+        layout.line_offset = 5;
+        assert_eq!(input.cursor_pos(layout), (9, 0));
+        input.set_at(0);
+        assert_eq!(input.cursor_pos(layout), (5, 0));
+
+        layout.line_offset = 0;
+        input.set_value(LOREM.into());
+        assert_eq!(input.cursor_pos(layout), (0, 0));
+        input.set_at(4);
+        assert_eq!(input.cursor_pos(layout), (4, 0));
+
+        layout.line_offset = 5;
+        assert_eq!(input.cursor_pos(layout), (9, 0));
+        input.set_at(0);
+        assert_eq!(input.cursor_pos(layout), (5, 0));
+
+        input.set_at(130);
+        assert_eq!(input.cursor_pos(layout), (35, 1));
+
+        layout.line_offset = 0;
+        input.set_at(0);
+        input.set_value(UNICODE.into());
+        assert_eq!(input.cursor_pos(layout), (0, 0));
+        input.set_at(4);
+        assert_eq!(input.cursor_pos(layout), (4, 0));
+
+        layout.line_offset = 5;
+        assert_eq!(input.cursor_pos(layout), (9, 0));
+        input.set_at(0);
+        assert_eq!(input.cursor_pos(layout), (5, 0));
+
+        input.set_at(130);
+        assert_eq!(input.cursor_pos(layout), (35, 1));
+    }
 }

@@ -180,6 +180,150 @@ impl Movement {
     }
 }
 
+#[test]
+fn test_movement() {
+    assert_eq!(
+        Movement::try_from_key(KeyEvent::new(KeyCode::Left, KeyModifiers::empty())),
+        Some(Movement::Left)
+    );
+    assert_eq!(
+        Movement::try_from_key(KeyEvent::new(
+            KeyCode::Char('h'),
+            KeyModifiers::empty()
+        )),
+        Some(Movement::Left)
+    );
+    assert_eq!(
+        Movement::try_from_key(KeyEvent::new(
+            KeyCode::Char('b'),
+            KeyModifiers::CONTROL
+        )),
+        Some(Movement::Left)
+    );
+
+    assert_eq!(
+        Movement::try_from_key(KeyEvent::new(KeyCode::Left, KeyModifiers::CONTROL,)),
+        Some(Movement::PrevWord)
+    );
+    assert_eq!(
+        Movement::try_from_key(KeyEvent::new(KeyCode::Left, KeyModifiers::ALT)),
+        Some(Movement::PrevWord)
+    );
+    assert_eq!(
+        Movement::try_from_key(KeyEvent::new(KeyCode::Char('b'), KeyModifiers::ALT)),
+        Some(Movement::PrevWord)
+    );
+
+    assert_eq!(
+        Movement::try_from_key(KeyEvent::new(KeyCode::Right, KeyModifiers::empty())),
+        Some(Movement::Right)
+    );
+    assert_eq!(
+        Movement::try_from_key(KeyEvent::new(
+            KeyCode::Char('l'),
+            KeyModifiers::empty()
+        )),
+        Some(Movement::Right)
+    );
+    assert_eq!(
+        Movement::try_from_key(KeyEvent::new(
+            KeyCode::Char('f'),
+            KeyModifiers::CONTROL
+        )),
+        Some(Movement::Right)
+    );
+
+    assert_eq!(
+        Movement::try_from_key(KeyEvent::new(KeyCode::Right, KeyModifiers::CONTROL)),
+        Some(Movement::NextWord)
+    );
+    assert_eq!(
+        Movement::try_from_key(KeyEvent::new(KeyCode::Right, KeyModifiers::ALT)),
+        Some(Movement::NextWord)
+    );
+    assert_eq!(
+        Movement::try_from_key(KeyEvent::new(KeyCode::Char('f'), KeyModifiers::ALT)),
+        Some(Movement::NextWord)
+    );
+
+    assert_eq!(
+        Movement::try_from_key(KeyEvent::new(KeyCode::Up, KeyModifiers::empty())),
+        Some(Movement::Up)
+    );
+    assert_eq!(
+        Movement::try_from_key(KeyEvent::new(
+            KeyCode::Char('k'),
+            KeyModifiers::empty()
+        )),
+        Some(Movement::Up)
+    );
+
+    assert_eq!(
+        Movement::try_from_key(KeyEvent::new(KeyCode::Down, KeyModifiers::empty())),
+        Some(Movement::Down)
+    );
+    assert_eq!(
+        Movement::try_from_key(KeyEvent::new(
+            KeyCode::Char('j'),
+            KeyModifiers::empty()
+        )),
+        Some(Movement::Down)
+    );
+
+    assert_eq!(
+        Movement::try_from_key(KeyEvent::new(
+            KeyCode::PageDown,
+            KeyModifiers::empty()
+        )),
+        Some(Movement::PageDown)
+    );
+    assert_eq!(
+        Movement::try_from_key(KeyEvent::new(
+            KeyCode::PageUp,
+            KeyModifiers::empty()
+        )),
+        Some(Movement::PageUp)
+    );
+
+    assert_eq!(
+        Movement::try_from_key(KeyEvent::new(KeyCode::Home, KeyModifiers::empty())),
+        Some(Movement::Home)
+    );
+    assert_eq!(
+        Movement::try_from_key(KeyEvent::new(
+            KeyCode::Char('g'),
+            KeyModifiers::empty()
+        )),
+        Some(Movement::Home)
+    );
+    assert_eq!(
+        Movement::try_from_key(KeyEvent::new(
+            KeyCode::Char('a'),
+            KeyModifiers::CONTROL
+        )),
+        Some(Movement::Home)
+    );
+
+    assert_eq!(
+        Movement::try_from_key(KeyEvent::new(KeyCode::End, KeyModifiers::empty())),
+        Some(Movement::End)
+    );
+    assert_eq!(
+        Movement::try_from_key(KeyEvent::new(
+            KeyCode::Char('G'),
+            KeyModifiers::empty()
+        )),
+        Some(Movement::End)
+    );
+    assert_eq!(
+        Movement::try_from_key(KeyEvent::new(
+            KeyCode::Char('e'),
+            KeyModifiers::CONTROL
+        )),
+        Some(Movement::End)
+    );
+}
+
 pub struct Events {
     #[cfg(feature = "termion")]
     events: ::termion::input::Keys<Stdin>,

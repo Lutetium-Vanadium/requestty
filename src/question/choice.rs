@@ -72,7 +72,7 @@ impl<T> IndexMut<usize> for ChoiceList<T> {
 impl<T> std::iter::FromIterator<T> for ChoiceList<T> {
     fn from_iter<I: IntoIterator<Item = T>>(iter: I) -> Self {
         Self {
-            choices: iter.into_iter().map(|c| Choice::Choice(c)).collect(),
+            choices: iter.into_iter().map(Choice::Choice).collect(),
             ..Default::default()
         }
     }

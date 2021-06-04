@@ -22,7 +22,7 @@ pub struct Checkbox<'a> {
 
 struct CheckboxPrompt<'a, 'c> {
     message: String,
-    picker: widgets::ListPicker<Checkbox<'c>>,
+    select: widgets::Select<Checkbox<'c>>,
     answers: &'a Answers,
 }
 
@@ -57,8 +57,8 @@ impl Prompt for CheckboxPrompt<'_, '_> {
     }
 
     fn validate(&mut self) -> Result<Validation, Self::ValidateErr> {
-        if let Validate::Sync(ref mut validate) = self.picker.list.validate {
-            validate(&self.picker.list.selected, self.answers)?;
+        if let Validate::Sync(ref mut validate) = self.select.list.validate {
+            validate(&self.select.list.selected, self.answers)?;
         }
         Ok(Validation::Finish)
     }
@@ -69,7 +69,7 @@ impl Prompt for CheckboxPrompt<'_, '_> {
             choices,
             filter,
             ..
-        } = self.picker.finish();
+        } = self.select.finish();
 
         if let Filter::Sync(filter) = filter {
             selected = filter(selected, self.answers);
@@ -89,38 +89,38 @@ impl Widget for CheckboxPrompt<'_, '_> {
         layout: ui::Layout,
         b: &mut B,
     ) -> error::Result<()> {
-        self.picker.render(layout, b)
+        self.select.render(layout, b)
     }
 
     fn height(&mut self, layout: ui::Layout) -> u16 {
-        self.picker.height(layout)
+        self.select.height(layout)
     }
 
     fn handle_key(&mut self, key: KeyEvent) -> bool {
         match key.code {
             KeyCode::Char(' ') => {
-                let index = self.picker.get_at();
-                self.picker.list.selected[index] = !self.picker.list.selected[index];
+                let index = self.select.get_at();
+                self.select.list.selected[index] = !self.select.list.selected[index];
             }
             KeyCode::Char('i') => {
-                self.picker.list.selected.iter_mut().for_each(|s| *s = !*s);
+                self.select.list.selected.iter_mut().for_each(|s| *s = !*s);
             }
             KeyCode::Char('a') => {
-                let select_state = self.picker.list.selected.iter().any(|s| !s);
-                self.picker
+                let select_state = self.select.list.selected.iter().any(|s| !s);
+                self.select
                     .list
                     .selected
                     .iter_mut()
                     .for_each(|s| *s = select_state);
             }
-            _ => return self.picker.handle_key(key),
+            _ => return self.select.handle_key(key),
         }
 
         true
     }
 
     fn cursor_pos(&mut self, layout: ui::Layout) -> (u16, u16) {
-        self.picker.cursor_pos(layout)
+        self.select.cursor_pos(layout)
     }
 }
 
@@ -198,7 +198,7 @@ impl Checkbox<'_> {
         let ans = ui::Input::new(
             CheckboxPrompt {
                 message,
-                picker: widgets::ListPicker::new(self),
+                select: widgets::Select::new(self),
                 answers,
             },
             b,

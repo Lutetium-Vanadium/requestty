@@ -12,6 +12,9 @@ pub fn get_backend<W: std::io::Write>(buf: W) -> error::Result<impl Backend> {
 }
 
 mod style;
+mod test_backend;
+pub use test_backend::{TestBackend, TestBackendOp};
+
 #[cfg(feature = "termion")]
 mod termion;
 #[cfg(feature = "termion")]
@@ -70,7 +73,7 @@ pub trait Backend: std::io::Write {
     fn move_cursor(&mut self, direction: MoveDirection) -> error::Result<()> {
         default_move_cursor(self, direction)
     }
-    fn scroll(&mut self, dist: i32) -> error::Result<()>;
+    fn scroll(&mut self, dist: i16) -> error::Result<()>;
     fn set_attributes(&mut self, attributes: Attributes) -> error::Result<()>;
     fn remove_attributes(&mut self, attributes: Attributes) -> error::Result<()>;
     fn set_fg(&mut self, color: Color) -> error::Result<()>;
@@ -138,7 +141,7 @@ impl<'a, B: Backend> Backend for &'a mut B {
     fn move_cursor(&mut self, direction: MoveDirection) -> error::Result<()> {
         (**self).move_cursor(direction)
     }
-    fn scroll(&mut self, dist: i32) -> error::Result<()> {
+    fn scroll(&mut self, dist: i16) -> error::Result<()> {
         (**self).scroll(dist)
     }
     fn set_attributes(&mut self, attributes: Attributes) -> error::Result<()> {

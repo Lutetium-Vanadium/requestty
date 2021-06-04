@@ -36,7 +36,7 @@ impl<'a> Default for Expand<'a> {
 struct ExpandPrompt<'a, F> {
     message: String,
     hint: String,
-    list: widgets::ListPicker<Expand<'a>>,
+    select: widgets::Select<Expand<'a>>,
     input: widgets::CharInput<F>,
     expanded: bool,
 }
@@ -45,7 +45,7 @@ impl<F: Fn(char) -> Option<char>> ExpandPrompt<'_, F> {
     fn selected(&mut self) -> Option<&mut ExpandItem<Text<String>>> {
         let key = self.input.value()?;
 
-        self.list
+        self.select
             .list
             .choices
             .choices
@@ -59,7 +59,7 @@ impl<F: Fn(char) -> Option<char>> ExpandPrompt<'_, F> {
 
     fn finish_with(self, c: char) -> ExpandItem<String> {
         let item = self
-            .list
+            .select
             .finish()
             .choices
             .choices
@@ -91,11 +91,11 @@ impl<F: Fn(char) -> Option<char>> Prompt for ExpandPrompt<'_, F> {
     }
 
     fn validate(&mut self) -> Result<Validation, Self::ValidateErr> {
-        match self.input.value().unwrap_or(self.list.list.default) {
+        match self.input.value().unwrap_or(self.select.list.default) {
             'h' => {
                 self.expanded = true;
                 self.input.set_value(None);
-                self.list.list.selected = None;
+                self.select.list.selected = None;
                 Ok(Validation::Continue)
             }
             _ => Ok(Validation::Finish),
@@ -103,16 +103,16 @@ impl<F: Fn(char) -> Option<char>> Prompt for ExpandPrompt<'_, F> {
     }
 
     fn finish(self) -> Self::Output {
-        let c = self.input.value().unwrap_or(self.list.list.default);
+        let c = self.input.value().unwrap_or(self.select.list.default);
         self.finish_with(c)
     }
 
     fn has_default(&self) -> bool {
-        self.list.list.default != 'h'
+        self.select.list.default != 'h'
     }
 
     fn finish_default(self) -> Self::Output {
-        let c = self.list.list.default;
+        let c = self.select.list.default;
         self.finish_with(c)
     }
 }
@@ -126,7 +126,7 @@ impl<F: Fn(char) -> Option<char>> ui::Widget for ExpandPrompt<'_, F> {
         b: &mut B,
     ) -> error::Result<()> {
         if self.expanded {
-            self.list.render(layout, b)?;
+            self.select.render(layout, b)?;
             b.write_all(ANSWER_PROMPT)?;
             self.input
                 .render(layout.with_line_offset(ANSWER_PROMPT.len() as u16), b)
@@ -152,7 +152,7 @@ impl<F: Fn(char) -> Option<char>> ui::Widget for ExpandPrompt<'_, F> {
 
     fn height(&mut self, layout: ui::Layout) -> u16 {
         if self.expanded {
-            self.list.height(layout) + 1
+            self.select.height(layout) + 1
         } else if self.input.value().is_some() {
             self.input.height(layout)
                 + self.selected().map(|c| c.height(layout)).unwrap_or(1)
@@ -163,10 +163,10 @@ impl<F: Fn(char) -> Option<char>> ui::Widget for ExpandPrompt<'_, F> {
 
     fn handle_key(&mut self, key: KeyEvent) -> bool {
         if self.input.handle_key(key) {
-            self.list.list.selected = self.input.value();
+            self.select.list.selected = self.input.value();
             true
         } else if self.expanded {
-            self.list.handle_key(key)
+            self.select.handle_key(key)
         } else {
             false
         }
@@ -178,7 +178,7 @@ impl<F: Fn(char) -> Option<char>> ui::Widget for ExpandPrompt<'_, F> {
                 .input
                 .cursor_pos(layout.with_line_offset(ANSWER_PROMPT.len() as u16))
                 .0;
-            (w, self.height(layout) as u16)
+            (w, self.height(layout) - 1)
         } else {
             self.input.cursor_pos(layout)
         }
@@ -325,7 +325,7 @@ impl Expand<'_> {
                         None
                     }
                 }),
-                list: widgets::ListPicker::new(self),
+                select: widgets::Select::new(self),
                 hint,
                 expanded: false,
             },

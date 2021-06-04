@@ -7,6 +7,9 @@ use crate::{
     Layout, RenderRegion,
 };
 
+#[cfg(test)]
+mod tests;
+
 /// A trait to represent a renderable list
 pub trait List {
     /// Render a single element at some index in **only** one line
@@ -46,7 +49,7 @@ struct Heights {
 
 /// A widget to select a single item from a list. It can also be used to generally keep track of
 /// movements within a list.
-pub struct ListPicker<L> {
+pub struct Select<L> {
     first_selectable: usize,
     last_selectable: usize,
     at: usize,
@@ -60,20 +63,20 @@ pub struct ListPicker<L> {
     pub list: L,
 }
 
-impl<L: Index<usize>> ListPicker<L> {
+impl<L: Index<usize>> Select<L> {
     pub fn selected(&self) -> &L::Output {
         &self.list[self.at]
     }
 }
 
-impl<L: IndexMut<usize>> ListPicker<L> {
+impl<L: IndexMut<usize>> Select<L> {
     pub fn selected_mut(&mut self) -> &mut L::Output {
         &mut self.list[self.at]
     }
 }
 
-impl<L: List> ListPicker<L> {
-    /// Creates a new [`ListPicker`]
+impl<L: List> Select<L> {
+    /// Creates a new [`Select`]
     pub fn new(list: L) -> Self {
         let first_selectable = (0..list.len())
             .position(|i| list.is_selectable(i))
@@ -105,8 +108,10 @@ impl<L: List> ListPicker<L> {
     }
 
     /// Set the index of the element that is currently being hovered
+    /// `at` can be any number (even beyond list.len()), but the caller is responsible for making
+    /// sure that it is a selectable element
     pub fn set_at(&mut self, at: usize) {
-        let dir = if self.at > self.list.len() || self.at < at {
+        let dir = if self.at >= self.list.len() || self.at < at {
             Movement::Down
         } else {
             Movement::Up
@@ -123,24 +128,25 @@ impl<L: List> ListPicker<L> {
         }
     }
 
-    /// Consumes the list picker returning the original list. If you need the selected item, use
-    /// [`get_at`](ListPicker::get_at)
+    /// Consumes the [`Select`] returning the original list. If you need the selected item, use
+    /// [`get_at`](Select::get_at)
     pub fn finish(self) -> L {
         self.list
     }
 
     fn next_selectable(&self) -> usize {
-        if self.at == self.last_selectable {
+        if self.at >= self.last_selectable {
             return if self.list.should_loop() {
                 self.first_selectable
             } else {
-                self.at
+                self.last_selectable
             };
         }
 
-        let mut at = self.at;
+        // at not guaranteed to be in the valid range of 0..list.len(), so the min is required
+        let mut at = self.at.min(self.list.len());
         loop {
-            at = (at + 1).min(self.list.len()) % self.list.len();
+            at = (at + 1) % self.list.len();
             if self.list.is_selectable(at) {
                 break;
             }
@@ -149,17 +155,18 @@ impl<L: List> ListPicker<L> {
     }
 
     fn prev_selectable(&self) -> usize {
-        if self.at == self.first_selectable {
+        if self.at <= self.first_selectable {
             return if self.list.should_loop() {
                 self.last_selectable
             } else {
-                self.at
+                self.first_selectable
             };
         }
 
-        let mut at = self.at;
+        // at not guaranteed to be in the valid range of 0..list.len(), so the min is required
+        let mut at = self.at.min(self.list.len());
         loop {
-            at = (self.list.len() + at.min(self.list.len()) - 1) % self.list.len();
+            at = (self.list.len() + at - 1) % self.list.len();
             if self.list.is_selectable(at) {
                 break;
             }
@@ -203,15 +210,22 @@ impl<L: List> ListPicker<L> {
         self.height > self.page_size()
     }
 
+    /// Checks whether the page needs to be adjusted
+    /// note: this returns true if at == page_start || at == page_end, and so even though it is
+    /// visible, the page should be resized
     fn at_outside_page(&self) -> bool {
         if self.page_start < self.page_end {
+            // - a - - S - - - - - - E - a -
+            //   ^------- outside -------^
             self.at <= self.page_start || self.at >= self.page_end
         } else {
+            // - - - - E - - - a - - S - - -
+            //       outside --^
             self.at <= self.page_start && self.at >= self.page_end
         }
     }
 
-    /// Gets the index at a given delta taking into case wrapping if enabled -- delta
+    /// Gets the index at a given delta taking into account looping if enabled -- delta
     /// must be within ±len
     fn try_get_index(&self, delta: isize) -> Option<usize> {
         if delta.is_positive() {
@@ -234,7 +248,10 @@ impl<L: List> ListPicker<L> {
         }
     }
 
+    /// Adjust the page considering the direction we moved to
     fn adjust_page(&mut self, moved: Movement) {
+        // note direction here refers to the direction we moved _from_, while moved means the
+        // direction we moved _to_, and so they have opposite meanings
         let direction = match moved {
             Movement::Down => -1,
             Movement::Up => 1,
@@ -260,7 +277,7 @@ impl<L: List> ListPicker<L> {
         // .-----.               direction and it provides continuity
         // |  3  | <-- self.at
         // .-----.
-        // |  4  | <-- iter[1] | We pick 4 over the earlier ones since it provides a
+        // |  4  | <-- iter[1] | We pick 4 over ones before 2 since it provides a
         // '-----'               padding of one element at the end
         //
         // note: the above example avoids things like looping, which is handled by
@@ -401,7 +418,7 @@ impl<L: List> ListPicker<L> {
     }
 }
 
-impl<L: List> super::Widget for ListPicker<L> {
+impl<L: List> super::Widget for Select<L> {
     /// It handles the `Up`, `Down`, `Home`, `End`, `PageUp` and `PageDown` [`Movements`].
     fn handle_key(&mut self, key: KeyEvent) -> bool {
         let movement = match Movement::try_from_key(key) {
@@ -410,11 +427,15 @@ impl<L: List> super::Widget for ListPicker<L> {
         };
 
         let moved = match movement {
-            Movement::Up => {
+            Movement::Up
+                if self.list.should_loop() || self.at > self.first_selectable =>
+            {
                 self.at = self.prev_selectable();
                 Movement::Up
             }
-            Movement::Down => {
+            Movement::Down
+                if self.list.should_loop() || self.at < self.last_selectable =>
+            {
                 self.at = self.next_selectable();
                 Movement::Down
             }
@@ -424,6 +445,9 @@ impl<L: List> super::Widget for ListPicker<L> {
                     // No looping and first item is shown in this page
                     || (!self.list.should_loop() && self.page_start == 0) =>
             {
+                if self.at <= self.first_selectable {
+                    return false;
+                }
                 self.at = self.first_selectable;
                 Movement::Up
             }
@@ -448,7 +472,7 @@ impl<L: List> super::Widget for ListPicker<L> {
                     // _selectable_ element which is not the top most element visible,
                     // so we undershoot by 1
                     self.at = self.page_start;
-                    // ...and then go forward to at least one element
+                    // ...and then go forward at least one element
                     //
                     // note: self.at cannot directly be set to self.page_start + 1, since it
                     // also has to be a selectable element
@@ -463,6 +487,9 @@ impl<L: List> super::Widget for ListPicker<L> {
                     || (!self.list.should_loop() // No looping and last item is shown in this page
                         && self.page_end + 1 == self.list.len()) =>
             {
+                if self.at >= self.last_selectable {
+                    return false;
+                }
                 self.at = self.last_selectable;
                 Movement::Down
             }

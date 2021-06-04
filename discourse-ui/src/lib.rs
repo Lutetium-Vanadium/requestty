@@ -7,7 +7,7 @@ pub use widget::Widget;
 /// In build widgets
 pub mod widgets {
     pub use super::char_input::CharInput;
-    pub use super::list::{List, ListPicker};
+    pub use super::select::{List, Select};
     pub use super::string_input::StringInput;
     pub use super::text::Text;
 
@@ -25,7 +25,7 @@ mod char_input;
 pub mod error;
 pub mod events;
 mod input;
-mod list;
+mod select;
 mod string_input;
 mod text;
 mod widget;
@@ -134,7 +134,7 @@ impl Layout {
             width: size.width,
             height: size.height,
             max_height: size.height,
-            render_region: RenderRegion::Middle,
+            render_region: RenderRegion::Top,
         }
     }
 
@@ -184,6 +184,27 @@ impl Layout {
             0
         }
     }
+}
+
+#[test]
+fn test_layout() {
+    let layout = Layout::new(0, (100, 5).into());
+    assert_eq!(
+        layout.with_render_region(RenderRegion::Top).get_start(10),
+        0
+    );
+    assert_eq!(
+        layout
+            .with_render_region(RenderRegion::Middle)
+            .get_start(10),
+        2
+    );
+    assert_eq!(
+        layout
+            .with_render_region(RenderRegion::Bottom)
+            .get_start(10),
+        5
+    );
 }
 
 struct TerminalState<B: backend::Backend> {
@@ -238,4 +259,25 @@ impl<B: backend::Backend> DerefMut for TerminalState<B> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.backend
     }
+}
+
+#[cfg(test)]
+mod test_consts {
+    /// ASCII placeholder text with 470 characters
+    pub static LOREM: &str = "Lorem ipsum dolor sit amet, consectetuer \
+        adipiscing elit. Aenean commodo ligula e get dolor. Aenean massa. Cum sociis \
+        natoque penatibus et magnis dis parturient montes, nascetur ridiculus mus. \
+        Donec quam felis, ultricies nec, pellentesque eu, pretium quis, sem. Nulla \
+        consequat massa quis enim. Donec pede justo, fringilla vel, aliquet nec, \
+        vulputate eget, arcu. In enim justo, rhoncus ut, imperdiet a, venenatis vitae, \
+        justo. Nullam dictum felis eu pede mollis pretium.";
+
+    /// Unicode placeholder text with 470 characters
+    pub static UNICODE: &str = "ǹɕǶǽũ ȥűǷŀȷÂǦǨÏǊ ýǡƎƭǃÁžƖţŝŬœĶ ɳƙŁŵŃŋŗ ǳÆŅɜŴô ħĲǗɧÝÙĝɸÿ \
+        ǝƬǄƫɌñÄç ɎƷɔȲƧ éďŅǒƿŅ üĲƪɮúǚĳǓɔÏǙǟ ǃóıÄ×ȤøŌɘŬÂ ȃŜʈǑƱļ ȶė÷ƝȣŞýş óɭǽƎȮ ŏŀƔȾřŞȩ \
+        ĚïƝƦʀƕĥǡǎÌʅ ĻɠȞīĈưĭÓĢÑ ǇĦƷűǐ¾đ ŊǂȘŰƒ ēɄɟɍƬč ɼ·ȄĶȸŦɉ ţĥŐŉŭ ãɹƠƲɼŒǜ ȹúƄǆȆ ȡǞȐǖŁƀ \
+        ėýŭȇȹı ɹûØùž ïȕĆßĀȭ ÍȖȟũȍ ȼƦŚɀʆ ĖǱŞȅŎ ţÎǓŏï ȃāÖćźȀȿ Īŝłƒťƌȇ ǘůńǊļ ǂȄȐǐǻ Ȳɵ¾ǕÉ \
+        ɛȃǾȚǱÚ ķĘƄɜÉ êɷƐŻɌ ɐțǼÏƐȄ òɫɥƸâɈ ĄȫĞîĖƿſú¹ ǐȊÜÉį ȬǲɩŎǩĮ ĂȷĎǶŐ ÍɼƔÌűÉĎƣ ÃÜȯƪǇ \
+        ȋǲŹǀŊȻ Ɍ¾ȓƃĝ êɊǄɕÈ ÿ¸ȧȣíÚɁƺ ȏǖŷȡȬ ȍǕȁɜğʆ ƨɺȨƠŇȱƕ ȊÑļɧģŷĲ ʈźçƣƑ ƀǼŌéǔÀ ȊŅɂƵǝ¾ \
+        ēɩīűŃɖąɔɳ ȁõıĚņ ȦɂȄƄȥɣŴűǎǃ";
 }

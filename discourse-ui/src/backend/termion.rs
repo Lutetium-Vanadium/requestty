@@ -75,7 +75,7 @@ impl<W: Write> Backend for TermionBackend<W> {
         Ok(())
     }
 
-    fn scroll(&mut self, dist: i32) -> error::Result<()> {
+    fn scroll(&mut self, dist: i16) -> error::Result<()> {
         match dist.cmp(&0) {
             Ordering::Greater => {
                 write!(self.buffer, "{}", scroll::Down(dist as u16))

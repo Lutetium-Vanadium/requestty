@@ -77,7 +77,7 @@ impl<W: Write> Backend for CrosstermBackend<W> {
         .map_err(Into::into)
     }
 
-    fn scroll(&mut self, dist: i32) -> error::Result<()> {
+    fn scroll(&mut self, dist: i16) -> error::Result<()> {
         match dist.cmp(&0) {
             Ordering::Greater => {
                 queue!(self.buffer, terminal::ScrollDown(dist as u16))

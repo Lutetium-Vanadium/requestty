@@ -96,3 +96,77 @@ impl Default for CharInput {
         Self::new(super::widgets::no_filter)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::{
+        backend::{TestBackend, TestBackendOp::Write},
+        events::KeyModifiers,
+        widgets::no_filter,
+        Widget,
+    };
+
+    #[test]
+    fn test_cursor_pos() {
+        let layout = Layout::new(0, (100, 40).into());
+        let mut input = CharInput::new(no_filter);
+
+        assert_eq!(input.cursor_pos(layout), (0, 0));
+        assert_eq!(input.cursor_pos(layout.with_line_offset(5)), (5, 0));
+
+        input.set_value(Some('c'));
+
+        assert_eq!(input.cursor_pos(layout), (1, 0));
+        assert_eq!(input.cursor_pos(layout.with_line_offset(5)), (6, 0));
+    }
+
+    #[test]
+    fn test_handle_key() {
+        let modifiers = KeyModifiers::empty();
+
+        let mut input = CharInput::new(crate::widgets::no_filter);
+        assert!(input.handle_key(KeyEvent::new(KeyCode::Char('c'), modifiers)));
+        assert_eq!(input.value(), Some('c'));
+        assert!(!input.handle_key(KeyEvent::new(KeyCode::Tab, modifiers)));
+        assert!(input.handle_key(KeyEvent::new(KeyCode::Char('d'), modifiers)));
+        assert_eq!(input.value(), Some('d'));
+        assert!(input.handle_key(KeyEvent::new(KeyCode::Backspace, modifiers)));
+        assert_eq!(input.value(), None);
+        assert!(input.handle_key(KeyEvent::new(KeyCode::Char('c'), modifiers)));
+        assert_eq!(input.value(), Some('c'));
+        assert!(input.handle_key(KeyEvent::new(KeyCode::Delete, modifiers)));
+        assert_eq!(input.value(), None);
+        assert!(!input.handle_key(KeyEvent::new(KeyCode::Delete, modifiers)));
+        assert!(!input.handle_key(KeyEvent::new(KeyCode::Backspace, modifiers)));
+
+        let mut input =
+            CharInput::new(|c| if c.is_uppercase() { None } else { Some(c) });
+        assert!(!input.handle_key(KeyEvent::new(KeyCode::Char('C'), modifiers)));
+        assert_eq!(input.value(), None);
+        assert!(input.handle_key(KeyEvent::new(KeyCode::Char('c'), modifiers)));
+        assert_eq!(input.value(), Some('c'));
+        assert!(!input.handle_key(KeyEvent::new(KeyCode::Char('C'), modifiers)));
+        assert_eq!(input.value(), Some('c'));
+    }
+
+    #[test]
+    fn test_render() {
+        let size = (100, 40).into();
+        let layout = Layout::new(0, size);
+
+        CharInput::new(no_filter)
+            .render(layout, &mut TestBackend::new(None, size))
+            .unwrap();
+
+        let mut input = CharInput::new(no_filter);
+        input.set_value(Some('c'));
+
+        input
+            .render(
+                layout,
+                &mut TestBackend::new(Some(Write(b"c".to_vec())), size),
+            )
+            .unwrap();
+    }
+}

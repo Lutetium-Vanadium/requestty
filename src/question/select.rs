@@ -17,7 +17,7 @@ pub struct Select<'a> {
 
 struct SelectPrompt<'a> {
     message: String,
-    picker: widgets::ListPicker<Select<'a>>,
+    select: widgets::Select<Select<'a>>,
 }
 
 impl SelectPrompt<'_> {
@@ -25,7 +25,7 @@ impl SelectPrompt<'_> {
         ListItem {
             index,
             name: self
-                .picker
+                .select
                 .finish()
                 .choices
                 .choices
@@ -49,15 +49,15 @@ impl Prompt for SelectPrompt<'_> {
     }
 
     fn finish(self) -> Self::Output {
-        let index = self.picker.get_at();
+        let index = self.select.get_at();
         self.finish_index(index)
     }
 
     fn has_default(&self) -> bool {
-        self.picker.list.choices.default().is_some()
+        self.select.list.choices.default().is_some()
     }
     fn finish_default(self) -> Self::Output {
-        let index = self.picker.list.choices.default().unwrap();
+        let index = self.select.list.choices.default().unwrap();
         self.finish_index(index)
     }
 }
@@ -68,15 +68,15 @@ impl Widget for SelectPrompt<'_> {
         layout: ui::Layout,
         b: &mut B,
     ) -> error::Result<()> {
-        self.picker.render(layout, b)
+        self.select.render(layout, b)
     }
 
     fn height(&mut self, layout: ui::Layout) -> u16 {
-        self.picker.height(layout)
+        self.select.height(layout)
     }
 
     fn handle_key(&mut self, key: KeyEvent) -> bool {
-        self.picker.handle_key(key)
+        self.select.handle_key(key)
     }
 }
 
@@ -121,11 +121,11 @@ impl Select<'_> {
         events: &mut ui::events::Events,
     ) -> error::Result<Answer> {
         let transform = self.transform.take();
-        let mut picker = widgets::ListPicker::new(self);
-        if let Some(default) = picker.list.choices.default() {
-            picker.set_at(default);
+        let mut select = widgets::Select::new(self);
+        if let Some(default) = select.list.choices.default() {
+            select.set_at(default);
         }
-        let ans = ui::Input::new(SelectPrompt { message, picker }, b)
+        let ans = ui::Input::new(SelectPrompt { message, select }, b)
             .hide_cursor()
             .run(events)?;
 
