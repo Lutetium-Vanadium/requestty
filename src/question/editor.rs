@@ -68,6 +68,14 @@ impl Widget for EditorPrompt<'_, '_> {
     fn height(&mut self, _: ui::Layout) -> u16 {
         0
     }
+
+    fn cursor_pos(&mut self, layout: ui::Layout) -> (u16, u16) {
+        (layout.line_offset, 0)
+    }
+
+    fn handle_key(&mut self, _: ui::events::KeyEvent) -> bool {
+        false
+    }
 }
 
 impl ui::Prompt for EditorPrompt<'_, '_> {

@@ -64,6 +64,14 @@ impl<S: AsRef<str>> Widget for Text<S> {
     fn height(&mut self, layout: crate::Layout) -> u16 {
         self.raw_height(layout).min(layout.max_height)
     }
+
+    fn cursor_pos(&mut self, layout: Layout) -> (u16, u16) {
+        self.text.as_ref().cursor_pos(layout)
+    }
+
+    fn handle_key(&mut self, key: crate::events::KeyEvent) -> bool {
+        self.text.as_ref().handle_key(key)
+    }
 }
 
 impl<S: AsRef<str>> AsRef<str> for Text<S> {

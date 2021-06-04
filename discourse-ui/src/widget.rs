@@ -4,12 +4,6 @@ use crate::{backend::Backend, error, events::KeyEvent, Layout};
 
 /// A trait to represent renderable objects.
 pub trait Widget {
-    /// Handle a key input. It should return whether key was handled.
-    #[allow(unused_variables)]
-    fn handle_key(&mut self, key: KeyEvent) -> bool {
-        false
-    }
-
     /// Render to stdout. `max_width` is the number of characters that can be printed in the current
     /// line.
     fn render<B: Backend>(
@@ -22,10 +16,10 @@ pub trait Widget {
     fn height(&mut self, layout: Layout) -> u16;
 
     /// The position of the cursor to end at, with (0,0) being the start of the input
-    #[allow(unused_variables)]
-    fn cursor_pos(&mut self, layout: Layout) -> (u16, u16) {
-        (layout.line_offset, 0)
-    }
+    fn cursor_pos(&mut self, layout: Layout) -> (u16, u16);
+
+    /// Handle a key input. It should return whether key was handled.
+    fn handle_key(&mut self, key: KeyEvent) -> bool;
 }
 
 impl<T: std::ops::Deref<Target = str>> Widget for T {
@@ -70,5 +64,13 @@ impl<T: std::ops::Deref<Target = str>> Widget for T {
     /// Does not allow multi-line strings
     fn height(&mut self, _: Layout) -> u16 {
         1
+    }
+
+    fn cursor_pos(&mut self, layout: Layout) -> (u16, u16) {
+        (layout.line_offset, 0)
+    }
+
+    fn handle_key(&mut self, _: KeyEvent) -> bool {
+        false
     }
 }

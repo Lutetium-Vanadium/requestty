@@ -75,6 +75,10 @@ impl Widget for SelectPrompt<'_> {
         self.select.height(layout)
     }
 
+    fn cursor_pos(&mut self, layout: ui::Layout) -> (u16, u16) {
+        self.select.cursor_pos(layout)
+    }
+
     fn handle_key(&mut self, key: KeyEvent) -> bool {
         self.select.handle_key(key)
     }
