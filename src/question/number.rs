@@ -69,10 +69,9 @@ impl Float<'_> {
 macro_rules! impl_number_prompt {
     ($prompt_name:ident, $type:ident, $inner_ty:ty) => {
         struct $prompt_name<'n, 'a> {
+            prompt: widgets::Prompt<&'a str, String>,
             number: $type<'n>,
-            message: String,
             input: widgets::StringInput,
-            hint: Option<String>,
             answers: &'a Answers,
         }
 
@@ -88,14 +87,15 @@ macro_rules! impl_number_prompt {
         impl Widget for $prompt_name<'_, '_> {
             fn render<B: Backend>(
                 &mut self,
-                layout: ui::Layout,
+                layout: &mut ui::Layout,
                 b: &mut B,
             ) -> error::Result<()> {
+                self.prompt.render(layout, b)?;
                 self.input.render(layout, b)
             }
 
             fn height(&mut self, layout: ui::Layout) -> u16 {
-                self.input.height(layout)
+                self.prompt.height(layout) + self.input.height(layout) - 1
             }
 
             fn handle_key(&mut self, key: KeyEvent) -> bool {
@@ -103,21 +103,15 @@ macro_rules! impl_number_prompt {
             }
 
             fn cursor_pos(&mut self, layout: ui::Layout) -> (u16, u16) {
-                self.input.cursor_pos(layout)
+                self.input.cursor_pos(
+                    layout.with_cursor_pos(self.prompt.cursor_pos(layout)),
+                )
             }
         }
 
         impl Prompt for $prompt_name<'_, '_> {
             type ValidateErr = String;
             type Output = $inner_ty;
-
-            fn prompt(&self) -> &str {
-                &self.message
-            }
-
-            fn hint(&self) -> Option<&str> {
-                self.hint.as_ref().map(String::as_ref)
-            }
 
             fn validate(&mut self) -> Result<Validation, Self::ValidateErr> {
                 if self.input.value().is_empty() && self.has_default() {
@@ -171,10 +165,11 @@ macro_rules! impl_ask {
 
                 let ans = ui::Input::new(
                     $prompt_name {
-                        hint: self.default.map(|default| format!("({})", default)),
+                        prompt: widgets::Prompt::new(&*message).with_optional_hint(
+                            self.default.as_ref().map(ToString::to_string),
+                        ),
                         input: widgets::StringInput::new(Self::filter_map_char),
                         number: self,
-                        message,
                         answers,
                     },
                     b,
@@ -183,7 +178,10 @@ macro_rules! impl_ask {
 
                 match transform {
                     Transform::Sync(transform) => transform(ans, answers, b)?,
-                    _ => Self::write(ans, b)?,
+                    _ => {
+                        widgets::Prompt::write_finished_message(&message, b)?;
+                        Self::write(ans, b)?
+                    }
                 }
 
                 Ok(Answer::$t(ans))

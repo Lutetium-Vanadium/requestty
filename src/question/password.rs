@@ -17,7 +17,7 @@ pub struct Password<'a> {
 }
 
 struct PasswordPrompt<'a, 'p> {
-    message: String,
+    prompt: widgets::Prompt<&'a str>,
     password: Password<'p>,
     input: widgets::StringInput,
     answers: &'a Answers,
@@ -26,18 +26,6 @@ struct PasswordPrompt<'a, 'p> {
 impl ui::Prompt for PasswordPrompt<'_, '_> {
     type ValidateErr = String;
     type Output = String;
-
-    fn prompt(&self) -> &str {
-        &self.message
-    }
-
-    fn hint(&self) -> Option<&str> {
-        if self.password.mask.is_none() {
-            Some("[input is hidden]")
-        } else {
-            None
-        }
-    }
 
     fn validate(&mut self) -> Result<Validation, Self::ValidateErr> {
         if let Validate::Sync(ref mut validate) = self.password.validate {
@@ -65,14 +53,15 @@ impl ui::Prompt for PasswordPrompt<'_, '_> {
 impl Widget for PasswordPrompt<'_, '_> {
     fn render<B: Backend>(
         &mut self,
-        layout: ui::Layout,
+        layout: &mut ui::Layout,
         b: &mut B,
     ) -> error::Result<()> {
+        self.prompt.render(layout, b)?;
         self.input.render(layout, b)
     }
 
     fn height(&mut self, layout: ui::Layout) -> u16 {
-        self.input.height(layout)
+        self.prompt.height(layout) + self.input.height(layout) - 1
     }
 
     fn handle_key(&mut self, key: KeyEvent) -> bool {
@@ -80,7 +69,8 @@ impl Widget for PasswordPrompt<'_, '_> {
     }
 
     fn cursor_pos(&mut self, layout: ui::Layout) -> (u16, u16) {
-        self.input.cursor_pos(layout)
+        self.input
+            .cursor_pos(layout.with_cursor_pos(self.prompt.cursor_pos(layout)))
     }
 }
 
@@ -96,7 +86,13 @@ impl Password<'_> {
 
         let ans = ui::Input::new(
             PasswordPrompt {
-                message,
+                prompt: widgets::Prompt::new(&*message)
+                    .with_delim(widgets::Delimiter::SquareBracket)
+                    .with_optional_hint(if self.mask.is_none() {
+                        Some("input is hidden")
+                    } else {
+                        None
+                    }),
                 input: widgets::StringInput::default().password(self.mask),
                 password: self,
                 answers,
@@ -108,6 +104,10 @@ impl Password<'_> {
         match transform {
             Transform::Sync(transform) => transform(&ans, answers, b)?,
             _ => {
+                b.write_styled(&ui::symbols::TICK.light_green())?;
+                b.write_all(b" ")?;
+                b.write_styled(&message.bold())?;
+                b.write_all(b" ")?;
                 b.write_styled(&"[hidden]".dark_grey())?;
                 b.write_all(b"\n")?;
                 b.flush()?;

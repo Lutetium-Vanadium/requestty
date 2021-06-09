@@ -4,18 +4,18 @@ use crate::{backend::Backend, error, events::KeyEvent, Layout};
 
 /// A trait to represent renderable objects.
 pub trait Widget {
-    /// Render to stdout. `max_width` is the number of characters that can be printed in the current
-    /// line.
+    /// Render to a given backend. The widget is responsible for updating the layout to reflect the
+    /// space that it has used.
     fn render<B: Backend>(
         &mut self,
-        layout: Layout,
+        layout: &mut Layout,
         backend: &mut B,
     ) -> error::Result<()>;
 
     /// The number of rows of the terminal the widget will take when rendered
     fn height(&mut self, layout: Layout) -> u16;
 
-    /// The position of the cursor to end at, with (0,0) being the start of the input
+    /// The position of the cursor to end at (x, y), with (0,0) being the start of the input
     fn cursor_pos(&mut self, layout: Layout) -> (u16, u16);
 
     /// Handle a key input. It should return whether key was handled.
@@ -26,7 +26,7 @@ impl<T: std::ops::Deref<Target = str>> Widget for T {
     /// Does not allow multi-line strings
     fn render<B: Backend>(
         &mut self,
-        layout: Layout,
+        layout: &mut Layout,
         backend: &mut B,
     ) -> error::Result<()> {
         let max_width = layout.line_width() as usize;
@@ -34,6 +34,8 @@ impl<T: std::ops::Deref<Target = str>> Widget for T {
         if max_width <= 3 {
             return Err(std::fmt::Error.into());
         }
+
+        layout.offset_y += 1;
 
         if textwrap::core::display_width(self) > max_width {
             let mut width = 0;
@@ -55,9 +57,11 @@ impl<T: std::ops::Deref<Target = str>> Widget for T {
                 prev_whitespace_len = word.whitespace_width();
             }
 
-            backend.write_all(b"...").map_err(Into::into)
+            backend.write_all(b"...")?;
+            backend.set_cursor(layout.offset_x, layout.offset_y)
         } else {
-            backend.write_all(self.as_bytes()).map_err(Into::into)
+            backend.write_all(self.as_bytes())?;
+            backend.set_cursor(layout.offset_x, layout.offset_y)
         }
     }
 

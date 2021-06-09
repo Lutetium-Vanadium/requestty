@@ -192,7 +192,7 @@ impl<I: Into<String>> From<(char, I)> for ExpandItem<String> {
 impl<S: ui::Widget> ui::Widget for ExpandItem<S> {
     fn render<B: ui::backend::Backend>(
         &mut self,
-        layout: ui::Layout,
+        layout: &mut ui::Layout,
         backend: &mut B,
     ) -> ui::error::Result<()> {
         self.name.render(layout, backend)

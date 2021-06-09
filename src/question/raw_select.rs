@@ -17,7 +17,7 @@ pub struct RawSelect<'a> {
 }
 
 struct RawSelectPrompt<'a> {
-    message: String,
+    prompt: widgets::Prompt<&'a str>,
     select: widgets::Select<RawSelect<'a>>,
     input: widgets::StringInput,
 }
@@ -42,14 +42,6 @@ impl RawSelectPrompt<'_> {
 impl Prompt for RawSelectPrompt<'_> {
     type ValidateErr = &'static str;
     type Output = ListItem;
-
-    fn prompt(&self) -> &str {
-        &self.message
-    }
-
-    fn hint(&self) -> Option<&str> {
-        None
-    }
 
     fn validate(&mut self) -> Result<Validation, Self::ValidateErr> {
         if self.select.get_at() >= self.select.list.len() {
@@ -79,9 +71,10 @@ const ANSWER_PROMPT: &[u8] = b"  Answer: ";
 impl Widget for RawSelectPrompt<'_> {
     fn render<B: Backend>(
         &mut self,
-        mut layout: ui::Layout,
+        layout: &mut ui::Layout,
         b: &mut B,
     ) -> error::Result<()> {
+        self.prompt.render(layout, b)?;
         self.select.render(layout, b)?;
         b.write_all(ANSWER_PROMPT)?;
         layout.line_offset += ANSWER_PROMPT.len() as u16;
@@ -89,7 +82,9 @@ impl Widget for RawSelectPrompt<'_> {
     }
 
     fn height(&mut self, layout: ui::Layout) -> u16 {
-        self.select.height(layout) + 1
+        self.select.height(layout.with_line_offset(0))
+            + self.prompt.height(layout)
+            + 1
     }
 
     fn handle_key(&mut self, key: KeyEvent) -> bool {
@@ -145,7 +140,7 @@ impl widgets::List for RawSelect<'_> {
                 write!(b, "  {}) ", index)?;
 
                 layout.offset_x += (index as f64).log10() as u16 + 5;
-                name.render(layout, b)?;
+                name.render(&mut layout, b)?;
 
                 if hovered {
                     b.set_fg(Color::Reset)?;
@@ -155,7 +150,7 @@ impl widgets::List for RawSelect<'_> {
                 b.set_fg(Color::DarkGrey)?;
                 b.write_all(b"   ")?;
                 super::get_sep_str(separator)
-                    .render(layout.with_line_offset(3), b)?;
+                    .render(&mut layout.with_line_offset(3), b)?;
                 b.set_fg(Color::Reset)?;
             }
         }
@@ -215,7 +210,7 @@ impl RawSelect<'_> {
                     }
                 }),
                 select,
-                message,
+                prompt: widgets::Prompt::new(&message),
             },
             b,
         )
@@ -224,6 +219,7 @@ impl RawSelect<'_> {
         match transform {
             Transform::Sync(transform) => transform(&ans, answers, b)?,
             _ => {
+                widgets::Prompt::write_finished_message(&message, b)?;
                 b.write_styled(&ans.name.lines().next().unwrap().cyan())?;
                 b.write_all(b"\n")?;
                 b.flush()?;

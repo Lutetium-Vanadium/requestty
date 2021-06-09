@@ -18,8 +18,8 @@ impl<S: AsRef<str>> Text<S> {
         }
     }
 
-    fn raw_height(&mut self, layout: crate::Layout) -> u16 {
-        let width = layout.width - layout.offset_x;
+    fn max_height(&mut self, layout: Layout) -> u16 {
+        let width = layout.available_width();
 
         if self.width != width || self.line_offset != layout.line_offset {
             self.wrapped = fill(self.text.as_ref(), layout);
@@ -34,7 +34,7 @@ impl<S: AsRef<str>> Text<S> {
 impl<S: AsRef<str>> Widget for Text<S> {
     fn render<B: backend::Backend>(
         &mut self,
-        layout: Layout,
+        layout: &mut Layout,
         backend: &mut B,
     ) -> error::Result<()> {
         if layout.max_height == 0 {
@@ -42,27 +42,38 @@ impl<S: AsRef<str>> Widget for Text<S> {
         }
 
         // Update just in case the layout is out of date
-        let height = self.raw_height(layout);
+        let height = self.max_height(*layout);
 
         if height == 1 {
             backend.write_all(self.wrapped.as_bytes())?;
+            layout.offset_y += 1;
+            backend.set_cursor(layout.offset_x, layout.offset_y)?;
         } else {
             let start = layout.get_start(height) as usize;
-            let length = height.min(layout.max_height) as usize;
+            let nlines = height.min(layout.max_height);
 
-            for (i, line) in
-                self.wrapped.lines().skip(start).take(length).enumerate()
+            for (i, line) in self
+                .wrapped
+                .lines()
+                .skip(start)
+                .take(nlines as usize)
+                .enumerate()
             {
-                backend.set_cursor(layout.offset_x, layout.offset_y + i as u16)?;
                 backend.write_all(line.as_bytes())?;
+                backend
+                    .set_cursor(layout.offset_x, layout.offset_y + i as u16 + 1)?;
             }
+
+            // note: it may be possible to render things after the end of the last line, but for now
+            // we ignore that space and the text takes all the width.
+            layout.offset_y += nlines;
         }
 
         Ok(())
     }
 
-    fn height(&mut self, layout: crate::Layout) -> u16 {
-        self.raw_height(layout).min(layout.max_height)
+    fn height(&mut self, layout: Layout) -> u16 {
+        self.max_height(layout).min(layout.max_height)
     }
 
     fn cursor_pos(&mut self, layout: Layout) -> (u16, u16) {
@@ -86,7 +97,7 @@ static SPACES: &str = "                                                         
 fn fill(text: &str, layout: Layout) -> String {
     // This won't allocate until the **highly unlikely** case that there is a line
     // offset of more than 200.
-    let s;
+    let s: String;
 
     let indent_len = layout.line_offset as usize;
 
@@ -97,12 +108,13 @@ fn fill(text: &str, layout: Layout) -> String {
         &s[..]
     };
 
-    let width = (layout.width - layout.offset_x) as usize;
+    let mut text = textwrap::fill(
+        text,
+        textwrap::Options::new(layout.available_width() as usize)
+            .initial_indent(indent),
+    );
 
-    let mut text =
-        textwrap::fill(text, textwrap::Options::new(width).initial_indent(indent));
-
-    drop(text.drain(..indent.len()));
+    drop(text.drain(..indent_len));
 
     text
 }
@@ -145,57 +157,65 @@ mod tests {
         let mut layout = Layout::new(40, (80, 100).into());
         let mut text = Text::new(LOREM);
 
-        assert_eq!(text.raw_height(layout), 7);
+        assert_eq!(text.max_height(layout), 7);
         assert_eq!(text.height(layout.with_max_height(5)), 5);
         layout.line_offset = 0;
         layout.width = 110;
-        assert_eq!(text.height(layout), text.raw_height(layout));
+        assert_eq!(text.height(layout), text.max_height(layout));
         assert_eq!(text.height(layout), 5);
 
         let mut layout = Layout::new(40, (80, 100).into());
         let mut text = Text::new(UNICODE);
 
-        assert_eq!(text.raw_height(layout), 7);
+        assert_eq!(text.max_height(layout), 7);
         assert_eq!(text.height(layout.with_max_height(5)), 5);
         layout.line_offset = 0;
         layout.width = 110;
-        assert_eq!(text.height(layout), text.raw_height(layout));
+        assert_eq!(text.height(layout), text.max_height(layout));
         assert_eq!(text.height(layout), 5);
     }
 
     #[test]
     fn test_render_single_line() {
         let size = (100, 100).into();
-        let layout = Layout::new(0, size);
-        let mut backend =
-            TestBackend::new(Some(Write(b"Hello, World!".to_vec())), size);
+        let mut layout = Layout::new(0, size);
+        let mut backend = TestBackend::new(
+            vec![Write(b"Hello, World!".to_vec()), SetCursor(0, 1)],
+            size,
+        );
         let mut text = Text::new("Hello, World!");
-        text.render(layout, &mut backend).unwrap();
+        text.render(&mut layout, &mut backend).unwrap();
+        assert_eq!(layout, layout.with_offset(0, 1));
     }
 
     #[test]
     fn test_render_multiline() {
         let size = (100, 100).into();
-        let layout = Layout::new(0, size);
+        let mut layout = Layout::new(0, size);
 
-        let mut ops = Vec::new();
+        let mut ops = Vec::with_capacity(10);
         for (i, line) in fill(LOREM, layout).lines().enumerate() {
-            ops.push(SetCursor(0, i as u16));
             ops.push(Write(line.into()));
+            ops.push(SetCursor(0, i as u16 + 1));
         }
 
         let mut backend = TestBackend::new(ops, size);
         let mut text = Text::new(LOREM);
-        text.render(layout, &mut backend).unwrap();
+        text.render(&mut layout, &mut backend).unwrap();
 
-        let mut ops = Vec::new();
+        assert_eq!(layout, Layout::new(0, size).with_offset(0, 5));
+        layout = Layout::new(0, size).with_offset(10, 10);
+
+        let mut ops = Vec::with_capacity(10);
         for (i, line) in fill(UNICODE, layout).lines().enumerate() {
-            ops.push(SetCursor(0, i as u16));
             ops.push(Write(line.into()));
+            ops.push(SetCursor(10, i as u16 + 11));
         }
 
         let mut backend = TestBackend::new(ops, size);
         let mut text = Text::new(UNICODE);
-        text.render(layout, &mut backend).unwrap();
+        text.render(&mut layout, &mut backend).unwrap();
+
+        assert_eq!(layout, Layout::new(0, size).with_offset(10, 16));
     }
 }

@@ -16,7 +16,7 @@ pub struct Select<'a> {
 }
 
 struct SelectPrompt<'a> {
-    message: String,
+    prompt: widgets::Prompt<&'a str>,
     select: widgets::Select<Select<'a>>,
 }
 
@@ -40,14 +40,6 @@ impl Prompt for SelectPrompt<'_> {
     type ValidateErr = &'static str;
     type Output = ListItem;
 
-    fn prompt(&self) -> &str {
-        &self.message
-    }
-
-    fn hint(&self) -> Option<&str> {
-        Some("(Use arrow keys)")
-    }
-
     fn finish(self) -> Self::Output {
         let index = self.select.get_at();
         self.finish_index(index)
@@ -65,14 +57,15 @@ impl Prompt for SelectPrompt<'_> {
 impl Widget for SelectPrompt<'_> {
     fn render<B: Backend>(
         &mut self,
-        layout: ui::Layout,
+        layout: &mut ui::Layout,
         b: &mut B,
     ) -> error::Result<()> {
+        self.prompt.render(layout, b)?;
         self.select.render(layout, b)
     }
 
     fn height(&mut self, layout: ui::Layout) -> u16 {
-        self.select.height(layout)
+        self.select.height(layout.with_line_offset(0)) + self.prompt.height(layout)
     }
 
     fn cursor_pos(&mut self, layout: ui::Layout) -> (u16, u16) {
@@ -129,13 +122,20 @@ impl Select<'_> {
         if let Some(default) = select.list.choices.default() {
             select.set_at(default);
         }
-        let ans = ui::Input::new(SelectPrompt { message, select }, b)
-            .hide_cursor()
-            .run(events)?;
+        let ans = ui::Input::new(
+            SelectPrompt {
+                prompt: widgets::Prompt::new(&message),
+                select,
+            },
+            b,
+        )
+        .hide_cursor()
+        .run(events)?;
 
         match transform {
             Transform::Sync(transform) => transform(&ans, answers, b)?,
             _ => {
+                widgets::Prompt::write_finished_message(&message, b)?;
                 b.write_styled(&ans.name.lines().next().unwrap().cyan())?;
                 b.write_all(b"\n")?;
                 b.flush()?;

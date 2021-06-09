@@ -7,3 +7,4 @@
   - due to hrtb
 - vi bindings / custom bindings
 - themes
+- non-unicode terminal support

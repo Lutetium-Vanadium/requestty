@@ -1,7 +1,7 @@
 use std::ops::{Index, IndexMut};
 
 use crate::{
-    backend::{Backend, MoveDirection, Stylize},
+    backend::{Backend, Stylize},
     error,
     events::{KeyEvent, Movement},
     Layout, RenderRegion,
@@ -392,10 +392,14 @@ impl<L: List> Select<L> {
     fn render_in<B: Backend>(
         &mut self,
         iter: impl Iterator<Item = usize>,
-        mut layout: Layout,
+        old_layout: &mut Layout,
         b: &mut B,
     ) -> error::Result<()> {
         let heights = &self.heights.as_ref().unwrap().heights[..];
+
+        // Create a new local copy of the layout to operate on to avoid changes in max_height and
+        // render_region to be reflected upstream
+        let mut layout = *old_layout;
 
         for i in iter {
             if i == self.page_start {
@@ -409,10 +413,12 @@ impl<L: List> Select<L> {
             }
 
             self.list.render_item(i, i == self.at, layout, b)?;
-            b.move_cursor(MoveDirection::NextLine(1))?;
-
             layout.offset_y += layout.max_height;
+
+            b.set_cursor(layout.offset_x, layout.offset_y)?;
         }
+
+        old_layout.offset_y = layout.offset_y;
 
         Ok(())
     }
@@ -546,19 +552,21 @@ impl<L: List> super::Widget for Select<L> {
 
     fn render<B: Backend>(
         &mut self,
-        mut layout: Layout,
+        layout: &mut Layout,
         b: &mut B,
     ) -> error::Result<()> {
-        self.update_heights(layout);
+        self.update_heights(*layout);
 
         // this is the first render, so we need to set page_end
         if self.page_end == usize::MAX {
             self.init_page();
         }
 
-        b.move_cursor(MoveDirection::NextLine(1))?;
-        layout.line_offset = 0;
-        layout.offset_y += 1;
+        if layout.line_offset != 0 {
+            layout.line_offset = 0;
+            layout.offset_y += 1;
+            b.set_cursor(layout.offset_x, layout.offset_y)?;
+        }
 
         if self.page_end < self.page_start {
             self.render_in(
@@ -575,7 +583,9 @@ impl<L: List> super::Widget for Select<L> {
             b.write_styled(
                 &"(Move up and down to reveal more choices)".dark_grey(),
             )?;
-            b.move_cursor(MoveDirection::NextLine(1))?;
+            layout.offset_y += 1;
+
+            b.set_cursor(layout.offset_x, layout.offset_y)?;
         }
 
         Ok(())
@@ -589,13 +599,14 @@ impl<L: List> super::Widget for Select<L> {
         self.update_heights(layout);
 
         // Try to show everything
-        1 + self // Add one since we go to the next line
-            .height
-            // otherwise show whatever is possible
-            .min(self.page_size())
-            // but do not show less than a single element
-            .max(
-                self.heights
+        (layout.line_offset != 0) as u16 // Add one if we go to the next line
+            + self
+                .height
+                // otherwise show whatever is possible
+                .min(self.page_size())
+                // but do not show less than a single element
+                .max(
+                    self.heights
                     .as_ref()
                     .unwrap()
                     .heights
@@ -603,6 +614,6 @@ impl<L: List> super::Widget for Select<L> {
                     .unwrap_or(&0)
                     // +1 if paginating since the message at the end takes one line
                     + self.is_paginating() as u16,
-            )
+                )
     }
 }

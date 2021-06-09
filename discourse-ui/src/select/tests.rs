@@ -49,10 +49,10 @@ impl<T: Widget> super::List for List<T> {
         &mut self,
         index: usize,
         _hovered: bool,
-        layout: Layout,
+        mut layout: Layout,
         backend: &mut B,
     ) -> error::Result<()> {
-        self.vec[index].render(layout, backend)
+        self.vec[index].render(&mut layout, backend)
     }
 
     fn is_selectable(&self, index: usize) -> bool {
@@ -97,16 +97,16 @@ fn multi_line_list(len: usize) -> Vec<Text<String>> {
 
 #[test]
 fn test_height() {
-    fn test(list: List<impl Widget>, height: u16) {
-        let layout = Layout::new(0, (100, 100).into());
+    fn test(list: List<impl Widget>, height: u16, line_offset: u16) {
+        let layout = Layout::new(line_offset, (100, 100).into());
         assert_eq!(Select::new(list).height(layout), height);
     }
 
-    test(List::new(single_line_vec(5)), 6);
-    test(List::new(single_line_vec(20)), 16);
+    test(List::new(single_line_vec(5)), 5, 0);
+    test(List::new(single_line_vec(20)), 16, 10);
 
-    test(List::new(multi_line_list(2)), 11);
-    test(List::new(multi_line_list(7)), 16);
+    test(List::new(multi_line_list(2)), 10, 0);
+    test(List::new(multi_line_list(7)), 16, 10);
 }
 
 #[test]
@@ -525,31 +525,40 @@ fn test_handle_key() {
 
 #[test]
 fn test_render() {
-    let size = (100, 100).into();
-    let layout = Layout::new(0, size);
+    // There are several duplications of the `SetCursor(_, _)` command in the following tests. This
+    // is because `Text` happens to move to the correct position, but the select is not aware about
+    // it, and sets the correct position as well.
 
-    let mut ops = Vec::with_capacity(11);
-    ops.push(MoveCursor(MoveDirection::NextLine(1)));
-    for line in single_line_vec(5) {
+    let size = (100, 100).into();
+    let base_layout = Layout::new(0, size);
+    let mut layout = base_layout;
+
+    let mut ops = Vec::with_capacity(15);
+    for (i, line) in single_line_vec(5).into_iter().enumerate() {
         ops.push(Write(line.into_bytes()));
-        ops.push(MoveCursor(MoveDirection::NextLine(1)));
+        ops.push(SetCursor(0, i as u16 + 1));
+        ops.push(SetCursor(0, i as u16 + 1));
     }
 
     Select::new(List::new(single_line_vec(5)))
-        .render(layout, &mut TestBackend::new(ops, size))
+        .render(&mut layout, &mut TestBackend::new(ops, size))
         .unwrap();
+    assert_eq!(layout, base_layout.with_offset(0, 5));
+
+    layout = base_layout.with_line_offset(10);
 
     let list = single_line_vec(20);
-    let mut ops = Vec::with_capacity(23);
-    ops.push(MoveCursor(MoveDirection::NextLine(1)));
-    for line in &list[6..15] {
+    let mut ops = Vec::with_capacity(32);
+    ops.push(SetCursor(0, 1));
+    for (i, line) in list[6..15].iter().enumerate() {
         ops.push(Write(line[..].into()));
-        ops.push(MoveCursor(MoveDirection::NextLine(1)));
+        ops.push(SetCursor(0, i as u16 + 2));
+        ops.push(SetCursor(0, i as u16 + 2));
     }
     ops.push(SetFg(Color::DarkGrey));
     ops.push(Write(b"(Move up and down to reveal more choices)".to_vec()));
     ops.push(SetFg(Color::Reset));
-    ops.push(MoveCursor(MoveDirection::NextLine(1)));
+    ops.push(SetCursor(0, 11));
 
     let mut select = Select::new(List::new(list).with_page_size(10));
     select.update_heights(layout);
@@ -557,20 +566,23 @@ fn test_render() {
     select.set_at(13);
 
     select
-        .render(layout, &mut TestBackend::new(ops, size))
+        .render(&mut layout, &mut TestBackend::new(ops, size))
         .unwrap();
 
+    assert_eq!(layout, base_layout.with_offset(0, 11));
+    layout = base_layout;
+
     let list = single_line_vec(20);
-    let mut ops = Vec::with_capacity(23);
-    ops.push(MoveCursor(MoveDirection::NextLine(1)));
-    for line in list[16..].iter().chain(list[..5].iter()) {
+    let mut ops = Vec::with_capacity(31);
+    for (i, line) in list[16..].iter().chain(list[..5].iter()).enumerate() {
         ops.push(Write(line[..].into()));
-        ops.push(MoveCursor(MoveDirection::NextLine(1)));
+        ops.push(SetCursor(0, i as u16 + 1));
+        ops.push(SetCursor(0, i as u16 + 1));
     }
     ops.push(SetFg(Color::DarkGrey));
     ops.push(Write(b"(Move up and down to reveal more choices)".to_vec()));
     ops.push(SetFg(Color::Reset));
-    ops.push(MoveCursor(MoveDirection::NextLine(1)));
+    ops.push(SetCursor(0, 10));
 
     let mut select = Select::new(List::new(list).with_page_size(10));
     select.update_heights(layout);
@@ -580,8 +592,14 @@ fn test_render() {
     select.page_end = 4;
 
     select
-        .render(layout, &mut TestBackend::new(ops, size))
+        .render(&mut layout, &mut TestBackend::new(ops, size))
         .unwrap();
+
+    assert_eq!(layout, base_layout.with_offset(0, 10));
+
+    let size = (120, 120).into();
+    let base_layout = Layout::new(0, size).with_offset(20, 20);
+    layout = base_layout.with_line_offset(10);
 
     let list = vec![
         Text::new(LOREM),
@@ -592,26 +610,27 @@ fn test_render() {
     ];
 
     let mut ops = Vec::with_capacity(28);
-    ops.push(MoveCursor(MoveDirection::NextLine(1)));
-    ops.push(SetCursor(0, 1));
+    ops.push(SetCursor(20, 21));
     ops.push(Write(b"imperdiet a, venenatis vitae, justo. Nullam dictum felis eu pede mollis pretium.".to_vec()));
-    ops.push(MoveCursor(MoveDirection::NextLine(1)));
+    ops.push(SetCursor(20, 22));
+    ops.push(SetCursor(20, 22));
     for i in 1..4 {
-        ops.push(SetCursor(0, i * 2));
         ops.push(Write(format!("option {} line 1", i).into_bytes()));
-        ops.push(SetCursor(0, 1 + i * 2));
+        ops.push(SetCursor(20, 21 + i * 2));
         ops.push(Write(format!("option {} line 2", i).into_bytes()));
-        ops.push(MoveCursor(MoveDirection::NextLine(1)));
+        ops.push(SetCursor(20, 22 + i * 2));
+        ops.push(SetCursor(20, 22 + i * 2));
     }
-    ops.push(SetCursor(0, 8));
     ops.push(Write("ǹɕǶǽũ ȥűǷŀȷÂǦǨÏǊ ýǡƎƭǃÁžƖţŝŬœĶ ɳƙŁŵŃŋŗ ǳÆŅɜŴô ħĲǗɧÝÙĝɸÿ ǝƬǄƫɌñÄç ɎƷɔȲƧ éďŅǒƿŅ üĲƪɮúǚĳǓɔÏǙǟ".into()));
-    ops.push(SetCursor(0, 9));
+    ops.push(SetCursor(20, 29));
     ops.push(Write("ǃóıÄ×ȤøŌɘŬÂ ȃŜʈǑƱļ ȶė÷ƝȣŞýş óɭǽƎȮ ŏŀƔȾřŞȩ ĚïƝƦʀƕĥǡǎÌʅ ĻɠȞīĈưĭÓĢÑ ǇĦƷűǐ¾đ ŊǂȘŰƒ ēɄɟɍƬč ɼ·ȄĶȸŦɉ ţĥŐŉŭ".into()));
-    ops.push(MoveCursor(MoveDirection::NextLine(1)));
+    ops.push(SetCursor(20, 30));
+    ops.push(SetCursor(20, 30));
+
     ops.push(SetFg(Color::DarkGrey));
     ops.push(Write(b"(Move up and down to reveal more choices)".to_vec()));
     ops.push(SetFg(Color::Reset));
-    ops.push(MoveCursor(MoveDirection::NextLine(1)));
+    ops.push(SetCursor(20, 31));
 
     let mut select = Select::new(List::new(list).with_page_size(10));
     select.update_heights(layout);
@@ -620,6 +639,8 @@ fn test_render() {
     select.adjust_page(Movement::Up);
 
     select
-        .render(layout, &mut TestBackend::new(ops, size))
+        .render(&mut layout, &mut TestBackend::new(ops, size))
         .unwrap();
+
+    assert_eq!(layout, base_layout.with_offset(20, 31));
 }

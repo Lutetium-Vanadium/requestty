@@ -69,13 +69,14 @@ where
 
     fn render<B: Backend>(
         &mut self,
-        layout: Layout,
+        layout: &mut Layout,
         backend: &mut B,
     ) -> error::Result<()> {
         if let Some(value) = self.value {
             if layout.line_width() == 0 {
                 return Err(std::fmt::Error.into());
             }
+            layout.line_offset += 1;
 
             write!(backend, "{}", value)?;
         }
@@ -103,14 +104,13 @@ mod tests {
     use crate::{
         backend::{TestBackend, TestBackendOp::Write},
         events::KeyModifiers,
-        widgets::no_filter,
         Widget,
     };
 
     #[test]
     fn test_cursor_pos() {
         let layout = Layout::new(0, (100, 40).into());
-        let mut input = CharInput::new(no_filter);
+        let mut input = CharInput::default();
 
         assert_eq!(input.cursor_pos(layout), (0, 0));
         assert_eq!(input.cursor_pos(layout.with_line_offset(5)), (5, 0));
@@ -125,7 +125,7 @@ mod tests {
     fn test_handle_key() {
         let modifiers = KeyModifiers::empty();
 
-        let mut input = CharInput::new(crate::widgets::no_filter);
+        let mut input = CharInput::default();
         assert!(input.handle_key(KeyEvent::new(KeyCode::Char('c'), modifiers)));
         assert_eq!(input.value(), Some('c'));
         assert!(!input.handle_key(KeyEvent::new(KeyCode::Tab, modifiers)));
@@ -153,20 +153,24 @@ mod tests {
     #[test]
     fn test_render() {
         let size = (100, 40).into();
-        let layout = Layout::new(0, size);
+        let mut layout = Layout::new(0, size);
+        let mut input = CharInput::default();
 
-        CharInput::new(no_filter)
-            .render(layout, &mut TestBackend::new(None, size))
+        input
+            .render(&mut layout, &mut TestBackend::new(None, size))
             .unwrap();
 
-        let mut input = CharInput::new(no_filter);
+        assert_eq!(layout, Layout::new(0, size));
+
         input.set_value(Some('c'));
 
         input
             .render(
-                layout,
+                &mut layout,
                 &mut TestBackend::new(Some(Write(b"c".to_vec())), size),
             )
             .unwrap();
+
+        assert_eq!(layout, Layout::new(0, size).with_line_offset(1));
     }
 }

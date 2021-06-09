@@ -34,8 +34,7 @@ impl<'a> Default for Expand<'a> {
 }
 
 struct ExpandPrompt<'a, F> {
-    message: String,
-    hint: String,
+    prompt: widgets::Prompt<String, &'a str>,
     select: widgets::Select<Expand<'a>>,
     input: widgets::CharInput<F>,
     expanded: bool,
@@ -82,14 +81,6 @@ impl<F: Fn(char) -> Option<char>> Prompt for ExpandPrompt<'_, F> {
     type ValidateErr = &'static str;
     type Output = ExpandItem<String>;
 
-    fn prompt(&self) -> &str {
-        &self.message
-    }
-
-    fn hint(&self) -> Option<&str> {
-        Some(&self.hint)
-    }
-
     fn validate(&mut self) -> Result<Validation, Self::ValidateErr> {
         match self.input.value().unwrap_or(self.select.list.default) {
             'h' => {
@@ -122,14 +113,15 @@ const ANSWER_PROMPT: &[u8] = b"  Answer: ";
 impl<F: Fn(char) -> Option<char>> ui::Widget for ExpandPrompt<'_, F> {
     fn render<B: Backend>(
         &mut self,
-        mut layout: ui::Layout,
+        layout: &mut ui::Layout,
         b: &mut B,
     ) -> error::Result<()> {
+        self.prompt.render(layout, b)?;
         if self.expanded {
             self.select.render(layout, b)?;
             b.write_all(ANSWER_PROMPT)?;
-            self.input
-                .render(layout.with_line_offset(ANSWER_PROMPT.len() as u16), b)
+            layout.line_offset = ANSWER_PROMPT.len() as u16;
+            self.input.render(layout, b)
         } else {
             self.input.render(layout, b)?;
 
@@ -152,12 +144,16 @@ impl<F: Fn(char) -> Option<char>> ui::Widget for ExpandPrompt<'_, F> {
 
     fn height(&mut self, layout: ui::Layout) -> u16 {
         if self.expanded {
-            self.select.height(layout) + 1
+            self.select.height(layout.with_line_offset(0))
+                + self.prompt.height(layout)
+                + 1
         } else if self.input.value().is_some() {
-            self.input.height(layout)
+            self.prompt.height(layout) - 1
+                + self.input.height(layout)
+                // selected will return None if the help option is selected
                 + self.selected().map(|c| c.height(layout)).unwrap_or(1)
         } else {
-            self.input.height(layout)
+            self.prompt.height(layout) + self.input.height(layout)
         }
     }
 
@@ -203,7 +199,7 @@ impl widgets::List for Expand<'_> {
                 b.set_fg(Color::DarkGrey)?;
                 b.write_all(b"   ")?;
                 super::get_sep_str(separator)
-                    .render(layout.with_line_offset(3), b)?;
+                    .render(&mut layout.with_line_offset(3), b)?;
                 b.set_fg(Color::Reset)
             }
         }
@@ -262,10 +258,9 @@ impl Expand<'_> {
             Some(index) => self.choices[index]
                 .as_mut()
                 .unwrap_choice()
-                .render(layout, b)?,
-            None => {
-                "Help, list all options".render(layout.with_line_offset(5), b)?
-            }
+                .render(&mut layout, b)?,
+            None => "Help, list all options"
+                .render(&mut layout.with_line_offset(5), b)?,
         }
 
         if hovered {
@@ -275,35 +270,6 @@ impl Expand<'_> {
         Ok(())
     }
 
-    fn get_choices_and_hint(&self) -> (String, String) {
-        let choices = self
-            .choices
-            .choices
-            .iter()
-            .filter_map(|choice| match choice {
-                Choice::Choice(choice) => Some(choice.key.to_ascii_lowercase()),
-                _ => None,
-            })
-            .chain(std::iter::once('h'))
-            .collect::<String>();
-
-        let hint = {
-            let mut s = String::with_capacity(2 + choices.len());
-            s.push('(');
-            s.extend(choices.chars().map(|c| {
-                if c == self.default {
-                    c.to_ascii_uppercase()
-                } else {
-                    c
-                }
-            }));
-            s.push(')');
-            s
-        };
-
-        (choices, hint)
-    }
-
     pub(crate) fn ask<B: Backend>(
         mut self,
         message: String,
@@ -311,22 +277,34 @@ impl Expand<'_> {
         b: &mut B,
         events: &mut ui::events::Events,
     ) -> error::Result<Answer> {
-        let (choices, hint) = self.get_choices_and_hint();
+        let help_key = if self.default == 'h' { 'H' } else { 'h' };
+
+        let hint: String = self
+            .choices
+            .choices
+            .iter()
+            .filter_map(|choice| match choice {
+                Choice::Choice(choice) if self.default == choice.key => {
+                    Some(choice.key.to_ascii_uppercase())
+                }
+                Choice::Choice(choice) => Some(choice.key.to_ascii_lowercase()),
+                _ => None,
+            })
+            .chain(std::iter::once(help_key))
+            .collect();
+
         let transform = self.transform.take();
 
         let ans = ui::Input::new(
             ExpandPrompt {
-                message,
+                prompt: widgets::Prompt::new(message).with_hint(&hint),
                 input: widgets::CharInput::new(|c| {
                     let c = c.to_ascii_lowercase();
-                    if choices.contains(c) {
-                        Some(c)
-                    } else {
-                        None
-                    }
+                    hint.chars()
+                        .find(|o| o.eq_ignore_ascii_case(&c))
+                        .and(Some(c))
                 }),
                 select: widgets::Select::new(self),
-                hint,
                 expanded: false,
             },
             b,

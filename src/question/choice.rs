@@ -100,7 +100,7 @@ impl<T: Widget> List for ChoiceList<T> {
     ) -> ui::error::Result<()> {
         if hovered {
             b.set_fg(Color::Cyan)?;
-            b.write_all("❯ ".as_bytes())?;
+            write!(b, "{} ", ui::symbols::ARROW)?;
         } else {
             b.write_all(b"  ")?;
 
@@ -110,7 +110,7 @@ impl<T: Widget> List for ChoiceList<T> {
         }
 
         layout.offset_x += 2;
-        self.choices[index].render(layout, b)?;
+        self.choices[index].render(&mut layout, b)?;
 
         b.set_fg(Color::Reset)
     }
@@ -186,7 +186,7 @@ pub(crate) fn get_sep_str<T>(separator: &Choice<T>) -> &str {
 impl<T: ui::Widget> ui::Widget for Choice<T> {
     fn render<B: ui::backend::Backend>(
         &mut self,
-        layout: ui::Layout,
+        layout: &mut ui::Layout,
         backend: &mut B,
     ) -> ui::error::Result<()> {
         match self {

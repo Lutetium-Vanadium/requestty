@@ -15,22 +15,23 @@ pub struct Confirm<'a> {
 }
 
 struct ConfirmPrompt<'a> {
+    prompt: widgets::Prompt<&'a str>,
     confirm: Confirm<'a>,
-    message: String,
     input: widgets::CharInput,
 }
 
 impl Widget for ConfirmPrompt<'_> {
     fn render<B: Backend>(
         &mut self,
-        layout: ui::Layout,
+        layout: &mut ui::Layout,
         b: &mut B,
     ) -> error::Result<()> {
+        self.prompt.render(layout, b)?;
         self.input.render(layout, b)
     }
 
     fn height(&mut self, layout: ui::Layout) -> u16 {
-        self.input.height(layout)
+        self.prompt.height(layout) + self.input.height(layout) - 1
     }
 
     fn handle_key(&mut self, key: KeyEvent) -> bool {
@@ -38,7 +39,8 @@ impl Widget for ConfirmPrompt<'_> {
     }
 
     fn cursor_pos(&mut self, layout: ui::Layout) -> (u16, u16) {
-        self.input.cursor_pos(layout)
+        self.input
+            .cursor_pos(layout.with_cursor_pos(self.prompt.cursor_pos(layout)))
     }
 }
 
@@ -52,18 +54,6 @@ fn only_yn(c: char) -> Option<char> {
 impl Prompt for ConfirmPrompt<'_> {
     type ValidateErr = &'static str;
     type Output = bool;
-
-    fn prompt(&self) -> &str {
-        &self.message
-    }
-
-    fn hint(&self) -> Option<&str> {
-        Some(match self.confirm.default {
-            Some(true) => "(Y/n)",
-            Some(false) => "(y/N)",
-            None => "(y/n)",
-        })
-    }
 
     fn validate(&mut self) -> Result<Validation, Self::ValidateErr> {
         if self.input.value().is_some() || self.has_default() {
@@ -99,10 +89,16 @@ impl Confirm<'_> {
     ) -> error::Result<Answer> {
         let transform = self.transform.take();
 
+        let hint = match self.default {
+            Some(true) => "Y/n",
+            Some(false) => "y/N",
+            None => "y/n",
+        };
+
         let ans = ui::Input::new(
             ConfirmPrompt {
+                prompt: widgets::Prompt::new(&*message).with_hint(hint),
                 confirm: self,
-                message,
                 input: widgets::CharInput::new(only_yn),
             },
             b,
@@ -112,6 +108,8 @@ impl Confirm<'_> {
         match transform {
             Transform::Sync(transform) => transform(ans, answers, b)?,
             _ => {
+                widgets::Prompt::write_finished_message(&message, b)?;
+
                 let ans = if ans { "Yes" } else { "No" };
                 b.write_styled(&ans.cyan())?;
                 b.write_all(b"\n")?;

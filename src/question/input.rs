@@ -18,7 +18,7 @@ pub struct Input<'a> {
 }
 
 struct InputPrompt<'i, 'a> {
-    message: String,
+    prompt: widgets::Prompt<&'a str, String>,
     input_opts: Input<'i>,
     input: widgets::StringInput,
     /// When the select is Some, then currently the user is selecting from the
@@ -54,9 +54,10 @@ fn select_op<T, F: FnOnce(&mut widgets::Select<ChoiceList<String>>) -> T>(
 impl Widget for InputPrompt<'_, '_> {
     fn render<B: Backend>(
         &mut self,
-        layout: ui::Layout,
+        layout: &mut ui::Layout,
         b: &mut B,
     ) -> error::Result<()> {
+        self.prompt.render(layout, b)?;
         self.input.render(layout, b)?;
         if let Some(ref mut select) = self.select {
             select_op(&mut self.input, select, |select| select.render(layout, b))?;
@@ -65,7 +66,7 @@ impl Widget for InputPrompt<'_, '_> {
     }
 
     fn height(&mut self, layout: ui::Layout) -> u16 {
-        let mut height = self.input.height(layout);
+        let mut height = self.prompt.height(layout) + self.input.height(layout) - 1;
         if let Some(ref mut select) = self.select {
             height +=
                 select_op(&mut self.input, select, |select| select.height(layout))
@@ -120,7 +121,8 @@ impl Widget for InputPrompt<'_, '_> {
     }
 
     fn cursor_pos(&mut self, layout: ui::Layout) -> (u16, u16) {
-        self.input.cursor_pos(layout)
+        self.input
+            .cursor_pos(layout.with_cursor_pos(self.prompt.cursor_pos(layout)))
     }
 }
 
@@ -128,20 +130,12 @@ impl Prompt for InputPrompt<'_, '_> {
     type ValidateErr = String;
     type Output = String;
 
-    fn prompt(&self) -> &str {
-        &self.message
-    }
-
-    fn hint(&self) -> Option<&str> {
-        self.input_opts.default.as_ref().map(String::as_ref)
-    }
-
     fn finish(self) -> Self::Output {
-        let hint = self.input_opts.default;
+        let prompt = self.prompt;
         let mut ans = self
             .input
             .finish()
-            .unwrap_or_else(|| remove_brackets(hint.unwrap()));
+            .unwrap_or_else(|| prompt.into_hint().unwrap());
 
         if let Filter::Sync(filter) = self.input_opts.filter {
             ans = filter(ans, self.answers);
@@ -172,11 +166,11 @@ impl Prompt for InputPrompt<'_, '_> {
     }
 
     fn has_default(&self) -> bool {
-        self.input_opts.default.is_some()
+        self.prompt.hint().is_some()
     }
 
     fn finish_default(self) -> <Self as ui::Prompt>::Output {
-        remove_brackets(self.input_opts.default.unwrap())
+        self.prompt.into_hint().unwrap()
     }
 }
 
@@ -188,16 +182,12 @@ impl Input<'_> {
         b: &mut B,
         events: &mut ui::events::Events,
     ) -> error::Result<Answer> {
-        if let Some(ref mut default) = self.default {
-            default.insert(0, '(');
-            default.push(')');
-        }
-
         let transform = self.transform.take();
 
         let ans = ui::Input::new(
             InputPrompt {
-                message,
+                prompt: widgets::Prompt::new(&message[..])
+                    .with_optional_hint(self.default.take()),
                 input_opts: self,
                 input: widgets::StringInput::default(),
                 select: None,
@@ -210,6 +200,8 @@ impl Input<'_> {
         match transform {
             Transform::Sync(transform) => transform(&ans, answers, b)?,
             _ => {
+                widgets::Prompt::write_finished_message(&message, b)?;
+
                 b.write_styled(&ans.as_str().cyan())?;
                 b.write_all(b"\n")?;
                 b.flush()?;
@@ -253,10 +245,4 @@ impl<'a> From<InputBuilder<'a>> for super::Question<'a> {
     fn from(builder: InputBuilder<'a>) -> Self {
         builder.build()
     }
-}
-
-fn remove_brackets(mut s: String) -> String {
-    s.remove(0);
-    s.pop();
-    s
 }

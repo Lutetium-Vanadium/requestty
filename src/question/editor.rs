@@ -10,7 +10,7 @@ use tempfile::TempPath;
 
 use ui::{
     backend::{Backend, Stylize},
-    error, Validation, Widget,
+    error, widgets, Validation, Widget,
 };
 
 use super::{Filter, Options, Transform, Validate};
@@ -52,25 +52,34 @@ fn get_editor() -> OsString {
 }
 
 struct EditorPrompt<'a, 'e> {
+    prompt: widgets::Prompt<&'a str>,
     file: File,
     path: TempPath,
     ans: String,
-    message: String,
     editor: Editor<'e>,
     answers: &'a Answers,
 }
 
 impl Widget for EditorPrompt<'_, '_> {
-    fn render<B: Backend>(&mut self, _: ui::Layout, _: &mut B) -> error::Result<()> {
-        Ok(())
+    fn render<B: Backend>(
+        &mut self,
+        layout: &mut ui::Layout,
+        backend: &mut B,
+    ) -> error::Result<()> {
+        self.prompt.render(layout, backend)
     }
 
-    fn height(&mut self, _: ui::Layout) -> u16 {
-        0
+    fn height(&mut self, layout: ui::Layout) -> u16 {
+        self.prompt.height(layout)
     }
 
     fn cursor_pos(&mut self, layout: ui::Layout) -> (u16, u16) {
-        (layout.line_offset, 0)
+        let (x, y) = self.prompt.cursor_pos(layout);
+        if x == 0 {
+            (layout.width - 1, y - 1)
+        } else {
+            (x - 1, y)
+        }
     }
 
     fn handle_key(&mut self, _: ui::events::KeyEvent) -> bool {
@@ -81,14 +90,6 @@ impl Widget for EditorPrompt<'_, '_> {
 impl ui::Prompt for EditorPrompt<'_, '_> {
     type ValidateErr = io::Error;
     type Output = String;
-
-    fn prompt(&self) -> &str {
-        &self.message
-    }
-
-    fn hint(&self) -> Option<&str> {
-        Some("Press <enter> to launch your preferred editor.")
-    }
 
     fn validate(&mut self) -> Result<Validation, Self::ValidateErr> {
         if !Command::new(&self.editor.editor)
@@ -154,7 +155,9 @@ impl Editor<'_> {
 
         let ans = ui::Input::new(
             EditorPrompt {
-                message,
+                prompt: widgets::Prompt::new(&*message)
+                    .with_hint("Press <enter> to launch your preferred editor.")
+                    .with_delim(widgets::Delimiter::None),
                 editor: self,
                 file,
                 path,
@@ -168,6 +171,7 @@ impl Editor<'_> {
         match transform {
             Transform::Sync(transform) => transform(&ans, answers, b)?,
             _ => {
+                widgets::Prompt::write_finished_message(&message, b)?;
                 b.write_styled(&"Received".dark_grey())?;
                 b.write_all(b"\n")?;
                 b.flush()?;

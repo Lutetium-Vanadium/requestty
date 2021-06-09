@@ -1,5 +1,3 @@
-use std::convert::TryFrom;
-
 use super::{TerminalState, Validation, Widget};
 use crate::{
     backend::{Backend, ClearType, MoveDirection, Size, Stylize},
@@ -18,13 +16,6 @@ pub trait Prompt: Widget {
 
     /// The output type returned by [`Input::run`]
     type Output;
-
-    /// The main prompt text. It is printed in bold.
-    fn prompt(&self) -> &str;
-    /// The hint text. If a hint is there, it is printed in dark grey.
-    fn hint(&self) -> Option<&str> {
-        None
-    }
 
     /// Determine whether the prompt state is ready to be submitted. It is called whenever the use
     /// presses the enter key.
@@ -55,44 +46,18 @@ pub struct Input<P, B: Backend> {
     pub(super) prompt: P,
     pub(super) backend: TerminalState<B>,
     pub(super) base_row: u16,
-    pub(super) base_col: u16,
     pub(super) size: Size,
 }
 
 impl<P: Prompt, B: Backend> Input<P, B> {
     pub(super) fn layout(&self) -> Layout {
-        Layout::new(self.base_col, self.size).with_offset(0, self.base_row)
+        Layout::new(0, self.size).with_offset(0, self.base_row)
     }
 
-    pub(super) fn init(&mut self) -> error::Result<u16> {
-        let prompt = self.prompt.prompt();
-        let prompt_len =
-            u16::try_from(prompt.chars().count() + 3).expect("really big prompt");
-
-        self.size = self.backend.size()?;
+    pub(super) fn init(&mut self) -> error::Result<()> {
         self.backend.init()?;
-
-        self.backend.write_styled(&"? ".light_green())?;
-        self.backend.write_styled(&prompt.bold())?;
-        self.backend.write_all(b" ")?;
-
-        let hint_len = match self.prompt.hint() {
-            Some(hint) => {
-                self.backend.write_styled(&hint.dark_grey())?;
-                self.backend.write_all(b" ")?;
-                u16::try_from(hint.chars().count() + 1).expect("really big prompt")
-            }
-            None => 0,
-        };
-
         self.base_row = self.backend.get_cursor()?.1;
-        let height = self.prompt.height(self.layout()).saturating_sub(1);
-        self.base_row = self.adjust_scrollback(height)?;
-        self.base_col = prompt_len + hint_len;
-
-        self.render()?;
-
-        Ok(prompt_len)
+        self.render()
     }
 
     pub(super) fn adjust_scrollback(&mut self, height: u16) -> error::Result<u16> {
@@ -119,24 +84,20 @@ impl<P: Prompt, B: Backend> Input<P, B> {
     }
 
     pub(super) fn render(&mut self) -> error::Result<()> {
+        self.size = self.backend.size()?;
         let height = self.prompt.height(self.layout()).saturating_sub(1);
         self.base_row = self.adjust_scrollback(height)?;
-        self.clear(self.base_col)?;
-        self.backend.set_cursor(self.base_col, self.base_row)?;
+        self.clear()?;
+        self.backend.set_cursor(0, self.base_row)?;
 
-        self.prompt.render(self.layout(), &mut *self.backend)?;
+        self.prompt.render(&mut self.layout(), &mut *self.backend)?;
 
         self.flush()
     }
 
-    pub(super) fn clear(&mut self, prompt_len: u16) -> error::Result<()> {
-        if self.base_row + 1 < self.size.height {
-            self.backend.set_cursor(0, self.base_row + 1)?;
-            self.backend.clear(ClearType::FromCursorDown)?;
-        }
-
-        self.backend.set_cursor(prompt_len, self.base_row)?;
-        self.backend.clear(ClearType::UntilNewLine)
+    pub(super) fn clear(&mut self) -> error::Result<()> {
+        self.backend.set_cursor(0, self.base_row)?;
+        self.backend.clear(ClearType::FromCursorDown)
     }
 
     pub(super) fn goto_last_line(&mut self) -> error::Result<()> {
@@ -161,12 +122,8 @@ impl<P: Prompt, B: Backend> Input<P, B> {
     }
 
     #[inline]
-    fn finish(
-        mut self,
-        pressed_enter: bool,
-        prompt_len: u16,
-    ) -> error::Result<P::Output> {
-        self.clear(prompt_len)?;
+    fn finish(mut self, pressed_enter: bool) -> error::Result<P::Output> {
+        self.clear()?;
         self.backend.reset()?;
 
         if pressed_enter {
@@ -179,7 +136,7 @@ impl<P: Prompt, B: Backend> Input<P, B> {
     /// Run the ui on the given writer. It will return when the user presses `Enter` or `Escape`
     /// based on the [`Prompt`] implementation.
     pub fn run(mut self, events: &mut Events) -> error::Result<P::Output> {
-        let prompt_len = self.init()?;
+        self.init()?;
 
         loop {
             let e = events.next().unwrap()?;
@@ -196,12 +153,12 @@ impl<P: Prompt, B: Backend> Input<P, B> {
                     return Err(error::ErrorKind::Eof);
                 }
                 KeyCode::Esc if self.prompt.has_default() => {
-                    return self.finish(false, prompt_len);
+                    return self.finish(false);
                 }
 
                 KeyCode::Enter => match self.prompt.validate() {
                     Ok(Validation::Finish) => {
-                        return self.finish(true, prompt_len);
+                        return self.finish(true);
                     }
                     Ok(Validation::Continue) => true,
                     Err(e) => {
@@ -214,7 +171,6 @@ impl<P: Prompt, B: Backend> Input<P, B> {
             };
 
             if key_handled {
-                self.size = self.backend.size()?;
                 self.render()?;
             }
         }
@@ -232,7 +188,6 @@ impl<P, B: Backend> Input<P, B> {
             prompt,
             backend: TerminalState::new(backend, false),
             base_row: 0,
-            base_col: 0,
             size: Size::default(),
         }
     }

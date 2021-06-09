@@ -21,7 +21,7 @@ pub struct Checkbox<'a> {
 }
 
 struct CheckboxPrompt<'a, 'c> {
-    message: String,
+    prompt: widgets::Prompt<&'a str>,
     select: widgets::Select<Checkbox<'c>>,
     answers: &'a Answers,
 }
@@ -47,14 +47,6 @@ fn create_list_items(
 impl Prompt for CheckboxPrompt<'_, '_> {
     type ValidateErr = String;
     type Output = Vec<ListItem>;
-
-    fn prompt(&self) -> &str {
-        &self.message
-    }
-
-    fn hint(&self) -> Option<&str> {
-        Some("(Press <space> to select, <a> to toggle all, <i> to invert selection)")
-    }
 
     fn validate(&mut self) -> Result<Validation, Self::ValidateErr> {
         if let Validate::Sync(ref mut validate) = self.select.list.validate {
@@ -86,14 +78,15 @@ impl Prompt for CheckboxPrompt<'_, '_> {
 impl Widget for CheckboxPrompt<'_, '_> {
     fn render<B: Backend>(
         &mut self,
-        layout: ui::Layout,
+        layout: &mut ui::Layout,
         b: &mut B,
     ) -> error::Result<()> {
+        self.prompt.render(layout, b)?;
         self.select.render(layout, b)
     }
 
     fn height(&mut self, layout: ui::Layout) -> u16 {
-        self.select.height(layout)
+        self.select.height(layout.with_line_offset(0)) + self.prompt.height(layout)
     }
 
     fn handle_key(&mut self, key: KeyEvent) -> bool {
@@ -134,7 +127,7 @@ impl widgets::List for Checkbox<'_> {
     ) -> error::Result<()> {
         if hovered {
             b.set_fg(Color::Cyan)?;
-            b.write_all("❯ ".as_bytes())?;
+            write!(b, "{} ", ui::symbols::ARROW)?;
         } else {
             b.write_all(b"  ")?;
         }
@@ -142,15 +135,16 @@ impl widgets::List for Checkbox<'_> {
         if self.is_selectable(index) {
             if self.selected[index] {
                 b.set_fg(Color::LightGreen)?;
-                b.write_all("◉ ".as_bytes())?;
-
-                if hovered {
-                    b.set_fg(Color::Cyan)?;
-                } else {
-                    b.set_fg(Color::Reset)?;
-                }
             } else {
-                b.write_all("◯ ".as_bytes())?;
+                b.set_fg(Color::DarkGrey)?;
+            }
+
+            write!(b, "{} ", ui::symbols::TICK)?;
+
+            if hovered {
+                b.set_fg(Color::Cyan)?;
+            } else {
+                b.set_fg(Color::Reset)?;
             }
         } else {
             b.set_fg(Color::DarkGrey)?;
@@ -158,7 +152,7 @@ impl widgets::List for Checkbox<'_> {
 
         layout.offset_x += 4;
 
-        self.choices[index].render(layout, b)?;
+        self.choices[index].render(&mut layout, b)?;
 
         b.set_fg(Color::Reset)
     }
@@ -197,7 +191,8 @@ impl Checkbox<'_> {
 
         let ans = ui::Input::new(
             CheckboxPrompt {
-                message,
+                prompt: widgets::Prompt::new(&*message)
+                    .with_hint("Press <space> to select, <a> to toggle all, <i> to invert selection"),
                 select: widgets::Select::new(self),
                 answers,
             },
@@ -209,6 +204,8 @@ impl Checkbox<'_> {
         match transform {
             Transform::Sync(transform) => transform(&ans, answers, b)?,
             _ => {
+                widgets::Prompt::write_finished_message(&message, b)?;
+
                 b.set_fg(Color::Cyan)?;
                 print_comma_separated(
                     ans.iter().map(|item| item.name.lines().next().unwrap()),

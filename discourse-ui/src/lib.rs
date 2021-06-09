@@ -7,6 +7,7 @@ pub use widget::Widget;
 /// In build widgets
 pub mod widgets {
     pub use super::char_input::CharInput;
+    pub use super::prompt::{Delimiter, Prompt};
     pub use super::select::{List, Select};
     pub use super::string_input::StringInput;
     pub use super::text::Text;
@@ -25,6 +26,7 @@ mod char_input;
 pub mod error;
 pub mod events;
 mod input;
+mod prompt;
 mod select;
 mod string_input;
 mod text;
@@ -164,13 +166,24 @@ impl Layout {
         self
     }
 
+    pub fn with_cursor_pos(mut self, cursor_pos: (u16, u16)) -> Self {
+        self.line_offset = cursor_pos.0;
+        // TODO: change to `=` if cursor_pos becomes absolute value
+        self.offset_y += cursor_pos.0;
+        self
+    }
+
     pub fn set_size(&mut self, terminal_size: backend::Size) {
         self.width = terminal_size.width;
         self.height = terminal_size.height;
     }
 
     pub fn line_width(&self) -> u16 {
-        self.width - self.line_offset - self.offset_x
+        self.available_width() - self.line_offset
+    }
+
+    pub fn available_width(&self) -> u16 {
+        self.width - self.offset_x
     }
 
     pub fn get_start(&self, height: u16) -> u16 {
@@ -205,6 +218,13 @@ fn test_layout() {
             .get_start(10),
         5
     );
+}
+
+pub mod symbols {
+    pub const ARROW: char = '❯';
+    pub const SMALL_ARROW: char = '›';
+    pub const TICK: char = '✔';
+    pub const MIDDLE_DOT: char = '·';
 }
 
 struct TerminalState<B: backend::Backend> {

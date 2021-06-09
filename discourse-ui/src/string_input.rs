@@ -321,7 +321,7 @@ where
 
     fn render<B: Backend>(
         &mut self,
-        _: Layout,
+        layout: &mut Layout,
         backend: &mut B,
     ) -> error::Result<()> {
         if self.hide_output {
@@ -333,6 +333,16 @@ where
         } else {
             // Terminal takes care of wrapping in case of large strings
             backend.write_all(self.value.as_bytes())?;
+        }
+
+        let mut width = self.value_len as u16;
+        if width > layout.line_width() {
+            width -= layout.line_width();
+
+            layout.line_offset = width % layout.width;
+            layout.offset_y += 1 + width / layout.width;
+        } else {
+            layout.line_offset += width;
         }
 
         Ok(())
@@ -385,7 +395,6 @@ mod tests {
         backend::{TestBackend, TestBackendOp::Write},
         events::KeyModifiers,
         test_consts::*,
-        widgets::no_filter,
         Widget,
     };
 
@@ -408,7 +417,7 @@ mod tests {
 
     #[test]
     fn test_delete_movement() {
-        let mut input = StringInput::new(no_filter);
+        let mut input = StringInput::default();
 
         let backspace_movements = [
             (
@@ -502,23 +511,30 @@ mod tests {
 
     #[test]
     fn test_render() {
-        fn test(text: &str) {
+        fn test(text: &str, line_offset: u16, offset_y: u16) {
             let size = (100, 40).into();
-            let layout = Layout::new(0, size);
+            let mut layout = Layout::new(0, size);
 
-            let mut input = StringInput::new(no_filter);
+            let mut input = StringInput::default();
             input.set_value(text.into());
             input
                 .render(
-                    layout,
+                    &mut layout,
                     &mut TestBackend::new(Some(Write(text.into())), size),
                 )
                 .unwrap();
+
+            assert_eq!(
+                layout,
+                Layout::new(0, size)
+                    .with_line_offset(line_offset)
+                    .with_offset(0, offset_y)
+            );
         }
 
-        test("Hello, World!");
-        test(LOREM);
-        test(UNICODE);
+        test("Hello, World!", 13, 0);
+        test(LOREM, 70, 4);
+        test(UNICODE, 70, 4);
     }
 
     #[test]
@@ -628,7 +644,7 @@ mod tests {
     fn test_height() {
         fn test(text: &str, indent: usize, max_width: usize, height: u16) {
             let layout = Layout::new(indent as u16, (max_width as u16, 100).into());
-            let mut input = StringInput::new(no_filter);
+            let mut input = StringInput::default();
             input.set_value(text.into());
             assert_eq!(input.height(layout), height);
         }
@@ -644,7 +660,7 @@ mod tests {
     #[test]
     fn test_cursor_pos() {
         let mut layout = Layout::new(0, (100, 100).into());
-        let mut input = StringInput::new(no_filter);
+        let mut input = StringInput::default();
         input.set_value("Hello, World!".into());
         input.set_at(0);
         assert_eq!(input.cursor_pos(layout), (0, 0));

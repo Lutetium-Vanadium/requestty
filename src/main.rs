@@ -4,7 +4,7 @@ use discourse::{DefaultSeparator, Question, Separator};
 use std::env;
 
 fn main() {
-    let s = String::from("Hello there 1");
+    let s = String::from("Hello there ");
 
     let q = match env::args().nth(1).as_deref() {
         Some("b") => vec![
@@ -17,8 +17,11 @@ fn main() {
         Some("s") => vec![
             Question::input("a").message("Hello there 2").into(),
             Question::input("b")
-                .message(|_: &discourse::Answers| s.clone())
-                .filter(|ans, _| ans + &s)
+                .message(|_: &discourse::Answers| s[0..(s.len() - 1)].to_owned())
+                .filter(|mut ans, _| {
+                    ans.insert_str(0, &s);
+                    ans
+                })
                 .validate(|_, _| Ok(()))
                 .default("Yes")
                 .into(),

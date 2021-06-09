@@ -1,10 +1,19 @@
-use std::{fmt, io::Write};
+use std::io::Write;
 
 use super::{Attributes, Backend, ClearType, Color, MoveDirection, Size as BSize};
 use crate::error;
 use TestBackendOp::*;
 
-#[derive(Debug, Clone)]
+// Used to allow derive Debug on structs which exist only to print errors, and show dashes for every
+// field
+struct Dash;
+impl std::fmt::Debug for Dash {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str("_")
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum TestBackendOp {
     Write(Vec<u8>),
     Flush,
@@ -24,132 +33,56 @@ pub enum TestBackendOp {
     Clear(ClearType),
 }
 
-impl fmt::Display for TestBackendOp {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let s = match *self {
-            Write(_) => "Write(_)",
-            Flush => "Flush",
-            EnableRawMode => "EnableRawMode",
-            DisableRawMode => "DisableRawMode",
-            HideCursor => "HideCursor",
-            ShowCursor => "ShowCursor",
-            GetCursor(_, _) => "GetCursor(_, _)",
-            SetCursor(_, _) => "SetCursor(_, _)",
-            MoveCursor(_) => "MoveCursor(_)",
-            Scroll(_) => "Scroll(_)",
-            SetAttributes(_) => "SetAttributes(_)",
-            RemoveAttributes(_) => "RemoveAttributes(_)",
-            SetFg(_) => "SetFg(_)",
-            SetBg(_) => "SetBg(_)",
-            Clear(_) => "Clear(_)",
-        };
-        f.write_str(s)
-    }
-}
-
 #[derive(Debug)]
 struct TestBackendOpIter<I>(std::iter::Enumerate<I>);
 
-fn err<G: fmt::Display>(op_i: usize, expected: TestBackendOp, got: G) -> ! {
-    panic!("op {}: expected {:?}, got {}", op_i, expected, got);
+fn err<G: std::fmt::Debug>(op_i: usize, expected: TestBackendOp, got: G) -> ! {
+    panic!("op {}: expected {:?}, got {:?}", op_i, expected, got);
 }
 
 impl<I: Iterator<Item = TestBackendOp>> TestBackendOpIter<I> {
     fn next_matches(&mut self, op: TestBackendOp) {
-        use std::mem::discriminant;
         let (op_i, expected_op) = self.0.next().unwrap();
-        if discriminant(&expected_op) != discriminant(&op) {
+        if expected_op != op {
             err(op_i, expected_op, op);
         }
     }
 
-    fn next_write(&mut self) -> Vec<u8> {
-        match self.0.next().unwrap() {
-            (_, Write(w)) => w,
-            (i, expected) => err(i, expected, "Write(_)"),
+    fn next_write(&mut self, buf: &[u8]) {
+        let (op_i, expected) = match self.0.next().unwrap() {
+            (i, Write(w)) => (i, w),
+            (i, expected) => {
+                #[derive(Debug)]
+                struct Write<'a>(&'a [u8]);
+
+                err(i, expected, Write(buf))
+            }
+        };
+
+        if buf != expected {
+            match (std::str::from_utf8(&expected), std::str::from_utf8(buf)) {
+                (Ok(expected), Ok(buf)) => {
+                    panic!(
+                        "{}: expected Write({:?}) got Write({:?})",
+                        op_i, expected, buf
+                    )
+                }
+                _ => panic!(
+                    "{}: expected Write({:?}) got Write({:?})",
+                    op_i, expected, buf
+                ),
+            }
         }
-    }
-
-    fn next_flush(&mut self) {
-        self.next_matches(Flush);
-    }
-
-    fn next_enable_raw_mode(&mut self) {
-        self.next_matches(EnableRawMode);
-    }
-
-    fn next_disable_raw_mode(&mut self) {
-        self.next_matches(DisableRawMode);
-    }
-
-    fn next_hide_cursor(&mut self) {
-        self.next_matches(HideCursor);
-    }
-
-    fn next_show_cursor(&mut self) {
-        self.next_matches(ShowCursor);
     }
 
     fn next_get_cursor(&mut self) -> (u16, u16) {
         match self.0.next().unwrap() {
             (_, GetCursor(x, y)) => (x, y),
-            (i, expected) => err(i, expected, "GetCursor(_, _)"),
-        }
-    }
-
-    fn next_set_cursor(&mut self) -> (u16, u16) {
-        match self.0.next().unwrap() {
-            (_, SetCursor(x, y)) => (x, y),
-            (i, expected) => err(i, expected, "SetCursor(_, _)"),
-        }
-    }
-
-    fn next_move_cursor(&mut self) -> MoveDirection {
-        match self.0.next().unwrap() {
-            (_, MoveCursor(m)) => m,
-            (i, expected) => err(i, expected, "MoveCursor(_)"),
-        }
-    }
-
-    fn next_scroll(&mut self) -> i16 {
-        match self.0.next().unwrap() {
-            (_, Scroll(s)) => s,
-            (i, expected) => err(i, expected, "Scroll(_)"),
-        }
-    }
-
-    fn next_set_attributes(&mut self) -> Attributes {
-        match self.0.next().unwrap() {
-            (_, SetAttributes(a)) => a,
-            (i, expected) => err(i, expected, "SetAttributes(_)"),
-        }
-    }
-
-    fn next_remove_attributes(&mut self) -> Attributes {
-        match self.0.next().unwrap() {
-            (_, RemoveAttributes(a)) => a,
-            (i, expected) => err(i, expected, "RemoveAttributes(_)"),
-        }
-    }
-
-    fn next_set_fg(&mut self) -> Color {
-        match self.0.next().unwrap() {
-            (_, SetFg(c)) => c,
-            (i, expected) => err(i, expected, "SetFg(_)"),
-        }
-    }
-
-    fn next_set_bg(&mut self) -> Color {
-        match self.0.next().unwrap() {
-            (_, SetBg(c)) => c,
-            (i, expected) => err(i, expected, "SetBg(_)"),
-        }
-    }
-
-    fn next_clear(&mut self) -> ClearType {
-        match self.0.next().unwrap() {
-            (_, Clear(c)) => c,
-            (i, expected) => err(i, expected, "Clear(_)"),
+            (i, expected) => {
+                #[derive(Debug)]
+                struct GetCursor(Dash, Dash);
+                err(i, expected, GetCursor(Dash, Dash))
+            }
         }
     }
 }
@@ -175,39 +108,34 @@ impl<I: Iterator<Item = TestBackendOp>> TestBackend<I> {
 
 impl<I: Iterator<Item = TestBackendOp>> Write for TestBackend<I> {
     fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
-        assert_eq!(
-            buf,
-            &self.expected_ops.next_write()[..],
-            "FAILED {:?}",
-            std::str::from_utf8(buf)
-        );
+        self.expected_ops.next_write(buf);
         Ok(buf.len())
     }
 
     fn flush(&mut self) -> std::io::Result<()> {
-        self.expected_ops.next_flush();
+        self.expected_ops.next_matches(Flush);
         Ok(())
     }
 }
 
 impl<I: Iterator<Item = TestBackendOp>> Backend for TestBackend<I> {
     fn enable_raw_mode(&mut self) -> error::Result<()> {
-        self.expected_ops.next_enable_raw_mode();
+        self.expected_ops.next_matches(EnableRawMode);
         Ok(())
     }
 
     fn disable_raw_mode(&mut self) -> error::Result<()> {
-        self.expected_ops.next_disable_raw_mode();
+        self.expected_ops.next_matches(DisableRawMode);
         Ok(())
     }
 
     fn hide_cursor(&mut self) -> error::Result<()> {
-        self.expected_ops.next_hide_cursor();
+        self.expected_ops.next_matches(HideCursor);
         Ok(())
     }
 
     fn show_cursor(&mut self) -> error::Result<()> {
-        self.expected_ops.next_show_cursor();
+        self.expected_ops.next_matches(ShowCursor);
         Ok(())
     }
 
@@ -216,42 +144,42 @@ impl<I: Iterator<Item = TestBackendOp>> Backend for TestBackend<I> {
     }
 
     fn set_cursor(&mut self, x: u16, y: u16) -> error::Result<()> {
-        assert_eq!(self.expected_ops.next_set_cursor(), (x, y));
+        self.expected_ops.next_matches(SetCursor(x, y));
         Ok(())
     }
 
     fn move_cursor(&mut self, direction: MoveDirection) -> error::Result<()> {
-        assert_eq!(self.expected_ops.next_move_cursor(), direction);
+        self.expected_ops.next_matches(MoveCursor(direction));
         Ok(())
     }
 
     fn scroll(&mut self, dist: i16) -> error::Result<()> {
-        assert_eq!(self.expected_ops.next_scroll(), dist);
+        self.expected_ops.next_matches(Scroll(dist));
         Ok(())
     }
 
     fn set_attributes(&mut self, attributes: Attributes) -> error::Result<()> {
-        assert_eq!(self.expected_ops.next_set_attributes(), attributes);
+        self.expected_ops.next_matches(SetAttributes(attributes));
         Ok(())
     }
 
     fn remove_attributes(&mut self, attributes: Attributes) -> error::Result<()> {
-        assert_eq!(self.expected_ops.next_remove_attributes(), attributes);
+        self.expected_ops.next_matches(RemoveAttributes(attributes));
         Ok(())
     }
 
     fn set_fg(&mut self, color: Color) -> error::Result<()> {
-        assert_eq!(self.expected_ops.next_set_fg(), color);
+        self.expected_ops.next_matches(SetFg(color));
         Ok(())
     }
 
     fn set_bg(&mut self, color: Color) -> error::Result<()> {
-        assert_eq!(self.expected_ops.next_set_bg(), color);
+        self.expected_ops.next_matches(SetBg(color));
         Ok(())
     }
 
     fn clear(&mut self, clear_type: ClearType) -> error::Result<()> {
-        assert_eq!(self.expected_ops.next_clear(), clear_type);
+        self.expected_ops.next_matches(Clear(clear_type));
         Ok(())
     }
 
