@@ -1,7 +1,9 @@
+use std::fmt::Write;
+
 use ui::{
     backend::{Backend, Color},
     error,
-    events::KeyEvent,
+    events::{KeyCode, KeyEvent},
     widgets, Prompt, Validation, Widget,
 };
 
@@ -35,6 +37,10 @@ impl Int<'_> {
         b.flush().map_err(Into::into)
     }
 
+    fn delta(i: i64, delta: i64) -> i64 {
+        i.wrapping_add(delta)
+    }
+
     fn filter_map_char(c: char) -> Option<char> {
         if c.is_digit(10) || c == '-' || c == '+' {
             Some(c)
@@ -55,6 +61,10 @@ impl Float<'_> {
         b.set_fg(Color::Reset)?;
         b.write_all(b"\n")?;
         b.flush().map_err(Into::into)
+    }
+
+    fn delta(f: f64, delta: i64) -> f64 {
+        f + delta as f64
     }
 
     fn filter_map_char(c: char) -> Option<char> {
@@ -99,7 +109,24 @@ macro_rules! impl_number_prompt {
             }
 
             fn handle_key(&mut self, key: KeyEvent) -> bool {
-                self.input.handle_key(key)
+                if self.input.handle_key(key) {
+                    return true;
+                }
+
+                let n = match (key.code, self.parse()) {
+                    (KeyCode::PageUp, Ok(n)) => $type::delta(n, 10),
+                    (KeyCode::PageDown, Ok(n)) => $type::delta(n, -10),
+                    (KeyCode::Up, Ok(n)) => $type::delta(n, 1),
+                    (KeyCode::Down, Ok(n)) => $type::delta(n, -1),
+                    _ => return false,
+                };
+
+                self.input.replace_with(|mut s| {
+                    s.clear();
+                    write!(s, "{}", n).unwrap();
+                    s
+                });
+                true
             }
 
             fn cursor_pos(&mut self, layout: ui::Layout) -> (u16, u16) {
