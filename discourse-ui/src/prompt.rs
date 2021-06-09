@@ -203,7 +203,7 @@ mod tests {
 
     #[test]
     fn test_width() {
-        assert_eq!(Prompt::new("Hello").width(), 8);
+        assert_eq!(Prompt::new("Hello").width(), 10);
         assert_eq!(Prompt::new("Hello").with_hint("world").width(), 16);
         assert_eq!(
             Prompt::new("Hello")
@@ -219,7 +219,7 @@ mod tests {
     fn test_cursor_pos() {
         let layout = Layout::new(5, (100, 100).into());
 
-        assert_eq!(Prompt::new("Hello").cursor_pos_impl(layout), (13, 0));
+        assert_eq!(Prompt::new("Hello").cursor_pos_impl(layout), (15, 0));
         assert_eq!(
             Prompt::new("Hello")
                 .with_hint("world")
