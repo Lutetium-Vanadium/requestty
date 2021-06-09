@@ -88,7 +88,7 @@ impl Widget for EditorPrompt<'_, '_> {
 }
 
 impl ui::Prompt for EditorPrompt<'_, '_> {
-    type ValidateErr = io::Error;
+    type ValidateErr = widgets::Text<String>;
     type Output = String;
 
     fn validate(&mut self) -> Result<Validation, Self::ValidateErr> {
@@ -100,7 +100,8 @@ impl ui::Prompt for EditorPrompt<'_, '_> {
             return Err(io::Error::new(
                 io::ErrorKind::Other,
                 "Could not open editor",
-            ));
+            )
+            .into());
         }
 
         self.ans.clear();

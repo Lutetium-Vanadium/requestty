@@ -119,6 +119,12 @@ fn fill(text: &str, layout: Layout) -> String {
     text
 }
 
+impl<E: std::error::Error> From<E> for Text<String> {
+    fn from(e: E) -> Self {
+        Text::new(e.to_string())
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use crate::{

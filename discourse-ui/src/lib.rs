@@ -225,6 +225,7 @@ pub mod symbols {
     pub const SMALL_ARROW: char = '›';
     pub const TICK: char = '✔';
     pub const MIDDLE_DOT: char = '·';
+    pub const CROSS: char = '✖';
 }
 
 struct TerminalState<B: backend::Backend> {

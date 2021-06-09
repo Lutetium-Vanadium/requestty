@@ -12,7 +12,7 @@ use crate::{
 /// trait required for general rendering to terminal, see [`Widget`].
 pub trait Prompt: Widget {
     /// The error type returned by validate. It **must** be only one line long.
-    type ValidateErr: std::fmt::Display;
+    type ValidateErr: Widget;
 
     /// The output type returned by [`Input::run`]
     type Output;
@@ -100,23 +100,35 @@ impl<P: Prompt, B: Backend> Input<P, B> {
         self.backend.clear(ClearType::FromCursorDown)
     }
 
-    pub(super) fn goto_last_line(&mut self) -> error::Result<()> {
-        let height = self.prompt.height(self.layout());
+    pub(super) fn goto_last_line(&mut self, height: u16) -> error::Result<()> {
         self.base_row = self.adjust_scrollback(height)?;
         self.backend.set_cursor(0, self.base_row + height)
     }
 
-    pub(super) fn print_error(&mut self, e: P::ValidateErr) -> error::Result<()> {
+    pub(super) fn print_error(
+        &mut self,
+        mut e: P::ValidateErr,
+    ) -> error::Result<()> {
         self.size = self.backend.size()?;
-        self.goto_last_line()?;
-        self.backend.write_styled(&">>".red())?;
-        write!(self.backend, " {}", e)?;
+        let height = self.prompt.height(self.layout());
+        self.goto_last_line(height)?;
+
+        self.backend.write_styled(&crate::symbols::CROSS.red())?;
+        self.backend.write_all(b" ")?;
+
+        let mut layout =
+            Layout::new(2, self.size).with_offset(0, self.base_row + height);
+
+        self.adjust_scrollback(height + e.height(layout))?;
+        e.render(&mut layout, &mut *self.backend)?;
+
         self.flush()
     }
 
     pub(super) fn exit(&mut self) -> error::Result<()> {
         self.size = self.backend.size()?;
-        self.goto_last_line()?;
+        let height = self.prompt.height(self.layout());
+        self.goto_last_line(height)?;
         self.backend.reset()?;
         Ok(())
     }
