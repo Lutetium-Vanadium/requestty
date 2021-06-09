@@ -169,7 +169,7 @@ impl Layout {
     pub fn with_cursor_pos(mut self, cursor_pos: (u16, u16)) -> Self {
         self.line_offset = cursor_pos.0;
         // TODO: change to `=` if cursor_pos becomes absolute value
-        self.offset_y += cursor_pos.0;
+        self.offset_y += cursor_pos.1;
         self
     }
 

@@ -159,20 +159,19 @@ impl<M: AsRef<str>, H: AsRef<str>> Widget for Prompt<M, H> {
         b.write_styled(&self.message.as_ref().bold())?;
         b.write_all(b" ")?;
 
-        if let Some(ref hint) = self.hint {
-            b.set_fg(Color::DarkGrey)?;
+        b.set_fg(Color::DarkGrey)?;
 
-            match self.delim.into() {
-                Some((start, end)) => {
-                    write!(b, "{}{}{}", start, hint.as_ref(), end)?
-                }
-                None => write!(b, "{}", hint.as_ref())?,
+        match (&self.hint, self.delim.into()) {
+            (Some(hint), Some((start, end))) => {
+                write!(b, "{}{}{}", start, hint.as_ref(), end)?
             }
-            b.set_fg(Color::Reset)?;
-        } else {
-            b.write_styled(&crate::symbols::SMALL_ARROW.dark_grey())?;
+            (Some(hint), None) => write!(b, "{}", hint.as_ref())?,
+            (None, _) => {
+                write!(b, "{}", crate::symbols::SMALL_ARROW)?;
+            }
         }
 
+        b.set_fg(Color::Reset)?;
         b.write_all(b" ")?;
 
         *layout = layout.with_cursor_pos(self.cursor_pos_impl(*layout));
@@ -195,7 +194,10 @@ impl<M: AsRef<str>, H: AsRef<str>> Widget for Prompt<M, H> {
 
 #[cfg(test)]
 mod tests {
-    use crate::test_consts::*;
+    use crate::{
+        backend::{Attributes, TestBackend, TestBackendOp::*},
+        test_consts::*,
+    };
 
     use super::*;
 
@@ -213,6 +215,129 @@ mod tests {
             14
         );
         assert_eq!(Prompt::new(LOREM).with_hint(UNICODE).width(), 946);
+    }
+
+    #[test]
+    fn test_render() {
+        fn test(
+            message: &'static str,
+            hint: Option<&'static str>,
+            delim: Delimiter,
+            delim_chars: Option<(char, char)>,
+            expected_layout: Layout,
+        ) {
+            let mut ops = Vec::with_capacity(10);
+
+            ops.push(SetFg(Color::LightGreen));
+            ops.push(Write("? ".into()));
+            ops.push(SetFg(Color::Reset));
+            ops.push(SetAttributes(Attributes::BOLD));
+            ops.push(Write(message.into()));
+            ops.push(SetAttributes(Attributes::RESET));
+            ops.push(Write(" ".into()));
+            ops.push(SetFg(Color::DarkGrey));
+            if let Some(hint) = hint {
+                match delim_chars {
+                    Some((start, end)) => {
+                        ops.push(Write(start.to_string().into()));
+                        ops.push(Write(hint.into()));
+                        ops.push(Write(end.to_string().into()));
+                    }
+                    None => ops.push(Write(hint.into())),
+                }
+            } else {
+                ops.push(Write(
+                    crate::symbols::SMALL_ARROW.to_string().into_bytes(),
+                ));
+            }
+            ops.push(SetFg(Color::Reset));
+            ops.push(Write(" ".into()));
+
+            let size = (100, 100).into();
+            let mut layout = Layout::new(5, size);
+            let mut prompt = Prompt::new(message)
+                .with_optional_hint(hint)
+                .with_delim(delim);
+
+            prompt
+                .render(&mut layout, &mut TestBackend::new(ops, size))
+                .unwrap();
+
+            assert_eq!(
+                layout,
+                expected_layout,
+                "\ncursor pos = {:?}, width = {:?}",
+                prompt.cursor_pos(Layout::new(5, size)),
+                prompt.width(),
+            );
+        }
+
+        let layout = Layout::new(5, (100, 100).into());
+
+        test(
+            "Hello",
+            None,
+            Delimiter::None,
+            None,
+            layout.with_line_offset(15),
+        );
+
+        test(
+            "Hello",
+            Some("world"),
+            Delimiter::Parentheses,
+            Some(('(', ')')),
+            layout.with_line_offset(21),
+        );
+
+        test(
+            "Hello",
+            Some("world"),
+            Delimiter::Braces,
+            Some(('{', '}')),
+            layout.with_line_offset(21),
+        );
+
+        test(
+            "Hello",
+            Some("world"),
+            Delimiter::SquareBracket,
+            Some(('[', ']')),
+            layout.with_line_offset(21),
+        );
+
+        test(
+            "Hello",
+            Some("world"),
+            Delimiter::AngleBracket,
+            Some(('<', '>')),
+            layout.with_line_offset(21),
+        );
+
+        test(
+            "Hello",
+            Some("world"),
+            Delimiter::Other('-', '|'),
+            Some(('-', '|')),
+            layout.with_line_offset(21),
+        );
+
+        test(
+            LOREM,
+            Some(UNICODE),
+            Delimiter::None,
+            None,
+            layout.with_line_offset(49).with_offset(0, 9),
+        );
+    }
+
+    #[test]
+    fn test_height() {
+        let layout = Layout::new(5, (100, 100).into());
+
+        assert_eq!(Prompt::new("Hello").height(layout), 1);
+        assert_eq!(Prompt::new("Hello").with_hint("world").height(layout), 1);
+        assert_eq!(Prompt::new(LOREM).with_hint(UNICODE).height(layout), 10);
     }
 
     #[test]
