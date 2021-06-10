@@ -198,7 +198,7 @@ impl<S: ui::Widget> ui::Widget for ExpandItem<S> {
         self.name.render(layout, backend)
     }
 
-    fn height(&mut self, layout: ui::Layout) -> u16 {
+    fn height(&mut self, layout: &mut ui::Layout) -> u16 {
         self.name.height(layout)
     }
 

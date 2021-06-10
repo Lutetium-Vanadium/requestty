@@ -85,7 +85,7 @@ impl<P: Prompt, B: Backend> Input<P, B> {
 
     pub(super) fn render(&mut self) -> error::Result<()> {
         self.size = self.backend.size()?;
-        let height = self.prompt.height(self.layout()).saturating_sub(1);
+        let height = self.prompt.height(&mut self.layout()).saturating_sub(1);
         self.base_row = self.adjust_scrollback(height)?;
         self.clear()?;
         self.backend.set_cursor(0, self.base_row)?;
@@ -110,7 +110,7 @@ impl<P: Prompt, B: Backend> Input<P, B> {
         mut e: P::ValidateErr,
     ) -> error::Result<()> {
         self.size = self.backend.size()?;
-        let height = self.prompt.height(self.layout());
+        let height = self.prompt.height(&mut self.layout());
         self.goto_last_line(height)?;
 
         self.backend.write_styled(&crate::symbols::CROSS.red())?;
@@ -119,7 +119,9 @@ impl<P: Prompt, B: Backend> Input<P, B> {
         let mut layout =
             Layout::new(2, self.size).with_offset(0, self.base_row + height);
 
-        self.adjust_scrollback(height + e.height(layout))?;
+        self.adjust_scrollback(
+            height + e.height(&mut layout.clone()).saturating_sub(1),
+        )?;
         e.render(&mut layout, &mut *self.backend)?;
 
         self.flush()
@@ -127,7 +129,7 @@ impl<P: Prompt, B: Backend> Input<P, B> {
 
     pub(super) fn exit(&mut self) -> error::Result<()> {
         self.size = self.backend.size()?;
-        let height = self.prompt.height(self.layout());
+        let height = self.prompt.height(&mut self.layout());
         self.goto_last_line(height)?;
         self.backend.reset()?;
         Ok(())

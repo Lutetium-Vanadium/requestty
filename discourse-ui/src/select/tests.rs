@@ -67,8 +67,8 @@ impl<T: Widget> super::List for List<T> {
         self.should_loop
     }
 
-    fn height_at(&mut self, index: usize, layout: Layout) -> u16 {
-        self.vec[index].height(layout)
+    fn height_at(&mut self, index: usize, mut layout: Layout) -> u16 {
+        self.vec[index].height(&mut layout)
     }
 
     fn len(&self) -> usize {
@@ -98,8 +98,8 @@ fn multi_line_list(len: usize) -> Vec<Text<String>> {
 #[test]
 fn test_height() {
     fn test(list: List<impl Widget>, height: u16, line_offset: u16) {
-        let layout = Layout::new(line_offset, (100, 100).into());
-        assert_eq!(Select::new(list).height(layout), height);
+        let mut layout = Layout::new(line_offset, (100, 100).into());
+        assert_eq!(Select::new(list).height(&mut layout), height);
     }
 
     test(List::new(single_line_vec(5)), 5, 0);

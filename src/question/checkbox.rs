@@ -85,8 +85,8 @@ impl Widget for CheckboxPrompt<'_, '_> {
         self.select.render(layout, b)
     }
 
-    fn height(&mut self, layout: ui::Layout) -> u16 {
-        self.select.height(layout.with_line_offset(0)) + self.prompt.height(layout)
+    fn height(&mut self, layout: &mut ui::Layout) -> u16 {
+        self.prompt.height(layout) + self.select.height(layout) - 1
     }
 
     fn handle_key(&mut self, key: KeyEvent) -> bool {
@@ -163,7 +163,7 @@ impl widgets::List for Checkbox<'_> {
 
     fn height_at(&mut self, index: usize, mut layout: ui::Layout) -> u16 {
         layout.offset_x += 4;
-        self.choices[index].height(layout)
+        self.choices[index].height(&mut layout)
     }
 
     fn len(&self) -> usize {

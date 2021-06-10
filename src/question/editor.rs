@@ -69,7 +69,7 @@ impl Widget for EditorPrompt<'_, '_> {
         self.prompt.render(layout, backend)
     }
 
-    fn height(&mut self, layout: ui::Layout) -> u16 {
+    fn height(&mut self, layout: &mut ui::Layout) -> u16 {
         self.prompt.height(layout)
     }
 

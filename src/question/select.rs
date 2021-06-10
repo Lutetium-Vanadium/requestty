@@ -64,8 +64,8 @@ impl Widget for SelectPrompt<'_> {
         self.select.render(layout, b)
     }
 
-    fn height(&mut self, layout: ui::Layout) -> u16 {
-        self.select.height(layout.with_line_offset(0)) + self.prompt.height(layout)
+    fn height(&mut self, layout: &mut ui::Layout) -> u16 {
+        self.prompt.height(layout) + self.select.height(layout) - 1
     }
 
     fn cursor_pos(&mut self, layout: ui::Layout) -> (u16, u16) {

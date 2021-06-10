@@ -595,11 +595,11 @@ impl<L: List> super::Widget for Select<L> {
         unimplemented!("list does not support cursor pos")
     }
 
-    fn height(&mut self, layout: Layout) -> u16 {
-        self.update_heights(layout);
+    fn height(&mut self, layout: &mut Layout) -> u16 {
+        self.update_heights(*layout);
 
-        // Try to show everything
-        (layout.line_offset != 0) as u16 // Add one if we go to the next line
+        let height = (layout.line_offset != 0) as u16 // Add one if we go to the next line
+            // Try to show everything
             + self
                 .height
                 // otherwise show whatever is possible
@@ -614,6 +614,11 @@ impl<L: List> super::Widget for Select<L> {
                     .unwrap_or(&0)
                     // +1 if paginating since the message at the end takes one line
                     + self.is_paginating() as u16,
-                )
+                );
+
+        layout.line_offset = 0;
+        layout.offset_y += height;
+
+        height
     }
 }

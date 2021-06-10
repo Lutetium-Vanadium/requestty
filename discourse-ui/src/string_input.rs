@@ -335,23 +335,27 @@ where
             backend.write_all(self.value.as_bytes())?;
         }
 
+        // Adjust layout
+        self.height(layout);
+
+        Ok(())
+    }
+
+    fn height(&mut self, layout: &mut Layout) -> u16 {
+        if self.hide_output {
+            return 1;
+        }
+
         let mut width = self.value_len as u16;
         if width > layout.line_width() {
             width -= layout.line_width();
 
             layout.line_offset = width % layout.width;
             layout.offset_y += 1 + width / layout.width;
+
+            2 + width / layout.width
         } else {
             layout.line_offset += width;
-        }
-
-        Ok(())
-    }
-
-    fn height(&mut self, layout: Layout) -> u16 {
-        if self.value_len as u16 > layout.line_width() {
-            2 + (self.value_len as u16 - layout.line_width()) / layout.width
-        } else {
             1
         }
     }
@@ -643,10 +647,11 @@ mod tests {
     #[test]
     fn test_height() {
         fn test(text: &str, indent: usize, max_width: usize, height: u16) {
-            let layout = Layout::new(indent as u16, (max_width as u16, 100).into());
+            let mut layout =
+                Layout::new(indent as u16, (max_width as u16, 100).into());
             let mut input = StringInput::default();
             input.set_value(text.into());
-            assert_eq!(input.height(layout), height);
+            assert_eq!(input.height(&mut layout), height);
         }
 
         test("Hello, World!", 0, 100, 1);

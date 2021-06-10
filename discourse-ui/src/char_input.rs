@@ -83,7 +83,8 @@ where
         Ok(())
     }
 
-    fn height(&mut self, _: Layout) -> u16 {
+    fn height(&mut self, layout: &mut Layout) -> u16 {
+        layout.line_offset += self.value.is_some() as u16;
         1
     }
 

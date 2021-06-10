@@ -34,7 +34,7 @@ impl<'a> Default for Expand<'a> {
 }
 
 struct ExpandPrompt<'a, F> {
-    prompt: widgets::Prompt<String, &'a str>,
+    prompt: widgets::Prompt<&'a str, &'a str>,
     select: widgets::Select<Expand<'a>>,
     input: widgets::CharInput<F>,
     expanded: bool,
@@ -142,18 +142,19 @@ impl<F: Fn(char) -> Option<char>> ui::Widget for ExpandPrompt<'_, F> {
         }
     }
 
-    fn height(&mut self, layout: ui::Layout) -> u16 {
+    fn height(&mut self, layout: &mut ui::Layout) -> u16 {
         if self.expanded {
-            self.select.height(layout.with_line_offset(0))
-                + self.prompt.height(layout)
-                + 1
+            // Don't need to add 1 for the answer prompt, since this will over count by 1 anyways
+            let height = self.prompt.height(layout) + self.select.height(layout);
+            layout.offset_y += 1; // For the ANSWER prompt at the bottom
+            height
         } else if self.input.value().is_some() {
             self.prompt.height(layout) - 1
                 + self.input.height(layout)
                 // selected will return None if the help option is selected
                 + self.selected().map(|c| c.height(layout)).unwrap_or(1)
         } else {
-            self.prompt.height(layout) + self.input.height(layout)
+            self.prompt.height(layout) + self.input.height(layout) - 1
         }
     }
 
@@ -168,15 +169,16 @@ impl<F: Fn(char) -> Option<char>> ui::Widget for ExpandPrompt<'_, F> {
         }
     }
 
-    fn cursor_pos(&mut self, layout: ui::Layout) -> (u16, u16) {
+    fn cursor_pos(&mut self, mut layout: ui::Layout) -> (u16, u16) {
         if self.expanded {
             let w = self
                 .input
                 .cursor_pos(layout.with_line_offset(ANSWER_PROMPT.len() as u16))
                 .0;
-            (w, self.height(layout) - 1)
+            (w, self.height(&mut layout) - 1)
         } else {
-            self.input.cursor_pos(layout)
+            self.input
+                .cursor_pos(layout.with_cursor_pos(self.prompt.cursor_pos(layout)))
         }
     }
 }
@@ -215,7 +217,7 @@ impl widgets::List for Expand<'_> {
             1
         } else {
             layout.offset_x += 5;
-            self.choices[index].height(layout)
+            self.choices[index].height(&mut layout)
         }
     }
 
@@ -297,7 +299,7 @@ impl Expand<'_> {
 
         let ans = ui::Input::new(
             ExpandPrompt {
-                prompt: widgets::Prompt::new(message).with_hint(&hint),
+                prompt: widgets::Prompt::new(&*message).with_hint(&hint),
                 input: widgets::CharInput::new(|c| {
                     let c = c.to_ascii_lowercase();
                     hint.chars()
@@ -314,6 +316,7 @@ impl Expand<'_> {
         match transform {
             Transform::Sync(transform) => transform(&ans, answers, b)?,
             _ => {
+                widgets::Prompt::write_finished_message(&message, b)?;
                 b.write_styled(&ans.name.lines().next().unwrap().cyan())?;
                 b.write_all(b"\n")?;
                 b.flush()?;

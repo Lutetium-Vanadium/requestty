@@ -72,8 +72,10 @@ impl<S: AsRef<str>> Widget for Text<S> {
         Ok(())
     }
 
-    fn height(&mut self, layout: Layout) -> u16 {
-        self.max_height(layout).min(layout.max_height)
+    fn height(&mut self, layout: &mut Layout) -> u16 {
+        let height = self.max_height(*layout).min(layout.max_height);
+        layout.offset_y += height;
+        height
     }
 
     fn cursor_pos(&mut self, layout: Layout) -> (u16, u16) {
@@ -164,21 +166,21 @@ mod tests {
         let mut text = Text::new(LOREM);
 
         assert_eq!(text.max_height(layout), 7);
-        assert_eq!(text.height(layout.with_max_height(5)), 5);
+        assert_eq!(text.height(&mut layout.with_max_height(5)), 5);
         layout.line_offset = 0;
         layout.width = 110;
-        assert_eq!(text.height(layout), text.max_height(layout));
-        assert_eq!(text.height(layout), 5);
+        assert_eq!(text.height(&mut layout.clone()), text.max_height(layout));
+        assert_eq!(text.height(&mut layout.clone()), 5);
 
         let mut layout = Layout::new(40, (80, 100).into());
         let mut text = Text::new(UNICODE);
 
         assert_eq!(text.max_height(layout), 7);
-        assert_eq!(text.height(layout.with_max_height(5)), 5);
+        assert_eq!(text.height(&mut layout.with_max_height(5)), 5);
         layout.line_offset = 0;
         layout.width = 110;
-        assert_eq!(text.height(layout), text.max_height(layout));
-        assert_eq!(text.height(layout), 5);
+        assert_eq!(text.height(&mut layout.clone()), text.max_height(layout));
+        assert_eq!(text.height(&mut layout.clone()), 5);
     }
 
     #[test]

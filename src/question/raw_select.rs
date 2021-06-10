@@ -81,10 +81,11 @@ impl Widget for RawSelectPrompt<'_> {
         self.input.render(layout, b)
     }
 
-    fn height(&mut self, layout: ui::Layout) -> u16 {
-        self.select.height(layout.with_line_offset(0))
-            + self.prompt.height(layout)
-            + 1
+    fn height(&mut self, layout: &mut ui::Layout) -> u16 {
+        // We don't need to add 1 for the answer prompt because this will over count by one
+        let height = self.prompt.height(layout) + self.select.height(layout);
+        layout.offset_y += 1;
+        height
     }
 
     fn handle_key(&mut self, key: KeyEvent) -> bool {
@@ -114,12 +115,12 @@ impl Widget for RawSelectPrompt<'_> {
         }
     }
 
-    fn cursor_pos(&mut self, layout: ui::Layout) -> (u16, u16) {
+    fn cursor_pos(&mut self, mut layout: ui::Layout) -> (u16, u16) {
         let w = self
             .input
             .cursor_pos(layout.with_line_offset(ANSWER_PROMPT.len() as u16))
             .0;
-        (w, self.height(layout) - 1)
+        (w, self.height(&mut layout) - 1)
     }
 }
 
@@ -166,7 +167,7 @@ impl widgets::List for RawSelect<'_> {
         match self.choices[index] {
             Choice::Choice((index, ref mut c)) => {
                 layout.offset_x += (index as f64).log10() as u16 + 5;
-                c.height(layout)
+                c.height(&mut layout)
             }
             _ => 1,
         }

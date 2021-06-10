@@ -130,7 +130,7 @@ impl<T: Widget> List for ChoiceList<T> {
     fn height_at(&mut self, index: usize, mut layout: ui::Layout) -> u16 {
         layout.offset_x += 2;
 
-        self[index].height(layout)
+        self[index].height(&mut layout)
     }
 
     fn len(&self) -> usize {
@@ -195,7 +195,7 @@ impl<T: ui::Widget> ui::Widget for Choice<T> {
         }
     }
 
-    fn height(&mut self, layout: ui::Layout) -> u16 {
+    fn height(&mut self, layout: &mut ui::Layout) -> u16 {
         match self {
             Choice::Choice(c) => c.height(layout),
             _ => 1,

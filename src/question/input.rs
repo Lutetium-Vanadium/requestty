@@ -65,7 +65,7 @@ impl Widget for InputPrompt<'_, '_> {
         Ok(())
     }
 
-    fn height(&mut self, layout: ui::Layout) -> u16 {
+    fn height(&mut self, layout: &mut ui::Layout) -> u16 {
         let mut height = self.prompt.height(layout) + self.input.height(layout) - 1;
         if let Some(ref mut select) = self.select {
             height +=

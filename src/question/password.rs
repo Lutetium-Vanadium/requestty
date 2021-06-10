@@ -60,7 +60,7 @@ impl Widget for PasswordPrompt<'_, '_> {
         self.input.render(layout, b)
     }
 
-    fn height(&mut self, layout: ui::Layout) -> u16 {
+    fn height(&mut self, layout: &mut ui::Layout) -> u16 {
         self.prompt.height(layout) + self.input.height(layout) - 1
     }
 

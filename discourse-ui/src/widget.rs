@@ -12,8 +12,9 @@ pub trait Widget {
         backend: &mut B,
     ) -> error::Result<()>;
 
-    /// The number of rows of the terminal the widget will take when rendered
-    fn height(&mut self, layout: Layout) -> u16;
+    /// The number of rows of the terminal the widget will take when rendered. The widget is
+    /// responsible for updating the layout to reflect the space that it will use.
+    fn height(&mut self, layout: &mut Layout) -> u16;
 
     /// The position of the cursor to end at (x, y), with (0,0) being the start of the input
     fn cursor_pos(&mut self, layout: Layout) -> (u16, u16);
@@ -66,7 +67,8 @@ impl<T: std::ops::Deref<Target = str>> Widget for T {
     }
 
     /// Does not allow multi-line strings
-    fn height(&mut self, _: Layout) -> u16 {
+    fn height(&mut self, layout: &mut Layout) -> u16 {
+        layout.offset_y += 1;
         1
     }
 

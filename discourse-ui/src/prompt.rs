@@ -179,8 +179,10 @@ impl<M: AsRef<str>, H: AsRef<str>> Widget for Prompt<M, H> {
         Ok(())
     }
 
-    fn height(&mut self, layout: Layout) -> u16 {
-        self.cursor_pos_impl(layout).1 + 1
+    fn height(&mut self, layout: &mut Layout) -> u16 {
+        let cursor_pos = self.cursor_pos_impl(*layout);
+        *layout = layout.with_cursor_pos(cursor_pos);
+        cursor_pos.1 + 1
     }
 
     fn cursor_pos(&mut self, layout: Layout) -> (u16, u16) {
@@ -333,11 +335,19 @@ mod tests {
 
     #[test]
     fn test_height() {
-        let layout = Layout::new(5, (100, 100).into());
+        let mut layout = Layout::new(5, (100, 100).into());
 
-        assert_eq!(Prompt::new("Hello").height(layout), 1);
-        assert_eq!(Prompt::new("Hello").with_hint("world").height(layout), 1);
-        assert_eq!(Prompt::new(LOREM).with_hint(UNICODE).height(layout), 10);
+        assert_eq!(Prompt::new("Hello").height(&mut layout.clone()), 1);
+        assert_eq!(
+            Prompt::new("Hello")
+                .with_hint("world")
+                .height(&mut layout.clone()),
+            1
+        );
+        assert_eq!(
+            Prompt::new(LOREM).with_hint(UNICODE).height(&mut layout),
+            10
+        );
     }
 
     #[test]

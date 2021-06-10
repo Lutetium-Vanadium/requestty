@@ -30,7 +30,7 @@ impl Widget for ConfirmPrompt<'_> {
         self.input.render(layout, b)
     }
 
-    fn height(&mut self, layout: ui::Layout) -> u16 {
+    fn height(&mut self, layout: &mut ui::Layout) -> u16 {
         self.prompt.height(layout) + self.input.height(layout) - 1
     }
 
@@ -59,7 +59,7 @@ impl Prompt for ConfirmPrompt<'_> {
         if self.input.value().is_some() || self.has_default() {
             Ok(Validation::Finish)
         } else {
-            Err("Please enter (y/n)")
+            Err("Please enter y or n")
         }
     }
 
