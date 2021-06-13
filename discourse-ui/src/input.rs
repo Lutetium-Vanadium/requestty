@@ -44,24 +44,24 @@ pub trait Prompt: Widget {
 ///
 /// See [`run`](Input::run) for more information
 pub struct Input<P, B: Backend> {
-    pub(super) prompt: P,
-    pub(super) backend: TerminalState<B>,
-    pub(super) base_row: u16,
-    pub(super) size: Size,
+    prompt: P,
+    backend: TerminalState<B>,
+    base_row: u16,
+    size: Size,
 }
 
 impl<P: Prompt, B: Backend> Input<P, B> {
-    pub(super) fn layout(&self) -> Layout {
+    fn layout(&self) -> Layout {
         Layout::new(0, self.size).with_offset(0, self.base_row)
     }
 
-    pub(super) fn init(&mut self) -> error::Result<()> {
+    fn init(&mut self) -> error::Result<()> {
         self.backend.init()?;
         self.base_row = self.backend.get_cursor()?.1;
         self.render()
     }
 
-    pub(super) fn adjust_scrollback(&mut self, height: u16) -> error::Result<u16> {
+    fn adjust_scrollback(&mut self, height: u16) -> error::Result<u16> {
         let th = self.size.height;
 
         let mut base_row = self.base_row;
@@ -76,7 +76,7 @@ impl<P: Prompt, B: Backend> Input<P, B> {
         Ok(base_row)
     }
 
-    pub(super) fn flush(&mut self) -> error::Result<()> {
+    fn flush(&mut self) -> error::Result<()> {
         if !self.backend.hide_cursor {
             let (dcw, dch) = self.prompt.cursor_pos(self.layout());
             self.backend.set_cursor(dcw, self.base_row + dch)?;
@@ -84,7 +84,7 @@ impl<P: Prompt, B: Backend> Input<P, B> {
         self.backend.flush().map_err(Into::into)
     }
 
-    pub(super) fn render(&mut self) -> error::Result<()> {
+    fn render(&mut self) -> error::Result<()> {
         self.size = self.backend.size()?;
         let height = self.prompt.height(&mut self.layout()).saturating_sub(1);
         self.base_row = self.adjust_scrollback(height)?;
@@ -96,20 +96,17 @@ impl<P: Prompt, B: Backend> Input<P, B> {
         self.flush()
     }
 
-    pub(super) fn clear(&mut self) -> error::Result<()> {
+    fn clear(&mut self) -> error::Result<()> {
         self.backend.set_cursor(0, self.base_row)?;
         self.backend.clear(ClearType::FromCursorDown)
     }
 
-    pub(super) fn goto_last_line(&mut self, height: u16) -> error::Result<()> {
+    fn goto_last_line(&mut self, height: u16) -> error::Result<()> {
         self.base_row = self.adjust_scrollback(height)?;
         self.backend.set_cursor(0, self.base_row + height)
     }
 
-    pub(super) fn print_error(
-        &mut self,
-        mut e: P::ValidateErr,
-    ) -> error::Result<()> {
+    fn print_error(&mut self, mut e: P::ValidateErr) -> error::Result<()> {
         self.size = self.backend.size()?;
         let height = self.prompt.height(&mut self.layout());
         self.goto_last_line(height)?;
@@ -128,7 +125,7 @@ impl<P: Prompt, B: Backend> Input<P, B> {
         self.flush()
     }
 
-    pub(super) fn exit(&mut self) -> error::Result<()> {
+    fn exit(&mut self) -> error::Result<()> {
         self.size = self.backend.size()?;
         let height = self.prompt.height(&mut self.layout());
         self.goto_last_line(height)?;
