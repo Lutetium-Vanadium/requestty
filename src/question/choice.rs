@@ -1,6 +1,6 @@
 use std::ops::{Index, IndexMut};
 
-use ui::{backend::Color, widgets::List, Widget};
+use ui::{style::Color, widgets::List, Widget};
 
 use crate::ExpandItem;
 
@@ -95,7 +95,7 @@ impl<T: Widget> List for ChoiceList<T> {
         &mut self,
         index: usize,
         hovered: bool,
-        mut layout: ui::Layout,
+        mut layout: ui::layout::Layout,
         b: &mut B,
     ) -> ui::error::Result<()> {
         if hovered {
@@ -127,7 +127,7 @@ impl<T: Widget> List for ChoiceList<T> {
         self.should_loop
     }
 
-    fn height_at(&mut self, index: usize, mut layout: ui::Layout) -> u16 {
+    fn height_at(&mut self, index: usize, mut layout: ui::layout::Layout) -> u16 {
         layout.offset_x += 2;
 
         self[index].height(&mut layout)
@@ -186,7 +186,7 @@ pub(crate) fn get_sep_str<T>(separator: &Choice<T>) -> &str {
 impl<T: ui::Widget> ui::Widget for Choice<T> {
     fn render<B: ui::backend::Backend>(
         &mut self,
-        layout: &mut ui::Layout,
+        layout: &mut ui::layout::Layout,
         backend: &mut B,
     ) -> ui::error::Result<()> {
         match self {
@@ -195,7 +195,7 @@ impl<T: ui::Widget> ui::Widget for Choice<T> {
         }
     }
 
-    fn height(&mut self, layout: &mut ui::Layout) -> u16 {
+    fn height(&mut self, layout: &mut ui::layout::Layout) -> u16 {
         match self {
             Choice::Choice(c) => c.height(layout),
             _ => 1,
@@ -209,7 +209,7 @@ impl<T: ui::Widget> ui::Widget for Choice<T> {
         }
     }
 
-    fn cursor_pos(&mut self, _: ui::Layout) -> (u16, u16) {
+    fn cursor_pos(&mut self, _: ui::layout::Layout) -> (u16, u16) {
         unimplemented!("This should not be called")
     }
 }

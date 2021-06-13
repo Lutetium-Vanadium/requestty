@@ -4,9 +4,10 @@ use ahash::AHashSet as HashSet;
 use std::collections::HashSet;
 
 use ui::{
-    backend::{Backend, Color, MoveDirection, Stylize},
+    backend::{Backend, MoveDirection},
     error,
     events::KeyEvent,
+    style::{Color, Stylize},
     widgets::{self, Text},
     Prompt, Validation, Widget,
 };
@@ -113,7 +114,7 @@ const ANSWER_PROMPT: &[u8] = b"  Answer: ";
 impl<F: Fn(char) -> Option<char>> ui::Widget for ExpandPrompt<'_, F> {
     fn render<B: Backend>(
         &mut self,
-        layout: &mut ui::Layout,
+        layout: &mut ui::layout::Layout,
         b: &mut B,
     ) -> error::Result<()> {
         self.prompt.render(layout, b)?;
@@ -142,7 +143,7 @@ impl<F: Fn(char) -> Option<char>> ui::Widget for ExpandPrompt<'_, F> {
         }
     }
 
-    fn height(&mut self, layout: &mut ui::Layout) -> u16 {
+    fn height(&mut self, layout: &mut ui::layout::Layout) -> u16 {
         if self.expanded {
             // Don't need to add 1 for the answer prompt, since this will over count by 1 anyways
             let height = self.prompt.height(layout) + self.select.height(layout);
@@ -169,7 +170,7 @@ impl<F: Fn(char) -> Option<char>> ui::Widget for ExpandPrompt<'_, F> {
         }
     }
 
-    fn cursor_pos(&mut self, mut layout: ui::Layout) -> (u16, u16) {
+    fn cursor_pos(&mut self, mut layout: ui::layout::Layout) -> (u16, u16) {
         if self.expanded {
             let w = self
                 .input
@@ -188,7 +189,7 @@ impl widgets::List for Expand<'_> {
         &mut self,
         index: usize,
         _: bool,
-        layout: ui::Layout,
+        layout: ui::layout::Layout,
         b: &mut B,
     ) -> error::Result<()> {
         if index == self.choices.len() {
@@ -211,7 +212,7 @@ impl widgets::List for Expand<'_> {
         true
     }
 
-    fn height_at(&mut self, index: usize, mut layout: ui::Layout) -> u16 {
+    fn height_at(&mut self, index: usize, mut layout: ui::layout::Layout) -> u16 {
         if index >= self.choices.len() {
             // Help option
             1
@@ -238,7 +239,7 @@ impl Expand<'_> {
     fn render_choice<B: Backend>(
         &mut self,
         index: Option<usize>,
-        mut layout: ui::Layout,
+        mut layout: ui::layout::Layout,
         b: &mut B,
     ) -> error::Result<()> {
         let key = match index {

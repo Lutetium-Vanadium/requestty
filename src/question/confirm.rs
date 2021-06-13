@@ -1,8 +1,6 @@
 use ui::{
-    backend::{Backend, Stylize},
-    error,
-    events::KeyEvent,
-    widgets, Prompt, Validation, Widget,
+    backend::Backend, error, events::KeyEvent, style::Stylize, widgets, Prompt,
+    Validation, Widget,
 };
 
 use super::{Options, TransformByVal as Transform};
@@ -23,14 +21,14 @@ struct ConfirmPrompt<'a> {
 impl Widget for ConfirmPrompt<'_> {
     fn render<B: Backend>(
         &mut self,
-        layout: &mut ui::Layout,
+        layout: &mut ui::layout::Layout,
         b: &mut B,
     ) -> error::Result<()> {
         self.prompt.render(layout, b)?;
         self.input.render(layout, b)
     }
 
-    fn height(&mut self, layout: &mut ui::Layout) -> u16 {
+    fn height(&mut self, layout: &mut ui::layout::Layout) -> u16 {
         self.prompt.height(layout) + self.input.height(layout) - 1
     }
 
@@ -38,7 +36,7 @@ impl Widget for ConfirmPrompt<'_> {
         self.input.handle_key(key)
     }
 
-    fn cursor_pos(&mut self, layout: ui::Layout) -> (u16, u16) {
+    fn cursor_pos(&mut self, layout: ui::layout::Layout) -> (u16, u16) {
         self.input
             .cursor_pos(layout.with_cursor_pos(self.prompt.cursor_pos(layout)))
     }

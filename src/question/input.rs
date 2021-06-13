@@ -1,7 +1,8 @@
 use ui::{
-    backend::{Backend, Stylize},
+    backend::Backend,
     error,
     events::{KeyCode, KeyEvent},
+    style::Stylize,
     widgets, Prompt, Validation, Widget,
 };
 
@@ -54,7 +55,7 @@ fn select_op<T, F: FnOnce(&mut widgets::Select<ChoiceList<String>>) -> T>(
 impl Widget for InputPrompt<'_, '_> {
     fn render<B: Backend>(
         &mut self,
-        layout: &mut ui::Layout,
+        layout: &mut ui::layout::Layout,
         b: &mut B,
     ) -> error::Result<()> {
         self.prompt.render(layout, b)?;
@@ -65,7 +66,7 @@ impl Widget for InputPrompt<'_, '_> {
         Ok(())
     }
 
-    fn height(&mut self, layout: &mut ui::Layout) -> u16 {
+    fn height(&mut self, layout: &mut ui::layout::Layout) -> u16 {
         let mut height = self.prompt.height(layout) + self.input.height(layout) - 1;
         if let Some(ref mut select) = self.select {
             height +=
@@ -120,7 +121,7 @@ impl Widget for InputPrompt<'_, '_> {
         }
     }
 
-    fn cursor_pos(&mut self, layout: ui::Layout) -> (u16, u16) {
+    fn cursor_pos(&mut self, layout: ui::layout::Layout) -> (u16, u16) {
         self.input
             .cursor_pos(layout.with_cursor_pos(self.prompt.cursor_pos(layout)))
     }

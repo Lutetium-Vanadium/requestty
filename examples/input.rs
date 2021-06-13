@@ -1,5 +1,5 @@
 use csscolorparser::parse as parse_col;
-use discourse::plugin::Stylize;
+use discourse::plugin::ui::style::Stylize;
 use discourse::Question;
 
 fn main() {

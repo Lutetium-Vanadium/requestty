@@ -19,10 +19,7 @@ macro_rules! prompt_module {
 
 pub mod plugin {
     pub use crate::{question::Plugin, Answer, Answers};
-    pub use ui::{
-        backend::{Attributes, Backend, Color, Styled, Stylize},
-        events::Events,
-    };
+    pub use ui::{self, backend::Backend, events::Events};
 }
 
 #[derive(Debug, Clone, PartialEq)]

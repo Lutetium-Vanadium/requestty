@@ -1,7 +1,8 @@
 use ui::{
-    backend::{Backend, Stylize},
+    backend::Backend,
     error,
     events::KeyEvent,
+    style::Stylize,
     widgets::{self, Text},
     Prompt, Widget,
 };
@@ -57,18 +58,18 @@ impl Prompt for SelectPrompt<'_> {
 impl Widget for SelectPrompt<'_> {
     fn render<B: Backend>(
         &mut self,
-        layout: &mut ui::Layout,
+        layout: &mut ui::layout::Layout,
         b: &mut B,
     ) -> error::Result<()> {
         self.prompt.render(layout, b)?;
         self.select.render(layout, b)
     }
 
-    fn height(&mut self, layout: &mut ui::Layout) -> u16 {
+    fn height(&mut self, layout: &mut ui::layout::Layout) -> u16 {
         self.prompt.height(layout) + self.select.height(layout) - 1
     }
 
-    fn cursor_pos(&mut self, layout: ui::Layout) -> (u16, u16) {
+    fn cursor_pos(&mut self, layout: ui::layout::Layout) -> (u16, u16) {
         self.select.cursor_pos(layout)
     }
 
@@ -82,7 +83,7 @@ impl widgets::List for Select<'_> {
         &mut self,
         index: usize,
         hovered: bool,
-        layout: ui::Layout,
+        layout: ui::layout::Layout,
         backend: &mut B,
     ) -> error::Result<()> {
         self.choices.render_item(index, hovered, layout, backend)
@@ -92,7 +93,7 @@ impl widgets::List for Select<'_> {
         self.choices.is_selectable(index)
     }
 
-    fn height_at(&mut self, index: usize, layout: ui::Layout) -> u16 {
+    fn height_at(&mut self, index: usize, layout: ui::layout::Layout) -> u16 {
         self.choices.height_at(index, layout)
     }
 

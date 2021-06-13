@@ -1,4 +1,4 @@
-use crate::{backend, error, Layout, Widget};
+use crate::{backend, error, layout::Layout, Widget};
 
 #[derive(Debug)]
 pub struct Text<S> {

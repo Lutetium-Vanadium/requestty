@@ -1,6 +1,7 @@
 use crate::{
-    backend::{Color, TestBackend, TestBackendOp::*},
+    backend::{TestBackend, TestBackendOp::*},
     events::KeyCode,
+    style::Color,
     test_consts::*,
     widgets::Text,
     Widget,

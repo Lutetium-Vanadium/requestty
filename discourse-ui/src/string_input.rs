@@ -9,7 +9,7 @@ use crate::{
     backend::Backend,
     error,
     events::{KeyCode, KeyEvent, KeyModifiers, Movement},
-    Layout,
+    layout::Layout,
 };
 
 /// A widget that inputs a line of text

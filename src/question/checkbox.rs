@@ -1,9 +1,10 @@
 use std::io;
 
 use ui::{
-    backend::{Backend, Color},
+    backend::Backend,
     error,
     events::{KeyCode, KeyEvent},
+    style::Color,
     widgets::{self, Text},
     Prompt, Validation, Widget,
 };
@@ -78,14 +79,14 @@ impl Prompt for CheckboxPrompt<'_, '_> {
 impl Widget for CheckboxPrompt<'_, '_> {
     fn render<B: Backend>(
         &mut self,
-        layout: &mut ui::Layout,
+        layout: &mut ui::layout::Layout,
         b: &mut B,
     ) -> error::Result<()> {
         self.prompt.render(layout, b)?;
         self.select.render(layout, b)
     }
 
-    fn height(&mut self, layout: &mut ui::Layout) -> u16 {
+    fn height(&mut self, layout: &mut ui::layout::Layout) -> u16 {
         self.prompt.height(layout) + self.select.height(layout) - 1
     }
 
@@ -112,7 +113,7 @@ impl Widget for CheckboxPrompt<'_, '_> {
         true
     }
 
-    fn cursor_pos(&mut self, layout: ui::Layout) -> (u16, u16) {
+    fn cursor_pos(&mut self, layout: ui::layout::Layout) -> (u16, u16) {
         self.select.cursor_pos(layout)
     }
 }
@@ -122,7 +123,7 @@ impl widgets::List for Checkbox<'_> {
         &mut self,
         index: usize,
         hovered: bool,
-        mut layout: ui::Layout,
+        mut layout: ui::layout::Layout,
         b: &mut B,
     ) -> error::Result<()> {
         if hovered {
@@ -161,7 +162,7 @@ impl widgets::List for Checkbox<'_> {
         !self.choices[index].is_separator()
     }
 
-    fn height_at(&mut self, index: usize, mut layout: ui::Layout) -> u16 {
+    fn height_at(&mut self, index: usize, mut layout: ui::layout::Layout) -> u16 {
         layout.offset_x += 4;
         self.choices[index].height(&mut layout)
     }

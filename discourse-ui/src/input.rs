@@ -1,9 +1,10 @@
 use super::{TerminalState, Validation, Widget};
 use crate::{
-    backend::{Backend, ClearType, MoveDirection, Size, Stylize},
+    backend::{Backend, ClearType, MoveDirection, Size},
     error,
     events::{Events, KeyCode, KeyModifiers},
-    Layout,
+    layout::Layout,
+    style::Stylize,
 };
 
 /// This trait should be implemented by all 'root' widgets.

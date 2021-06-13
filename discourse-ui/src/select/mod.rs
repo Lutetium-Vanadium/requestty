@@ -1,10 +1,11 @@
 use std::ops::{Index, IndexMut};
 
 use crate::{
-    backend::{Backend, Stylize},
+    backend::Backend,
     error,
     events::{KeyEvent, Movement},
-    Layout, RenderRegion,
+    layout::{Layout, RenderRegion},
+    style::Stylize,
 };
 
 #[cfg(test)]

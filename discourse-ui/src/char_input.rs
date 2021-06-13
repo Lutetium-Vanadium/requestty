@@ -2,7 +2,7 @@ use crate::{
     backend::Backend,
     error,
     events::{KeyCode, KeyEvent},
-    Layout,
+    layout::Layout,
 };
 
 /// A widget that inputs a single character. If multiple characters are inputted to it, it will have

@@ -1,6 +1,6 @@
 use textwrap::core::Fragment;
 
-use crate::{backend::Backend, error, events::KeyEvent, Layout};
+use crate::{backend::Backend, error, events::KeyEvent, layout::Layout};
 
 /// A trait to represent renderable objects.
 pub trait Widget {

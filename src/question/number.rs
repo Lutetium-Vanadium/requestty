@@ -1,9 +1,10 @@
 use std::fmt::Write;
 
 use ui::{
-    backend::{Backend, Color},
+    backend::Backend,
     error,
     events::{KeyCode, KeyEvent},
+    style::Color,
     widgets, Prompt, Validation, Widget,
 };
 
@@ -97,14 +98,14 @@ macro_rules! impl_number_prompt {
         impl Widget for $prompt_name<'_, '_> {
             fn render<B: Backend>(
                 &mut self,
-                layout: &mut ui::Layout,
+                layout: &mut ui::layout::Layout,
                 b: &mut B,
             ) -> error::Result<()> {
                 self.prompt.render(layout, b)?;
                 self.input.render(layout, b)
             }
 
-            fn height(&mut self, layout: &mut ui::Layout) -> u16 {
+            fn height(&mut self, layout: &mut ui::layout::Layout) -> u16 {
                 self.prompt.height(layout) + self.input.height(layout) - 1
             }
 
@@ -129,7 +130,7 @@ macro_rules! impl_number_prompt {
                 true
             }
 
-            fn cursor_pos(&mut self, layout: ui::Layout) -> (u16, u16) {
+            fn cursor_pos(&mut self, layout: ui::layout::Layout) -> (u16, u16) {
                 self.input.cursor_pos(
                     layout.with_cursor_pos(self.prompt.cursor_pos(layout)),
                 )

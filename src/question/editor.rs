@@ -8,10 +8,7 @@ use std::{
 
 use tempfile::TempPath;
 
-use ui::{
-    backend::{Backend, Stylize},
-    error, widgets, Validation, Widget,
-};
+use ui::{backend::Backend, error, style::Stylize, widgets, Validation, Widget};
 
 use super::{Filter, Options, Transform, Validate};
 use crate::{Answer, Answers};
@@ -63,17 +60,17 @@ struct EditorPrompt<'a, 'e> {
 impl Widget for EditorPrompt<'_, '_> {
     fn render<B: Backend>(
         &mut self,
-        layout: &mut ui::Layout,
+        layout: &mut ui::layout::Layout,
         backend: &mut B,
     ) -> error::Result<()> {
         self.prompt.render(layout, backend)
     }
 
-    fn height(&mut self, layout: &mut ui::Layout) -> u16 {
+    fn height(&mut self, layout: &mut ui::layout::Layout) -> u16 {
         self.prompt.height(layout)
     }
 
-    fn cursor_pos(&mut self, layout: ui::Layout) -> (u16, u16) {
+    fn cursor_pos(&mut self, layout: ui::layout::Layout) -> (u16, u16) {
         let (x, y) = self.prompt.cursor_pos(layout);
         if x == 0 {
             (layout.width - 1, y - 1)

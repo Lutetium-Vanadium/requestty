@@ -11,7 +11,6 @@ pub fn get_backend<W: std::io::Write>(buf: W) -> error::Result<impl Backend> {
     Backend::new(buf)
 }
 
-mod style;
 mod test_backend;
 pub use test_backend::{TestBackend, TestBackendOp};
 
@@ -25,7 +24,7 @@ mod crossterm;
 #[cfg(feature = "crossterm")]
 pub use self::crossterm::CrosstermBackend;
 
-pub use style::*;
+use crate::style::{Attributes, Color, Styled};
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy, Hash, Default)]
 pub struct Size {

@@ -1,8 +1,11 @@
 use std::convert::TryFrom;
 
 use crate::{
-    backend::{Backend, Color, Stylize},
-    error, events, Layout, Widget,
+    backend::Backend,
+    error, events,
+    layout::Layout,
+    style::{Color, Stylize},
+    Widget,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -197,7 +200,8 @@ impl<M: AsRef<str>, H: AsRef<str>> Widget for Prompt<M, H> {
 #[cfg(test)]
 mod tests {
     use crate::{
-        backend::{Attributes, TestBackend, TestBackendOp::*},
+        backend::{TestBackend, TestBackendOp::*},
+        style::Attributes,
         test_consts::*,
     };
 

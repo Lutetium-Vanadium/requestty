@@ -1,7 +1,8 @@
 use ui::{
-    backend::{Backend, Color, Stylize},
+    backend::Backend,
     error,
     events::KeyEvent,
+    style::{Color, Stylize},
     widgets::{self, List, Text},
     Prompt, Validation, Widget,
 };
@@ -71,7 +72,7 @@ const ANSWER_PROMPT: &[u8] = b"  Answer: ";
 impl Widget for RawSelectPrompt<'_> {
     fn render<B: Backend>(
         &mut self,
-        layout: &mut ui::Layout,
+        layout: &mut ui::layout::Layout,
         b: &mut B,
     ) -> error::Result<()> {
         self.prompt.render(layout, b)?;
@@ -81,7 +82,7 @@ impl Widget for RawSelectPrompt<'_> {
         self.input.render(layout, b)
     }
 
-    fn height(&mut self, layout: &mut ui::Layout) -> u16 {
+    fn height(&mut self, layout: &mut ui::layout::Layout) -> u16 {
         // We don't need to add 1 for the answer prompt because this will over count by one
         let height = self.prompt.height(layout) + self.select.height(layout);
         layout.offset_y += 1;
@@ -115,7 +116,7 @@ impl Widget for RawSelectPrompt<'_> {
         }
     }
 
-    fn cursor_pos(&mut self, mut layout: ui::Layout) -> (u16, u16) {
+    fn cursor_pos(&mut self, mut layout: ui::layout::Layout) -> (u16, u16) {
         let w = self
             .input
             .cursor_pos(layout.with_line_offset(ANSWER_PROMPT.len() as u16))
@@ -129,7 +130,7 @@ impl widgets::List for RawSelect<'_> {
         &mut self,
         index: usize,
         hovered: bool,
-        mut layout: ui::Layout,
+        mut layout: ui::layout::Layout,
         b: &mut B,
     ) -> error::Result<()> {
         match &mut self.choices[index] {
@@ -163,7 +164,7 @@ impl widgets::List for RawSelect<'_> {
         !self.choices[index].is_separator()
     }
 
-    fn height_at(&mut self, index: usize, mut layout: ui::Layout) -> u16 {
+    fn height_at(&mut self, index: usize, mut layout: ui::layout::Layout) -> u16 {
         match self.choices[index] {
             Choice::Choice((index, ref mut c)) => {
                 layout.offset_x += (index as f64).log10() as u16 + 5;

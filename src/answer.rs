@@ -192,13 +192,13 @@ impl<I: Into<String>> From<(char, I)> for ExpandItem<String> {
 impl<S: ui::Widget> ui::Widget for ExpandItem<S> {
     fn render<B: ui::backend::Backend>(
         &mut self,
-        layout: &mut ui::Layout,
+        layout: &mut ui::layout::Layout,
         backend: &mut B,
     ) -> ui::error::Result<()> {
         self.name.render(layout, backend)
     }
 
-    fn height(&mut self, layout: &mut ui::Layout) -> u16 {
+    fn height(&mut self, layout: &mut ui::layout::Layout) -> u16 {
         self.name.height(layout)
     }
 
@@ -206,7 +206,7 @@ impl<S: ui::Widget> ui::Widget for ExpandItem<S> {
         self.name.handle_key(key)
     }
 
-    fn cursor_pos(&mut self, layout: ui::Layout) -> (u16, u16) {
+    fn cursor_pos(&mut self, layout: ui::layout::Layout) -> (u16, u16) {
         self.name.cursor_pos(layout)
     }
 }
