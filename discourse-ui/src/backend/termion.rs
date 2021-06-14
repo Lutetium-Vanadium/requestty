@@ -52,14 +52,14 @@ impl<W: Write> Backend for TermionBackend<W> {
         write!(self.buffer, "{}", cursor::Show).map_err(Into::into)
     }
 
-    fn get_cursor(&mut self) -> error::Result<(u16, u16)> {
+    fn get_cursor_pos(&mut self) -> error::Result<(u16, u16)> {
         cursor::DetectCursorPos::cursor_pos(&mut self.buffer)
             // 0 index the position
             .map(|(x, y)| (x - 1, y - 1))
             .map_err(Into::into)
     }
 
-    fn set_cursor(&mut self, x: u16, y: u16) -> error::Result<()> {
+    fn move_cursor_to(&mut self, x: u16, y: u16) -> error::Result<()> {
         write!(self.buffer, "{}", cursor::Goto(x + 1, y + 1)).map_err(Into::into)
     }
 

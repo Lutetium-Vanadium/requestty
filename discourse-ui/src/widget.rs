@@ -37,6 +37,7 @@ impl<T: std::ops::Deref<Target = str>> Widget for T {
         }
 
         layout.offset_y += 1;
+        layout.line_offset = 0;
 
         if textwrap::core::display_width(self) > max_width {
             let mut width = 0;
@@ -59,10 +60,10 @@ impl<T: std::ops::Deref<Target = str>> Widget for T {
             }
 
             backend.write_all(b"...")?;
-            backend.set_cursor(layout.offset_x, layout.offset_y)
+            backend.move_cursor_to(layout.offset_x, layout.offset_y)
         } else {
             backend.write_all(self.as_bytes())?;
-            backend.set_cursor(layout.offset_x, layout.offset_y)
+            backend.move_cursor_to(layout.offset_x, layout.offset_y)
         }
     }
 

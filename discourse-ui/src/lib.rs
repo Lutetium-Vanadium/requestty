@@ -1,6 +1,4 @@
 //! A widget based cli ui rendering library
-use std::ops::{Deref, DerefMut};
-
 pub use input::{Input, Prompt};
 pub use widget::Widget;
 
@@ -51,60 +49,6 @@ pub mod symbols {
     pub const TICK: char = '✔';
     pub const MIDDLE_DOT: char = '·';
     pub const CROSS: char = '✖';
-}
-
-struct TerminalState<B: backend::Backend> {
-    backend: B,
-    hide_cursor: bool,
-    enabled: bool,
-}
-
-impl<B: backend::Backend> TerminalState<B> {
-    fn new(backend: B, hide_cursor: bool) -> Self {
-        Self {
-            backend,
-            enabled: false,
-            hide_cursor,
-        }
-    }
-
-    fn init(&mut self) -> error::Result<()> {
-        self.enabled = true;
-        if self.hide_cursor {
-            self.backend.hide_cursor()?;
-        }
-        self.backend.enable_raw_mode()
-    }
-
-    fn reset(&mut self) -> error::Result<()> {
-        self.enabled = false;
-        if self.hide_cursor {
-            self.backend.show_cursor()?;
-        }
-        self.backend.disable_raw_mode()
-    }
-}
-
-impl<B: backend::Backend> Drop for TerminalState<B> {
-    fn drop(&mut self) {
-        if self.enabled {
-            let _ = self.reset();
-        }
-    }
-}
-
-impl<B: backend::Backend> Deref for TerminalState<B> {
-    type Target = B;
-
-    fn deref(&self) -> &Self::Target {
-        &self.backend
-    }
-}
-
-impl<B: backend::Backend> DerefMut for TerminalState<B> {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.backend
-    }
 }
 
 #[cfg(test)]

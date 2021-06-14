@@ -67,8 +67,9 @@ pub trait Backend: std::io::Write {
     fn disable_raw_mode(&mut self) -> error::Result<()>;
     fn hide_cursor(&mut self) -> error::Result<()>;
     fn show_cursor(&mut self) -> error::Result<()>;
-    fn get_cursor(&mut self) -> error::Result<(u16, u16)>;
-    fn set_cursor(&mut self, x: u16, y: u16) -> error::Result<()>;
+
+    fn get_cursor_pos(&mut self) -> error::Result<(u16, u16)>;
+    fn move_cursor_to(&mut self, x: u16, y: u16) -> error::Result<()>;
     fn move_cursor(&mut self, direction: MoveDirection) -> error::Result<()> {
         default_move_cursor(self, direction)
     }
@@ -97,7 +98,7 @@ fn default_move_cursor<B: Backend + ?Sized>(
         return write!(backend, "\n\r").map_err(Into::into);
     }
 
-    let (mut x, mut y) = backend.get_cursor()?;
+    let (mut x, mut y) = backend.get_cursor_pos()?;
 
     match direction {
         MoveDirection::Up(dy) => y = y.saturating_sub(dy),
@@ -115,7 +116,7 @@ fn default_move_cursor<B: Backend + ?Sized>(
         }
     }
 
-    backend.set_cursor(x, y)
+    backend.move_cursor_to(x, y)
 }
 
 impl<'a, B: Backend> Backend for &'a mut B {
@@ -131,11 +132,11 @@ impl<'a, B: Backend> Backend for &'a mut B {
     fn show_cursor(&mut self) -> error::Result<()> {
         (**self).show_cursor()
     }
-    fn get_cursor(&mut self) -> error::Result<(u16, u16)> {
-        (**self).get_cursor()
+    fn get_cursor_pos(&mut self) -> error::Result<(u16, u16)> {
+        (**self).get_cursor_pos()
     }
-    fn set_cursor(&mut self, x: u16, y: u16) -> error::Result<()> {
-        (**self).set_cursor(x, y)
+    fn move_cursor_to(&mut self, x: u16, y: u16) -> error::Result<()> {
+        (**self).move_cursor_to(x, y)
     }
     fn move_cursor(&mut self, direction: MoveDirection) -> error::Result<()> {
         (**self).move_cursor(direction)

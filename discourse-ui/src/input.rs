@@ -1,4 +1,6 @@
-use super::{TerminalState, Validation, Widget};
+use std::ops::{Deref, DerefMut};
+
+use super::{Validation, Widget};
 use crate::{
     backend::{Backend, ClearType, MoveDirection, Size},
     error,
@@ -57,7 +59,7 @@ impl<P: Prompt, B: Backend> Input<P, B> {
 
     fn init(&mut self) -> error::Result<()> {
         self.backend.init()?;
-        self.base_row = self.backend.get_cursor()?.1;
+        self.base_row = self.backend.get_cursor_pos()?.1;
         self.render()
     }
 
@@ -79,7 +81,7 @@ impl<P: Prompt, B: Backend> Input<P, B> {
     fn flush(&mut self) -> error::Result<()> {
         if !self.backend.hide_cursor {
             let (dcw, dch) = self.prompt.cursor_pos(self.layout());
-            self.backend.set_cursor(dcw, self.base_row + dch)?;
+            self.backend.move_cursor_to(dcw, self.base_row + dch)?;
         }
         self.backend.flush().map_err(Into::into)
     }
@@ -89,7 +91,6 @@ impl<P: Prompt, B: Backend> Input<P, B> {
         let height = self.prompt.height(&mut self.layout()).saturating_sub(1);
         self.base_row = self.adjust_scrollback(height)?;
         self.clear()?;
-        self.backend.set_cursor(0, self.base_row)?;
 
         self.prompt.render(&mut self.layout(), &mut *self.backend)?;
 
@@ -97,13 +98,13 @@ impl<P: Prompt, B: Backend> Input<P, B> {
     }
 
     fn clear(&mut self) -> error::Result<()> {
-        self.backend.set_cursor(0, self.base_row)?;
+        self.backend.move_cursor_to(0, self.base_row)?;
         self.backend.clear(ClearType::FromCursorDown)
     }
 
     fn goto_last_line(&mut self, height: u16) -> error::Result<()> {
         self.base_row = self.adjust_scrollback(height)?;
-        self.backend.set_cursor(0, self.base_row + height)
+        self.backend.move_cursor_to(0, self.base_row + height)
     }
 
     fn print_error(&mut self, mut e: P::ValidateErr) -> error::Result<()> {
@@ -208,5 +209,59 @@ impl<P, B: Backend> Input<P, B> {
     pub fn hide_cursor(mut self) -> Self {
         self.backend.hide_cursor = true;
         self
+    }
+}
+
+struct TerminalState<B: Backend> {
+    backend: B,
+    hide_cursor: bool,
+    enabled: bool,
+}
+
+impl<B: Backend> TerminalState<B> {
+    fn new(backend: B, hide_cursor: bool) -> Self {
+        Self {
+            backend,
+            enabled: false,
+            hide_cursor,
+        }
+    }
+
+    fn init(&mut self) -> error::Result<()> {
+        self.enabled = true;
+        if self.hide_cursor {
+            self.backend.hide_cursor()?;
+        }
+        self.backend.enable_raw_mode()
+    }
+
+    fn reset(&mut self) -> error::Result<()> {
+        self.enabled = false;
+        if self.hide_cursor {
+            self.backend.show_cursor()?;
+        }
+        self.backend.disable_raw_mode()
+    }
+}
+
+impl<B: Backend> Drop for TerminalState<B> {
+    fn drop(&mut self) {
+        if self.enabled {
+            let _ = self.reset();
+        }
+    }
+}
+
+impl<B: Backend> Deref for TerminalState<B> {
+    type Target = B;
+
+    fn deref(&self) -> &Self::Target {
+        &self.backend
+    }
+}
+
+impl<B: Backend> DerefMut for TerminalState<B> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.backend
     }
 }

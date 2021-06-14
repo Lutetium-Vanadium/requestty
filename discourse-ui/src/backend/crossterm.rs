@@ -52,11 +52,11 @@ impl<W: Write> Backend for CrosstermBackend<W> {
         queue!(self.buffer, cursor::Show).map_err(Into::into)
     }
 
-    fn get_cursor(&mut self) -> error::Result<(u16, u16)> {
+    fn get_cursor_pos(&mut self) -> error::Result<(u16, u16)> {
         cursor::position().map_err(Into::into)
     }
 
-    fn set_cursor(&mut self, x: u16, y: u16) -> error::Result<()> {
+    fn move_cursor_to(&mut self, x: u16, y: u16) -> error::Result<()> {
         queue!(self.buffer, cursor::MoveTo(x, y)).map_err(Into::into)
     }
 

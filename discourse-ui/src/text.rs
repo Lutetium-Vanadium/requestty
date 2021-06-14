@@ -47,7 +47,7 @@ impl<S: AsRef<str>> Widget for Text<S> {
         if height == 1 {
             backend.write_all(self.wrapped.as_bytes())?;
             layout.offset_y += 1;
-            backend.set_cursor(layout.offset_x, layout.offset_y)?;
+            backend.move_cursor_to(layout.offset_x, layout.offset_y)?;
         } else {
             let start = layout.get_start(height) as usize;
             let nlines = height.min(layout.max_height);
@@ -60,14 +60,17 @@ impl<S: AsRef<str>> Widget for Text<S> {
                 .enumerate()
             {
                 backend.write_all(line.as_bytes())?;
-                backend
-                    .set_cursor(layout.offset_x, layout.offset_y + i as u16 + 1)?;
+                backend.move_cursor_to(
+                    layout.offset_x,
+                    layout.offset_y + i as u16 + 1,
+                )?;
             }
 
             // note: it may be possible to render things after the end of the last line, but for now
             // we ignore that space and the text takes all the width.
             layout.offset_y += nlines;
         }
+        layout.line_offset = 0;
 
         Ok(())
     }
@@ -188,7 +191,7 @@ mod tests {
         let size = (100, 100).into();
         let mut layout = Layout::new(0, size);
         let mut backend = TestBackend::new(
-            vec![Write(b"Hello, World!".to_vec()), SetCursor(0, 1)],
+            vec![Write(b"Hello, World!".to_vec()), MoveCursorTo(0, 1)],
             size,
         );
         let mut text = Text::new("Hello, World!");
@@ -204,7 +207,7 @@ mod tests {
         let mut ops = Vec::with_capacity(10);
         for (i, line) in fill(LOREM, layout).lines().enumerate() {
             ops.push(Write(line.into()));
-            ops.push(SetCursor(0, i as u16 + 1));
+            ops.push(MoveCursorTo(0, i as u16 + 1));
         }
 
         let mut backend = TestBackend::new(ops, size);
@@ -217,7 +220,7 @@ mod tests {
         let mut ops = Vec::with_capacity(10);
         for (i, line) in fill(UNICODE, layout).lines().enumerate() {
             ops.push(Write(line.into()));
-            ops.push(SetCursor(10, i as u16 + 11));
+            ops.push(MoveCursorTo(10, i as u16 + 11));
         }
 
         let mut backend = TestBackend::new(ops, size);

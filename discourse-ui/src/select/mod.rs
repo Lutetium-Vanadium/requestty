@@ -416,10 +416,11 @@ impl<L: List> Select<L> {
             self.list.render_item(i, i == self.at, layout, b)?;
             layout.offset_y += layout.max_height;
 
-            b.set_cursor(layout.offset_x, layout.offset_y)?;
+            b.move_cursor_to(layout.offset_x, layout.offset_y)?;
         }
 
         old_layout.offset_y = layout.offset_y;
+        layout.line_offset = 0;
 
         Ok(())
     }
@@ -566,7 +567,7 @@ impl<L: List> super::Widget for Select<L> {
         if layout.line_offset != 0 {
             layout.line_offset = 0;
             layout.offset_y += 1;
-            b.set_cursor(layout.offset_x, layout.offset_y)?;
+            b.move_cursor_to(layout.offset_x, layout.offset_y)?;
         }
 
         if self.page_end < self.page_start {
@@ -586,7 +587,7 @@ impl<L: List> super::Widget for Select<L> {
             )?;
             layout.offset_y += 1;
 
-            b.set_cursor(layout.offset_x, layout.offset_y)?;
+            b.move_cursor_to(layout.offset_x, layout.offset_y)?;
         }
 
         Ok(())

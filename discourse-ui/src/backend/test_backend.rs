@@ -4,6 +4,14 @@ use super::{Attributes, Backend, ClearType, Color, MoveDirection, Size as BSize}
 use crate::error;
 use TestBackendOp::*;
 
+macro_rules! try_panic {
+    ($($tt:tt)*) => {
+        if !std::thread::panicking() {
+            panic!($($tt)*)
+        }
+    };
+}
+
 // Used to allow derive Debug on structs which exist only to print errors, and show dashes for every
 // field
 struct Dash;
@@ -22,8 +30,8 @@ pub enum TestBackendOp {
     HideCursor,
     ShowCursor,
     /// The value to return
-    GetCursor(u16, u16),
-    SetCursor(u16, u16),
+    GetCursorPos(u16, u16),
+    MoveCursorTo(u16, u16),
     MoveCursor(MoveDirection),
     Scroll(i16),
     SetAttributes(Attributes),
@@ -36,8 +44,8 @@ pub enum TestBackendOp {
 #[derive(Debug)]
 struct TestBackendOpIter<I>(std::iter::Enumerate<I>);
 
-fn err<G: std::fmt::Debug>(op_i: usize, expected: TestBackendOp, got: G) -> ! {
-    panic!("op {}: expected {:?}, got {:?}", op_i, expected, got);
+fn err<G: std::fmt::Debug>(op_i: usize, expected: TestBackendOp, got: G) {
+    try_panic!("op {}: expected {:?}, got {:?}", op_i, expected, got);
 }
 
 impl<I: Iterator<Item = TestBackendOp>> TestBackendOpIter<I> {
@@ -55,33 +63,40 @@ impl<I: Iterator<Item = TestBackendOp>> TestBackendOpIter<I> {
                 #[derive(Debug)]
                 struct Write<'a>(&'a [u8]);
 
-                err(i, expected, Write(buf))
+                return err(i, expected, Write(buf));
             }
         };
 
-        if buf != expected {
+        if *buf != expected[..] {
             match (std::str::from_utf8(&expected), std::str::from_utf8(buf)) {
                 (Ok(expected), Ok(buf)) => {
-                    panic!(
+                    try_panic!(
                         "{}: expected Write({:?}) got Write({:?})",
-                        op_i, expected, buf
+                        op_i,
+                        expected,
+                        buf
                     )
                 }
-                _ => panic!(
+                _ => try_panic!(
                     "{}: expected Write({:?}) got Write({:?})",
-                    op_i, expected, buf
+                    op_i,
+                    expected,
+                    buf
                 ),
             }
         }
     }
 
-    fn next_get_cursor(&mut self) -> (u16, u16) {
+    fn next_get_cursor_pos(&mut self) -> (u16, u16) {
         match self.0.next().unwrap() {
-            (_, GetCursor(x, y)) => (x, y),
+            (_, GetCursorPos(x, y)) => (x, y),
             (i, expected) => {
                 #[derive(Debug)]
-                struct GetCursor(Dash, Dash);
-                err(i, expected, GetCursor(Dash, Dash))
+                struct GetCursorPos(Dash, Dash);
+                err(i, expected, GetCursorPos(Dash, Dash));
+                // err should exit. The only reason it won't is if the thread is unwinding, in which
+                // case the value is never used
+                (0, 0)
             }
         }
     }
@@ -139,12 +154,12 @@ impl<I: Iterator<Item = TestBackendOp>> Backend for TestBackend<I> {
         Ok(())
     }
 
-    fn get_cursor(&mut self) -> error::Result<(u16, u16)> {
-        Ok(self.expected_ops.next_get_cursor())
+    fn get_cursor_pos(&mut self) -> error::Result<(u16, u16)> {
+        Ok(self.expected_ops.next_get_cursor_pos())
     }
 
-    fn set_cursor(&mut self, x: u16, y: u16) -> error::Result<()> {
-        self.expected_ops.next_matches(SetCursor(x, y));
+    fn move_cursor_to(&mut self, x: u16, y: u16) -> error::Result<()> {
+        self.expected_ops.next_matches(MoveCursorTo(x, y));
         Ok(())
     }
 
