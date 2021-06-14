@@ -1,6 +1,6 @@
 use std::io::Write;
 
-use super::{Attributes, Backend, ClearType, Color, MoveDirection, Size as BSize};
+use super::{Attributes, Backend, ClearType, Color, MoveDirection};
 use crate::error;
 use TestBackendOp::*;
 
@@ -42,7 +42,30 @@ pub enum TestBackendOp {
 }
 
 #[derive(Debug)]
-struct TestBackendOpIter<I>(std::iter::Enumerate<I>);
+struct TestBackendOpIter<I: Iterator<Item = TestBackendOp>>(std::iter::Enumerate<I>);
+
+impl<I: Iterator<Item = TestBackendOp>> Drop for TestBackendOpIter<I> {
+    fn drop(&mut self) {
+        if !std::thread::panicking() {
+            let mut rest = Vec::new();
+            let mut start = usize::MAX;
+            let mut end = usize::MAX;
+
+            while let Some((op_i, op)) = self.0.next() {
+                start = start.min(op_i);
+                end = op_i;
+                rest.push(op);
+            }
+
+            if !rest.is_empty() {
+                panic!(
+                    "ops {}..={}, expected ops {:?}, but they were not called",
+                    start, end, rest
+                );
+            }
+        }
+    }
+}
 
 fn err<G: std::fmt::Debug>(op_i: usize, expected: TestBackendOp, got: G) {
     try_panic!("op {}: expected {:?}, got {:?}", op_i, expected, got);
@@ -50,7 +73,11 @@ fn err<G: std::fmt::Debug>(op_i: usize, expected: TestBackendOp, got: G) {
 
 impl<I: Iterator<Item = TestBackendOp>> TestBackendOpIter<I> {
     fn next_matches(&mut self, op: TestBackendOp) {
-        let (op_i, expected_op) = self.0.next().unwrap();
+        let (op_i, expected_op) = match self.0.next() {
+            Some(op) => op,
+            None => return try_panic!("didn't expect op, got {:?}", op),
+        };
+
         if expected_op != op {
             err(op_i, expected_op, op);
         }
@@ -103,16 +130,16 @@ impl<I: Iterator<Item = TestBackendOp>> TestBackendOpIter<I> {
 }
 
 #[derive(Debug)]
-pub struct TestBackend<I> {
+pub struct TestBackend<I: Iterator<Item = TestBackendOp>> {
     expected_ops: TestBackendOpIter<I>,
-    size: BSize,
+    size: super::Size,
 }
 
 impl<I: Iterator<Item = TestBackendOp>> TestBackend<I> {
     #[allow(clippy::new_ret_no_self)]
     pub fn new<IntoIter: IntoIterator<IntoIter = I, Item = TestBackendOp>>(
         iter: IntoIter,
-        size: BSize,
+        size: super::Size,
     ) -> Self {
         Self {
             expected_ops: TestBackendOpIter(iter.into_iter().enumerate()),
@@ -198,7 +225,7 @@ impl<I: Iterator<Item = TestBackendOp>> Backend for TestBackend<I> {
         Ok(())
     }
 
-    fn size(&self) -> error::Result<BSize> {
+    fn size(&self) -> error::Result<super::Size> {
         Ok(self.size)
     }
 }

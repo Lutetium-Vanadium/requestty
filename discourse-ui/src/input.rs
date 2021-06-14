@@ -68,8 +68,8 @@ impl<P: Prompt, B: Backend> Input<P, B> {
 
         let mut base_row = self.base_row;
 
-        if self.base_row >= th - height {
-            let dist = self.base_row + height - th + 1;
+        if self.base_row > th - height {
+            let dist = self.base_row + height - th;
             base_row -= dist;
             self.backend.scroll(-(dist as i16))?;
             self.backend.move_cursor(MoveDirection::Up(dist))?;
@@ -88,7 +88,7 @@ impl<P: Prompt, B: Backend> Input<P, B> {
 
     fn render(&mut self) -> error::Result<()> {
         self.size = self.backend.size()?;
-        let height = self.prompt.height(&mut self.layout()).saturating_sub(1);
+        let height = self.prompt.height(&mut self.layout());
         self.base_row = self.adjust_scrollback(height)?;
         self.clear()?;
 
@@ -103,7 +103,7 @@ impl<P: Prompt, B: Backend> Input<P, B> {
     }
 
     fn goto_last_line(&mut self, height: u16) -> error::Result<()> {
-        self.base_row = self.adjust_scrollback(height)?;
+        self.base_row = self.adjust_scrollback(height + 1)?;
         self.backend.move_cursor_to(0, self.base_row + height)
     }
 
@@ -118,9 +118,7 @@ impl<P: Prompt, B: Backend> Input<P, B> {
         let mut layout =
             Layout::new(2, self.size).with_offset(0, self.base_row + height);
 
-        self.adjust_scrollback(
-            height + e.height(&mut layout.clone()).saturating_sub(1),
-        )?;
+        self.adjust_scrollback(height + e.height(&mut layout.clone()))?;
         e.render(&mut layout, &mut *self.backend)?;
 
         self.flush()
@@ -266,5 +264,203 @@ impl<B: Backend> Deref for TerminalState<B> {
 impl<B: Backend> DerefMut for TerminalState<B> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.backend
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::{
+        backend::{TestBackend, TestBackendOp::*},
+        events::TestEvents,
+        style::Color,
+    };
+
+    #[derive(Debug, Default, Clone, Copy)]
+    struct TestPrompt {
+        height: u16,
+    }
+
+    impl Widget for TestPrompt {
+        fn render<B: Backend>(
+            &mut self,
+            layout: &mut Layout,
+            backend: &mut B,
+        ) -> error::Result<()> {
+            for i in 0..self.height(layout) {
+                // Not the most efficient but this is a test, and it makes assertions easier
+                backend.write_all(format!("Line {}", i).as_bytes())?;
+                backend.move_cursor(MoveDirection::NextLine(1))?;
+            }
+            Ok(())
+        }
+
+        fn height(&mut self, layout: &mut Layout) -> u16 {
+            layout.offset_y += self.height;
+            self.height
+        }
+
+        fn cursor_pos(&mut self, _: Layout) -> (u16, u16) {
+            (0, self.height)
+        }
+
+        fn handle_key(&mut self, key: crate::events::KeyEvent) -> bool {
+            todo!("{:?}", key)
+        }
+    }
+
+    impl Prompt for TestPrompt {
+        type ValidateErr = &'static str;
+
+        type Output = ();
+
+        fn finish(self) -> Self::Output {}
+
+        fn has_default(&self) -> bool {
+            false
+        }
+    }
+
+    #[test]
+    fn test_hide_cursor() {
+        let mut backend = TestBackend::new(
+            vec![
+                // init
+                HideCursor,
+                EnableRawMode,
+                GetCursorPos(0, 0),
+                MoveCursorTo(0, 0),
+                Clear(ClearType::FromCursorDown),
+                Flush,
+                // got exit - cleanup
+                MoveCursorTo(0, 0),
+                ShowCursor,
+                DisableRawMode,
+            ],
+            (100, 100).into(),
+        );
+
+        let mut events = TestEvents::new(vec![KeyCode::Null.into()]);
+
+        assert!(matches!(
+            Input::new(TestPrompt::default(), &mut backend)
+                .hide_cursor()
+                .run(&mut events),
+            Err(error::ErrorKind::Eof)
+        ));
+    }
+
+    #[test]
+    fn test_adjust_scrollback() {
+        let prompt = TestPrompt::default();
+        let size = (100, 100).into();
+
+        let mut backend = TestBackend::new(None, size);
+        let mut input = Input {
+            prompt,
+            backend: TerminalState::new(&mut backend, false),
+            base_row: 94,
+            size,
+        };
+        assert_eq!(input.adjust_scrollback(3).unwrap(), 94);
+
+        let mut backend = TestBackend::new(None, size);
+        let mut input = Input {
+            prompt,
+            backend: TerminalState::new(&mut backend, false),
+            base_row: 94,
+            size,
+        };
+        assert_eq!(input.adjust_scrollback(6).unwrap(), 94);
+
+        let mut backend = TestBackend::new(
+            vec![Scroll(-4), MoveCursor(MoveDirection::Up(4))],
+            size,
+        );
+        let mut input = Input {
+            prompt,
+            backend: TerminalState::new(&mut backend, false),
+            base_row: 94,
+            size,
+        };
+        assert_eq!(input.adjust_scrollback(10).unwrap(), 90);
+    }
+
+    #[test]
+    fn test_render() {
+        let prompt = TestPrompt { height: 5 };
+        let size = (100, 100).into();
+
+        let mut ops = vec![MoveCursorTo(0, 5), Clear(ClearType::FromCursorDown)];
+        for i in 0..5 {
+            ops.push(Write(format!("Line {}", i).into()));
+            ops.push(MoveCursor(MoveDirection::NextLine(1)));
+        }
+        ops.push(MoveCursorTo(0, 10));
+        ops.push(Flush);
+
+        assert!(Input {
+            prompt,
+            backend: TerminalState::new(TestBackend::new(ops, size), false),
+            size,
+            base_row: 5,
+        }
+        .render()
+        .is_ok())
+    }
+
+    #[test]
+    fn test_goto_last_line() {
+        let size = (100, 100).into();
+
+        let mut input = Input {
+            prompt: TestPrompt::default(),
+            backend: TerminalState::new(
+                TestBackend::new(
+                    vec![
+                        Scroll(-5),
+                        MoveCursor(MoveDirection::Up(5)),
+                        MoveCursorTo(0, 99),
+                    ],
+                    size,
+                ),
+                false,
+            ),
+            size,
+            base_row: 95,
+        };
+
+        assert!(input.goto_last_line(9).is_ok());
+        assert_eq!(input.base_row, 90);
+    }
+
+    #[test]
+    fn test_print_error() {
+        let error = "error text";
+        let size = (100, 100).into();
+
+        assert!(Input {
+            prompt: TestPrompt { height: 5 },
+            backend: TerminalState::new(
+                TestBackend::new(
+                    vec![
+                        MoveCursorTo(0, 5),
+                        SetFg(Color::Red),
+                        Write(format!("{}", crate::symbols::CROSS).into()),
+                        SetFg(Color::Reset),
+                        Write(" ".into()),
+                        Write(error.into()),
+                        MoveCursorTo(0, 6),
+                        Flush,
+                    ],
+                    size,
+                ),
+                true,
+            ),
+            base_row: 0,
+            size,
+        }
+        .print_error(error)
+        .is_ok());
     }
 }
