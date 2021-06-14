@@ -8,7 +8,10 @@ use std::{
 
 use tempfile::TempPath;
 
-use ui::{backend::Backend, error, style::Stylize, widgets, Validation, Widget};
+use ui::{
+    backend::Backend, error, events::KeyEvent, style::Stylize, widgets, Validation,
+    Widget,
+};
 
 use super::{Filter, Options, Transform, Validate};
 use crate::{Answer, Answers};
@@ -126,12 +129,12 @@ impl ui::Prompt for EditorPrompt<'_, '_> {
 }
 
 impl Editor<'_> {
-    pub(crate) fn ask<B: Backend>(
+    pub(crate) fn ask<B: Backend, E: Iterator<Item = error::Result<KeyEvent>>>(
         mut self,
         message: String,
         answers: &Answers,
         b: &mut B,
-        events: &mut ui::events::Events,
+        events: &mut E,
     ) -> error::Result<Answer> {
         let mut builder = tempfile::Builder::new();
 

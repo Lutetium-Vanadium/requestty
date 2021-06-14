@@ -273,12 +273,12 @@ impl Expand<'_> {
         Ok(())
     }
 
-    pub(crate) fn ask<B: Backend>(
+    pub(crate) fn ask<B: Backend, E: Iterator<Item = error::Result<KeyEvent>>>(
         mut self,
         message: String,
         answers: &Answers,
         b: &mut B,
-        events: &mut ui::events::Events,
+        events: &mut E,
     ) -> error::Result<Answer> {
         let help_key = if self.default == 'h' { 'H' } else { 'h' };
 

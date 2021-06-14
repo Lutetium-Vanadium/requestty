@@ -188,12 +188,12 @@ impl widgets::List for RawSelect<'_> {
 }
 
 impl RawSelect<'_> {
-    pub(crate) fn ask<B: Backend>(
+    pub(crate) fn ask<B: Backend, E: Iterator<Item = error::Result<KeyEvent>>>(
         mut self,
         message: String,
         answers: &Answers,
         b: &mut B,
-        events: &mut ui::events::Events,
+        events: &mut E,
     ) -> error::Result<Answer> {
         let transform = self.transform.take();
 

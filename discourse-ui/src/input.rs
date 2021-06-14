@@ -4,7 +4,7 @@ use super::{Validation, Widget};
 use crate::{
     backend::{Backend, ClearType, MoveDirection, Size},
     error,
-    events::{Events, KeyCode, KeyModifiers},
+    events::{KeyCode, KeyEvent, KeyModifiers},
     layout::Layout,
     style::Stylize,
 };
@@ -148,7 +148,10 @@ impl<P: Prompt, B: Backend> Input<P, B> {
 
     /// Run the ui on the given writer. It will return when the user presses `Enter` or `Escape`
     /// based on the [`Prompt`] implementation.
-    pub fn run(mut self, events: &mut Events) -> error::Result<P::Output> {
+    pub fn run<E>(mut self, events: &mut E) -> error::Result<P::Output>
+    where
+        E: Iterator<Item = error::Result<KeyEvent>>,
+    {
         self.init()?;
 
         loop {

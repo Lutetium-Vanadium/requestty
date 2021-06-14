@@ -182,12 +182,15 @@ impl_number_prompt!(FloatPrompt, Float, f64);
 macro_rules! impl_ask {
     ($t:ident, $prompt_name:ident) => {
         impl $t<'_> {
-            pub(crate) fn ask<B: Backend>(
+            pub(crate) fn ask<
+                B: Backend,
+                E: Iterator<Item = error::Result<KeyEvent>>,
+            >(
                 mut self,
                 message: String,
                 answers: &Answers,
                 b: &mut B,
-                events: &mut ui::events::Events,
+                events: &mut E,
             ) -> error::Result<Answer> {
                 let transform = self.transform.take();
 
