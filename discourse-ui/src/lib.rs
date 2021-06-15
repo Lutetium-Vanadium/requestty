@@ -49,6 +49,12 @@ pub mod symbols {
     pub const TICK: char = '✔';
     pub const MIDDLE_DOT: char = '·';
     pub const CROSS: char = '✖';
+    pub const BOX_LIGHT_TOP_RIGHT: char = '┐';
+    pub const BOX_LIGHT_TOP_LEFT: char = '┌';
+    pub const BOX_LIGHT_BOTTOM_RIGHT: char = '┘';
+    pub const BOX_LIGHT_BOTTOM_LEFT: char = '└';
+    pub const BOX_LIGHT_HORIZONTAL: char = '─';
+    pub const BOX_LIGHT_VERTICAL: char = '│';
 }
 
 #[cfg(test)]

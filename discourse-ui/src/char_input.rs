@@ -102,15 +102,11 @@ impl Default for CharInput {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{
-        backend::{TestBackend, TestBackendOp::Write},
-        events::KeyModifiers,
-        Widget,
-    };
+    use crate::{backend::TestBackend, events::KeyModifiers, Widget};
 
     #[test]
     fn test_cursor_pos() {
-        let layout = Layout::new(0, (100, 40).into());
+        let layout = Layout::new(0, (100, 20).into());
         let mut input = CharInput::default();
 
         assert_eq!(input.cursor_pos(layout), (0, 0));
@@ -153,24 +149,22 @@ mod tests {
 
     #[test]
     fn test_render() {
-        let size = (100, 40).into();
+        let size = (30, 10).into();
         let mut layout = Layout::new(0, size);
         let mut input = CharInput::default();
 
-        input
-            .render(&mut layout, &mut TestBackend::new(None, size))
-            .unwrap();
+        let mut backend = TestBackend::new(size);
+        input.render(&mut layout, &mut backend).unwrap();
+        assert_eq!(backend, TestBackend::new(size));
 
         assert_eq!(layout, Layout::new(0, size));
 
         input.set_value(Some('c'));
 
-        input
-            .render(
-                &mut layout,
-                &mut TestBackend::new(Some(Write(b"c".to_vec())), size),
-            )
-            .unwrap();
+        let mut backend = TestBackend::new(size);
+        input.render(&mut layout, &mut backend).unwrap();
+
+        insta::assert_display_snapshot!(backend);
 
         assert_eq!(layout, Layout::new(0, size).with_line_offset(1));
     }

@@ -270,11 +270,7 @@ impl<B: Backend> DerefMut for TerminalState<B> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{
-        backend::{TestBackend, TestBackendOp::*},
-        events::TestEvents,
-        style::Color,
-    };
+    use crate::backend::TestBackend;
 
     #[derive(Debug, Default, Clone, Copy)]
     struct TestPrompt {
@@ -323,144 +319,119 @@ mod tests {
 
     #[test]
     fn test_hide_cursor() {
-        let mut backend = TestBackend::new(
-            vec![
-                // init
-                HideCursor,
-                EnableRawMode,
-                GetCursorPos(0, 0),
-                MoveCursorTo(0, 0),
-                Clear(ClearType::FromCursorDown),
-                Flush,
-                // got exit - cleanup
-                MoveCursorTo(0, 0),
-                ShowCursor,
-                DisableRawMode,
-            ],
-            (100, 100).into(),
-        );
+        let mut backend = TestBackend::new((100, 20).into());
+        let mut backend = Input::new(TestPrompt::default(), &mut backend)
+            .hide_cursor()
+            .backend;
 
-        let mut events = TestEvents::new(vec![KeyCode::Null.into()]);
+        backend.init().unwrap();
 
-        assert!(matches!(
-            Input::new(TestPrompt::default(), &mut backend)
-                .hide_cursor()
-                .run(&mut events),
-            Err(error::ErrorKind::Eof)
-        ));
+        insta::assert_display_snapshot!(*backend);
     }
 
     #[test]
     fn test_adjust_scrollback() {
         let prompt = TestPrompt::default();
-        let size = (100, 100).into();
+        let size = (100, 20).into();
 
-        let mut backend = TestBackend::new(None, size);
-        let mut input = Input {
-            prompt,
-            backend: TerminalState::new(&mut backend, false),
-            base_row: 94,
-            size,
-        };
-        assert_eq!(input.adjust_scrollback(3).unwrap(), 94);
+        let mut backend = TestBackend::new(size);
+        backend.move_cursor_to(0, 14).unwrap();
 
-        let mut backend = TestBackend::new(None, size);
-        let mut input = Input {
-            prompt,
-            backend: TerminalState::new(&mut backend, false),
-            base_row: 94,
-            size,
-        };
-        assert_eq!(input.adjust_scrollback(6).unwrap(), 94);
-
-        let mut backend = TestBackend::new(
-            vec![Scroll(-4), MoveCursor(MoveDirection::Up(4))],
-            size,
+        assert_eq!(
+            Input {
+                prompt,
+                backend: TerminalState::new(&mut backend, false),
+                base_row: 14,
+                size,
+            }
+            .adjust_scrollback(3)
+            .unwrap(),
+            14
         );
-        let mut input = Input {
-            prompt,
-            backend: TerminalState::new(&mut backend, false),
-            base_row: 94,
-            size,
-        };
-        assert_eq!(input.adjust_scrollback(10).unwrap(), 90);
+
+        insta::assert_display_snapshot!(backend);
+
+        assert_eq!(
+            Input {
+                prompt,
+                backend: TerminalState::new(&mut backend, false),
+                base_row: 14,
+                size,
+            }
+            .adjust_scrollback(6)
+            .unwrap(),
+            14
+        );
+        insta::assert_display_snapshot!(backend);
+
+        assert_eq!(
+            Input {
+                prompt,
+                backend: TerminalState::new(&mut backend, false),
+                base_row: 14,
+                size,
+            }
+            .adjust_scrollback(10)
+            .unwrap(),
+            10
+        );
+        insta::assert_display_snapshot!(backend);
     }
 
     #[test]
     fn test_render() {
         let prompt = TestPrompt { height: 5 };
-        let size = (100, 100).into();
-
-        let mut ops = vec![MoveCursorTo(0, 5), Clear(ClearType::FromCursorDown)];
-        for i in 0..5 {
-            ops.push(Write(format!("Line {}", i).into()));
-            ops.push(MoveCursor(MoveDirection::NextLine(1)));
-        }
-        ops.push(MoveCursorTo(0, 10));
-        ops.push(Flush);
+        let size = (100, 20).into();
+        let mut backend = TestBackend::new(size);
+        backend.move_cursor_to(0, 5).unwrap();
 
         assert!(Input {
             prompt,
-            backend: TerminalState::new(TestBackend::new(ops, size), false),
+            backend: TerminalState::new(&mut backend, false),
             size,
             base_row: 5,
         }
         .render()
-        .is_ok())
+        .is_ok());
+
+        insta::assert_display_snapshot!(backend);
     }
 
     #[test]
     fn test_goto_last_line() {
-        let size = (100, 100).into();
+        let size = (100, 20).into();
+        let mut backend = TestBackend::new(size);
+        backend.move_cursor_to(0, 15).unwrap();
 
         let mut input = Input {
             prompt: TestPrompt::default(),
-            backend: TerminalState::new(
-                TestBackend::new(
-                    vec![
-                        Scroll(-5),
-                        MoveCursor(MoveDirection::Up(5)),
-                        MoveCursorTo(0, 99),
-                    ],
-                    size,
-                ),
-                false,
-            ),
+            backend: TerminalState::new(&mut backend, false),
             size,
-            base_row: 95,
+            base_row: 15,
         };
 
         assert!(input.goto_last_line(9).is_ok());
-        assert_eq!(input.base_row, 90);
+        assert_eq!(input.base_row, 10);
+        drop(input);
+
+        insta::assert_display_snapshot!(backend);
     }
 
     #[test]
     fn test_print_error() {
         let error = "error text";
-        let size = (100, 100).into();
+        let size = (100, 20).into();
+        let mut backend = TestBackend::new(size);
 
         assert!(Input {
             prompt: TestPrompt { height: 5 },
-            backend: TerminalState::new(
-                TestBackend::new(
-                    vec![
-                        MoveCursorTo(0, 5),
-                        SetFg(Color::Red),
-                        Write(format!("{}", crate::symbols::CROSS).into()),
-                        SetFg(Color::Reset),
-                        Write(" ".into()),
-                        Write(error.into()),
-                        MoveCursorTo(0, 6),
-                        Flush,
-                    ],
-                    size,
-                ),
-                true,
-            ),
+            backend: TerminalState::new(&mut backend, true),
             base_row: 0,
             size,
         }
         .print_error(error)
         .is_ok());
+
+        insta::assert_display_snapshot!(backend);
     }
 }

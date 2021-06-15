@@ -132,10 +132,7 @@ impl<E: std::error::Error> From<E> for Text<String> {
 
 #[cfg(test)]
 mod tests {
-    use crate::{
-        backend::{TestBackend, TestBackendOp::*},
-        test_consts::*,
-    };
+    use crate::{backend::TestBackend, test_consts::*};
 
     use super::*;
 
@@ -188,45 +185,36 @@ mod tests {
 
     #[test]
     fn test_render_single_line() {
-        let size = (100, 100).into();
+        let size = (100, 20).into();
         let mut layout = Layout::new(0, size);
-        let mut backend = TestBackend::new(
-            vec![Write(b"Hello, World!".to_vec()), MoveCursorTo(0, 1)],
-            size,
-        );
+        let mut backend = TestBackend::new(size);
+
         let mut text = Text::new("Hello, World!");
         text.render(&mut layout, &mut backend).unwrap();
+
+        insta::assert_display_snapshot!(backend);
         assert_eq!(layout, layout.with_offset(0, 1));
     }
 
     #[test]
     fn test_render_multiline() {
-        let size = (100, 100).into();
+        let size = (100, 20).into();
         let mut layout = Layout::new(0, size);
 
-        let mut ops = Vec::with_capacity(10);
-        for (i, line) in fill(LOREM, layout).lines().enumerate() {
-            ops.push(Write(line.into()));
-            ops.push(MoveCursorTo(0, i as u16 + 1));
-        }
-
-        let mut backend = TestBackend::new(ops, size);
+        let mut backend = TestBackend::new(size);
         let mut text = Text::new(LOREM);
         text.render(&mut layout, &mut backend).unwrap();
 
+        insta::assert_display_snapshot!(backend);
         assert_eq!(layout, Layout::new(0, size).with_offset(0, 5));
+
         layout = Layout::new(0, size).with_offset(10, 10);
+        backend.reset_with_layout(layout);
 
-        let mut ops = Vec::with_capacity(10);
-        for (i, line) in fill(UNICODE, layout).lines().enumerate() {
-            ops.push(Write(line.into()));
-            ops.push(MoveCursorTo(10, i as u16 + 11));
-        }
-
-        let mut backend = TestBackend::new(ops, size);
         let mut text = Text::new(UNICODE);
         text.render(&mut layout, &mut backend).unwrap();
 
+        insta::assert_display_snapshot!(backend);
         assert_eq!(layout, Layout::new(0, size).with_offset(10, 16));
     }
 }

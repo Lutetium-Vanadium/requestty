@@ -12,7 +12,7 @@ pub fn get_backend<W: std::io::Write>(buf: W) -> error::Result<impl Backend> {
 }
 
 mod test_backend;
-pub use test_backend::{TestBackend, TestBackendOp};
+pub use test_backend::TestBackend;
 
 #[cfg(feature = "termion")]
 mod termion;
@@ -30,6 +30,12 @@ use crate::style::{Attributes, Color, Styled};
 pub struct Size {
     pub width: u16,
     pub height: u16,
+}
+
+impl Size {
+    pub fn area(&self) -> u16 {
+        self.width * self.height
+    }
 }
 
 impl From<(u16, u16)> for Size {

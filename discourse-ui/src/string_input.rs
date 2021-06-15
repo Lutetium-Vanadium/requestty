@@ -396,10 +396,7 @@ fn print_mask<W: Write>(len: usize, mask: char, w: &mut W) -> io::Result<()> {
 mod tests {
     use super::*;
     use crate::{
-        backend::{TestBackend, TestBackendOp::Write},
-        events::KeyModifiers,
-        test_consts::*,
-        Widget,
+        backend::TestBackend, events::KeyModifiers, test_consts::*, Widget,
     };
 
     #[test]
@@ -516,17 +513,15 @@ mod tests {
     #[test]
     fn test_render() {
         fn test(text: &str, line_offset: u16, offset_y: u16) {
-            let size = (100, 40).into();
+            let size = (100, 20).into();
             let mut layout = Layout::new(0, size);
 
+            let mut backend = TestBackend::new(size);
             let mut input = StringInput::default();
             input.set_value(text.into());
-            input
-                .render(
-                    &mut layout,
-                    &mut TestBackend::new(Some(Write(text.into())), size),
-                )
-                .unwrap();
+            input.render(&mut layout, &mut backend).unwrap();
+
+            insta::assert_display_snapshot!(backend);
 
             assert_eq!(
                 layout,
@@ -648,7 +643,7 @@ mod tests {
     fn test_height() {
         fn test(text: &str, indent: usize, max_width: usize, height: u16) {
             let mut layout =
-                Layout::new(indent as u16, (max_width as u16, 100).into());
+                Layout::new(indent as u16, (max_width as u16, 40).into());
             let mut input = StringInput::default();
             input.set_value(text.into());
             assert_eq!(input.height(&mut layout), height);
@@ -664,7 +659,7 @@ mod tests {
 
     #[test]
     fn test_cursor_pos() {
-        let mut layout = Layout::new(0, (100, 100).into());
+        let mut layout = Layout::new(0, (100, 20).into());
         let mut input = StringInput::default();
         input.set_value("Hello, World!".into());
         input.set_at(0);

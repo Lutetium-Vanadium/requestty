@@ -1,231 +1,433 @@
-use std::io::Write;
+use std::{
+    fmt,
+    io::{self, Write},
+    ops,
+};
 
-use super::{Attributes, Backend, ClearType, Color, MoveDirection};
-use crate::error;
-use TestBackendOp::*;
+use super::{Backend, ClearType, MoveDirection, Size};
+use crate::{
+    error,
+    layout::Layout,
+    style::{Attributes, Color},
+    symbols,
+};
 
-macro_rules! try_panic {
-    ($($tt:tt)*) => {
-        if !std::thread::panicking() {
-            panic!($($tt)*)
-        }
-    };
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+struct Cell {
+    value: Option<char>,
+    fg: Color,
+    bg: Color,
+    attributes: Attributes,
 }
 
-// Used to allow derive Debug on structs which exist only to print errors, and show dashes for every
-// field
-struct Dash;
-impl std::fmt::Debug for Dash {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_str("_")
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum TestBackendOp {
-    Write(Vec<u8>),
-    Flush,
-    EnableRawMode,
-    DisableRawMode,
-    HideCursor,
-    ShowCursor,
-    /// The value to return
-    GetCursorPos(u16, u16),
-    MoveCursorTo(u16, u16),
-    MoveCursor(MoveDirection),
-    Scroll(i16),
-    SetAttributes(Attributes),
-    RemoveAttributes(Attributes),
-    SetFg(Color),
-    SetBg(Color),
-    Clear(ClearType),
-}
-
-#[derive(Debug)]
-struct TestBackendOpIter<I: Iterator<Item = TestBackendOp>>(std::iter::Enumerate<I>);
-
-impl<I: Iterator<Item = TestBackendOp>> Drop for TestBackendOpIter<I> {
-    fn drop(&mut self) {
-        if !std::thread::panicking() {
-            let mut rest = Vec::new();
-            let mut start = usize::MAX;
-            let mut end = usize::MAX;
-
-            while let Some((op_i, op)) = self.0.next() {
-                start = start.min(op_i);
-                end = op_i;
-                rest.push(op);
-            }
-
-            if !rest.is_empty() {
-                panic!(
-                    "ops {}..={}, expected ops {:?}, but they were not called",
-                    start, end, rest
-                );
-            }
-        }
-    }
-}
-
-fn err<G: std::fmt::Debug>(op_i: usize, expected: TestBackendOp, got: G) {
-    try_panic!("op {}: expected {:?}, got {:?}", op_i, expected, got);
-}
-
-impl<I: Iterator<Item = TestBackendOp>> TestBackendOpIter<I> {
-    fn next_matches(&mut self, op: TestBackendOp) {
-        let (op_i, expected_op) = match self.0.next() {
-            Some(op) => op,
-            None => return try_panic!("didn't expect op, got {:?}", op),
-        };
-
-        if expected_op != op {
-            err(op_i, expected_op, op);
-        }
-    }
-
-    fn next_write(&mut self, buf: &[u8]) {
-        let (op_i, expected) = match self.0.next().unwrap() {
-            (i, Write(w)) => (i, w),
-            (i, expected) => {
-                #[derive(Debug)]
-                struct Write<'a>(&'a [u8]);
-
-                return err(i, expected, Write(buf));
-            }
-        };
-
-        if *buf != expected[..] {
-            match (std::str::from_utf8(&expected), std::str::from_utf8(buf)) {
-                (Ok(expected), Ok(buf)) => {
-                    try_panic!(
-                        "{}: expected Write({:?}) got Write({:?})",
-                        op_i,
-                        expected,
-                        buf
-                    )
-                }
-                _ => try_panic!(
-                    "{}: expected Write({:?}) got Write({:?})",
-                    op_i,
-                    expected,
-                    buf
-                ),
-            }
-        }
-    }
-
-    fn next_get_cursor_pos(&mut self) -> (u16, u16) {
-        match self.0.next().unwrap() {
-            (_, GetCursorPos(x, y)) => (x, y),
-            (i, expected) => {
-                #[derive(Debug)]
-                struct GetCursorPos(Dash, Dash);
-                err(i, expected, GetCursorPos(Dash, Dash));
-                // err should exit. The only reason it won't is if the thread is unwinding, in which
-                // case the value is never used
-                (0, 0)
-            }
-        }
-    }
-}
-
-#[derive(Debug)]
-pub struct TestBackend<I: Iterator<Item = TestBackendOp>> {
-    expected_ops: TestBackendOpIter<I>,
-    size: super::Size,
-}
-
-impl<I: Iterator<Item = TestBackendOp>> TestBackend<I> {
-    #[allow(clippy::new_ret_no_self)]
-    pub fn new<IntoIter: IntoIterator<IntoIter = I, Item = TestBackendOp>>(
-        iter: IntoIter,
-        size: super::Size,
-    ) -> Self {
+impl Default for Cell {
+    fn default() -> Self {
         Self {
-            expected_ops: TestBackendOpIter(iter.into_iter().enumerate()),
-            size,
+            value: None,
+            fg: Color::Reset,
+            bg: Color::Reset,
+            attributes: Attributes::empty(),
         }
     }
 }
 
-impl<I: Iterator<Item = TestBackendOp>> Write for TestBackend<I> {
-    fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
-        self.expected_ops.next_write(buf);
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
+struct Cursor {
+    x: u16,
+    y: u16,
+}
+
+impl Cursor {
+    fn to_linear(&self, width: u16) -> usize {
+        (self.x + self.y * width) as usize
+    }
+}
+
+impl From<Cursor> for (u16, u16) {
+    fn from(c: Cursor) -> Self {
+        (c.x, c.y)
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct TestBackend {
+    cells: Vec<Cell>,
+    cursor: Cursor,
+    size: Size,
+    raw: bool,
+    hidden_cursor: bool,
+    current_fg: Color,
+    current_bg: Color,
+    current_attributes: Attributes,
+    viewport_start: usize,
+}
+
+impl PartialEq for TestBackend {
+    /// Visual equality to another backend. This means that if the cells of both backends were
+    /// rendered on a terminal, they would look the same. It however does not mean, that the hidden
+    /// scrollback buffer is the same, or the current attributes are the same, or event the cursor
+    /// position if it is hidden.
+    fn eq(&self, other: &Self) -> bool {
+        self.viewport() == other.viewport()
+            && self.size == other.size
+            && self.hidden_cursor == other.hidden_cursor
+            && (self.hidden_cursor || self.cursor == other.cursor)
+    }
+}
+
+impl Eq for TestBackend {}
+
+impl TestBackend {
+    pub fn new(size: Size) -> Self {
+        Self::new_with_layout(size, Layout::new(0, size))
+    }
+
+    pub fn new_with_layout(size: Size, layout: Layout) -> Self {
+        let mut this = Self {
+            cells: [Cell::default()].repeat(size.area() as usize),
+            cursor: Cursor::default(),
+            size,
+            raw: false,
+            hidden_cursor: false,
+            current_fg: Color::Reset,
+            current_bg: Color::Reset,
+            current_attributes: Attributes::empty(),
+            viewport_start: 0,
+        };
+
+        this.move_x(layout.line_offset + layout.offset_x);
+        this.move_y(layout.offset_y);
+
+        this
+    }
+
+    /// Creates a new backend from the lines. There must be <=size.height lines, and <=size.width
+    /// chars per line.
+    ///
+    /// note: It is not necessary to fill the lines so that it matches the dimensions of size
+    /// exactly. Padding will be added to the end as required.
+    pub fn from_lines(lines: &[&str], size: Size) -> Self {
+        let mut backend = Self::new(size);
+
+        assert!(lines.len() <= size.height as usize);
+        let last_i = lines.len() - 1;
+
+        for (i, line) in lines.iter().enumerate() {
+            for c in line.chars() {
+                assert!(backend.cursor.x + 1 < backend.size.width);
+                backend.put_char(c);
+            }
+            if i < last_i {
+                backend.move_x(0);
+                backend.add_y(1);
+            }
+        }
+
+        backend
+    }
+
+    pub fn reset_with_layout(&mut self, layout: Layout) {
+        self.clear_range(..);
+        self.move_x(layout.offset_x + layout.line_offset);
+        self.move_y(layout.offset_y);
+    }
+
+    fn viewport(&self) -> &[Cell] {
+        &self.cells
+            [self.viewport_start..(self.viewport_start + self.size.area() as usize)]
+    }
+
+    fn move_x(&mut self, x: u16) {
+        self.cursor.x = x.min(self.size.width - 1);
+    }
+
+    fn move_y(&mut self, y: u16) {
+        self.cursor.y = y.min(self.size.height - 1);
+    }
+
+    fn add_x(&mut self, x: u16) {
+        let x = self.cursor.x + x;
+        let dy = x / self.size.width;
+        self.cursor.x = x % self.size.width;
+        self.move_y(self.cursor.y + dy);
+    }
+
+    fn sub_x(&mut self, x: u16) {
+        self.cursor.x = self.cursor.x.saturating_sub(x);
+    }
+
+    fn add_y(&mut self, y: u16) {
+        self.move_y(self.cursor.y + y)
+    }
+
+    fn sub_y(&mut self, y: u16) {
+        self.cursor.y = self.cursor.y.saturating_sub(y);
+    }
+
+    fn cell_i(&self) -> usize {
+        self.viewport_start + self.cursor.to_linear(self.size.width)
+    }
+
+    fn cell(&mut self) -> &mut Cell {
+        let i = self.cell_i();
+        &mut self.cells[i]
+    }
+
+    fn clear_range<R: ops::RangeBounds<usize>>(&mut self, range: R) {
+        let start = match range.start_bound() {
+            ops::Bound::Included(&start) => start,
+            ops::Bound::Excluded(start) => start.checked_add(1).unwrap(),
+            ops::Bound::Unbounded => 0,
+        };
+
+        let end = match range.end_bound() {
+            ops::Bound::Included(end) => end.checked_add(1).unwrap(),
+            ops::Bound::Excluded(&end) => end,
+            ops::Bound::Unbounded => self.cells.len(),
+        };
+
+        self.cells[start..end].fill_with(Cell::default);
+    }
+
+    fn put_char(&mut self, c: char) {
+        match c {
+            '\n' => {
+                self.add_y(1);
+                if !self.raw {
+                    self.cursor.x = 0;
+                }
+            }
+            '\r' => self.cursor.x = 0,
+            '\t' => todo!("'\\t' is currently not supported"),
+            c => {
+                self.cell().value = Some(c);
+                self.cell().attributes = self.current_attributes;
+                self.cell().fg = self.current_fg;
+                self.cell().bg = self.current_bg;
+                self.add_x(1);
+            }
+        }
+    }
+
+    pub fn assert_eq(&self, other: &Self) {
+        if *self != *other {
+            panic!(
+                r#"assertion failed: `(left == right)`
+ left:
+{}
+right:
+{}
+"#,
+                self, other
+            );
+        }
+    }
+
+    pub fn write_to_buf<W: Write>(&self, buf: W) -> error::Result<()> {
+        let mut backend = super::get_backend(buf)?;
+
+        let mut fg = Color::Reset;
+        let mut bg = Color::Reset;
+        let mut attributes = Attributes::empty();
+
+        let cursor = if self.hidden_cursor {
+            usize::MAX
+        } else {
+            self.cursor.to_linear(self.size.width) as usize
+        };
+
+        let width = self.size.width as usize;
+
+        write!(backend, "{}", symbols::BOX_LIGHT_TOP_LEFT)?;
+        for _ in 0..self.size.width {
+            write!(backend, "{}", symbols::BOX_LIGHT_HORIZONTAL)?;
+        }
+        writeln!(backend, "{}", symbols::BOX_LIGHT_TOP_RIGHT)?;
+
+        for (i, cell) in self.viewport().iter().enumerate() {
+            if i % width == 0 {
+                write!(backend, "{}", symbols::BOX_LIGHT_VERTICAL)?;
+            }
+
+            if cell.attributes != attributes {
+                let diff = attributes.diff(cell.attributes);
+                backend.remove_attributes(diff.to_remove)?;
+                backend.set_attributes(diff.to_add)?;
+                attributes = cell.attributes;
+            }
+            let (cell_fg, cell_bg) = if i == cursor {
+                (
+                    cell.bg,
+                    match cell.fg {
+                        Color::Reset => Color::Grey,
+                        c => c,
+                    },
+                )
+            } else {
+                (cell.fg, cell.bg)
+            };
+
+            if cell_fg != fg {
+                backend.set_fg(cell_fg)?;
+                fg = cell_fg;
+            }
+            if cell_bg != bg {
+                backend.set_bg(cell_bg)?;
+                bg = cell_bg;
+            }
+
+            write!(backend, "{}", cell.value.unwrap_or(' '))?;
+
+            if (i + 1) % width == 0 {
+                writeln!(backend, "{}", symbols::BOX_LIGHT_VERTICAL)?;
+            }
+        }
+
+        write!(backend, "{}", symbols::BOX_LIGHT_BOTTOM_LEFT)?;
+        for _ in 0..self.size.width {
+            write!(backend, "{}", symbols::BOX_LIGHT_HORIZONTAL)?;
+        }
+        write!(backend, "{}", symbols::BOX_LIGHT_BOTTOM_RIGHT)?;
+
+        backend.flush().map_err(Into::into)
+    }
+}
+
+impl fmt::Display for TestBackend {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let mut buf = Vec::with_capacity(self.size.area() as usize);
+
+        if let Err(e) = self.write_to_buf(&mut buf) {
+            return write!(f, "<could not render TestBackend: {}>", e);
+        }
+
+        match std::str::from_utf8(&buf) {
+            Ok(s) => write!(f, "{}", s),
+            Err(e) => write!(f, "<could not render TestBackend: {}>", e),
+        }
+    }
+}
+
+impl Write for TestBackend {
+    fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
+        std::str::from_utf8(buf)
+            .map_err(|_| io::ErrorKind::InvalidInput)?
+            .chars()
+            .for_each(|c| self.put_char(c));
+
         Ok(buf.len())
     }
 
-    fn flush(&mut self) -> std::io::Result<()> {
-        self.expected_ops.next_matches(Flush);
+    fn flush(&mut self) -> io::Result<()> {
         Ok(())
     }
 }
 
-impl<I: Iterator<Item = TestBackendOp>> Backend for TestBackend<I> {
+impl super::Backend for TestBackend {
     fn enable_raw_mode(&mut self) -> error::Result<()> {
-        self.expected_ops.next_matches(EnableRawMode);
+        self.raw = true;
         Ok(())
     }
 
     fn disable_raw_mode(&mut self) -> error::Result<()> {
-        self.expected_ops.next_matches(DisableRawMode);
+        self.raw = false;
         Ok(())
     }
 
     fn hide_cursor(&mut self) -> error::Result<()> {
-        self.expected_ops.next_matches(HideCursor);
+        self.hidden_cursor = true;
         Ok(())
     }
 
     fn show_cursor(&mut self) -> error::Result<()> {
-        self.expected_ops.next_matches(ShowCursor);
+        self.hidden_cursor = false;
         Ok(())
     }
 
     fn get_cursor_pos(&mut self) -> error::Result<(u16, u16)> {
-        Ok(self.expected_ops.next_get_cursor_pos())
+        Ok(self.cursor.into())
     }
 
     fn move_cursor_to(&mut self, x: u16, y: u16) -> error::Result<()> {
-        self.expected_ops.next_matches(MoveCursorTo(x, y));
+        self.move_x(x);
+        self.move_y(y);
         Ok(())
     }
 
     fn move_cursor(&mut self, direction: MoveDirection) -> error::Result<()> {
-        self.expected_ops.next_matches(MoveCursor(direction));
+        match direction {
+            MoveDirection::Up(n) => self.sub_y(n),
+            MoveDirection::Down(n) => self.add_y(n),
+            MoveDirection::Left(n) => self.sub_x(n),
+            MoveDirection::Right(n) => self.add_y(n),
+            MoveDirection::NextLine(n) => {
+                self.cursor.x = 0;
+                self.add_y(n);
+            }
+            MoveDirection::Column(n) => self.move_x(n),
+            MoveDirection::PrevLine(n) => {
+                self.cursor.x = 0;
+                self.sub_y(n);
+            }
+        }
         Ok(())
     }
 
     fn scroll(&mut self, dist: i16) -> error::Result<()> {
-        self.expected_ops.next_matches(Scroll(dist));
+        if dist.is_positive() {
+            self.viewport_start += (dist as usize) * self.size.width as usize;
+            let new_len = self.viewport_start + self.size.area() as usize;
+
+            if new_len > self.cells.len() {
+                self.cells.resize_with(new_len, Cell::default)
+            };
+        } else {
+            self.viewport_start = self
+                .viewport_start
+                .saturating_sub((-dist) as usize * self.size.width as usize);
+        }
         Ok(())
     }
 
     fn set_attributes(&mut self, attributes: Attributes) -> error::Result<()> {
-        self.expected_ops.next_matches(SetAttributes(attributes));
+        self.current_attributes.insert(attributes);
         Ok(())
     }
 
     fn remove_attributes(&mut self, attributes: Attributes) -> error::Result<()> {
-        self.expected_ops.next_matches(RemoveAttributes(attributes));
+        self.current_attributes.remove(attributes);
         Ok(())
     }
 
     fn set_fg(&mut self, color: Color) -> error::Result<()> {
-        self.expected_ops.next_matches(SetFg(color));
+        self.current_fg = color;
         Ok(())
     }
 
     fn set_bg(&mut self, color: Color) -> error::Result<()> {
-        self.expected_ops.next_matches(SetBg(color));
+        self.current_bg = color;
         Ok(())
     }
 
     fn clear(&mut self, clear_type: ClearType) -> error::Result<()> {
-        self.expected_ops.next_matches(Clear(clear_type));
+        match clear_type {
+            ClearType::All => self.clear_range(..),
+            ClearType::FromCursorDown => self.clear_range(self.cell_i()..),
+            ClearType::FromCursorUp => self.clear_range(..=self.cell_i()),
+            ClearType::CurrentLine => {
+                let s = (self.cursor.y * self.size.width) as usize;
+                let e = ((self.cursor.y + 1) * self.size.width) as usize;
+                self.clear_range(s..e)
+            }
+            ClearType::UntilNewLine => {
+                let e = ((self.cursor.y + 1) * self.size.width) as usize;
+                self.clear_range(self.cell_i()..e)
+            }
+        }
         Ok(())
     }
 
-    fn size(&self) -> error::Result<super::Size> {
+    fn size(&self) -> error::Result<Size> {
         Ok(self.size)
     }
 }

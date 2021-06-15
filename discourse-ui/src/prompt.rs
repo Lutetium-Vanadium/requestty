@@ -199,11 +199,7 @@ impl<M: AsRef<str>, H: AsRef<str>> Widget for Prompt<M, H> {
 
 #[cfg(test)]
 mod tests {
-    use crate::{
-        backend::{TestBackend, TestBackendOp::*},
-        style::Attributes,
-        test_consts::*,
-    };
+    use crate::{backend::TestBackend, test_consts::*};
 
     use super::*;
 
@@ -229,45 +225,16 @@ mod tests {
             message: &'static str,
             hint: Option<&'static str>,
             delim: Delimiter,
-            delim_chars: Option<(char, char)>,
             expected_layout: Layout,
         ) {
-            let mut ops = Vec::with_capacity(10);
-
-            ops.push(SetFg(Color::LightGreen));
-            ops.push(Write("? ".into()));
-            ops.push(SetFg(Color::Reset));
-            ops.push(SetAttributes(Attributes::BOLD));
-            ops.push(Write(message.into()));
-            ops.push(SetAttributes(Attributes::RESET));
-            ops.push(Write(" ".into()));
-            ops.push(SetFg(Color::DarkGrey));
-            if let Some(hint) = hint {
-                match delim_chars {
-                    Some((start, end)) => {
-                        ops.push(Write(start.to_string().into()));
-                        ops.push(Write(hint.into()));
-                        ops.push(Write(end.to_string().into()));
-                    }
-                    None => ops.push(Write(hint.into())),
-                }
-            } else {
-                ops.push(Write(
-                    crate::symbols::SMALL_ARROW.to_string().into_bytes(),
-                ));
-            }
-            ops.push(SetFg(Color::Reset));
-            ops.push(Write(" ".into()));
-
-            let size = (100, 100).into();
+            let size = (100, 20).into();
             let mut layout = Layout::new(5, size);
             let mut prompt = Prompt::new(message)
                 .with_optional_hint(hint)
                 .with_delim(delim);
+            let mut backend = TestBackend::new_with_layout(size, layout);
 
-            prompt
-                .render(&mut layout, &mut TestBackend::new(ops, size))
-                .unwrap();
+            prompt.render(&mut layout, &mut backend).unwrap();
 
             assert_eq!(
                 layout,
@@ -278,21 +245,14 @@ mod tests {
             );
         }
 
-        let layout = Layout::new(5, (100, 100).into());
+        let layout = Layout::new(5, (100, 20).into());
 
-        test(
-            "Hello",
-            None,
-            Delimiter::None,
-            None,
-            layout.with_line_offset(15),
-        );
+        test("Hello", None, Delimiter::None, layout.with_line_offset(15));
 
         test(
             "Hello",
             Some("world"),
             Delimiter::Parentheses,
-            Some(('(', ')')),
             layout.with_line_offset(21),
         );
 
@@ -300,7 +260,6 @@ mod tests {
             "Hello",
             Some("world"),
             Delimiter::Braces,
-            Some(('{', '}')),
             layout.with_line_offset(21),
         );
 
@@ -308,7 +267,6 @@ mod tests {
             "Hello",
             Some("world"),
             Delimiter::SquareBracket,
-            Some(('[', ']')),
             layout.with_line_offset(21),
         );
 
@@ -316,7 +274,6 @@ mod tests {
             "Hello",
             Some("world"),
             Delimiter::AngleBracket,
-            Some(('<', '>')),
             layout.with_line_offset(21),
         );
 
@@ -324,7 +281,6 @@ mod tests {
             "Hello",
             Some("world"),
             Delimiter::Other('-', '|'),
-            Some(('-', '|')),
             layout.with_line_offset(21),
         );
 
@@ -332,14 +288,13 @@ mod tests {
             LOREM,
             Some(UNICODE),
             Delimiter::None,
-            None,
             layout.with_line_offset(49).with_offset(0, 9),
         );
     }
 
     #[test]
     fn test_height() {
-        let mut layout = Layout::new(5, (100, 100).into());
+        let mut layout = Layout::new(5, (100, 20).into());
 
         assert_eq!(Prompt::new("Hello").height(&mut layout.clone()), 1);
         assert_eq!(
@@ -356,7 +311,7 @@ mod tests {
 
     #[test]
     fn test_cursor_pos() {
-        let layout = Layout::new(5, (100, 100).into());
+        let layout = Layout::new(5, (100, 20).into());
 
         assert_eq!(Prompt::new("Hello").cursor_pos_impl(layout), (15, 0));
         assert_eq!(

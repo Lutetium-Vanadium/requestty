@@ -11,3 +11,6 @@ unicode-segmentation = "1.7"
 
 crossterm = { version = "0.19", optional = true }
 termion = { version = "1.5", optional = true }
+
+[dev-dependencies]
+insta = { version = "1.7.1", default-features = false }

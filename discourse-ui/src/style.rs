@@ -95,6 +95,21 @@ bitflags::bitflags! {
     }
 }
 
+pub struct AttributeDiff {
+    pub to_add: Attributes,
+    pub to_remove: Attributes,
+}
+
+impl Attributes {
+    pub fn diff(self, other: Attributes) -> AttributeDiff {
+        let diff = self ^ other;
+        AttributeDiff {
+            to_remove: diff & self,
+            to_add: diff & other,
+        }
+    }
+}
+
 /// Provides a set of methods to set the colors and attributes.
 ///
 /// Every method with the `on_` prefix sets the background color. Other color methods set the
