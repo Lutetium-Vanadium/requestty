@@ -420,6 +420,22 @@ impl TestBackend {
             write!(buf, "{}", cell.value.unwrap_or(' '))?;
 
             if (i + 1) % width == 0 {
+                if !attributes.is_empty() {
+                    display_ops::set_attributes(
+                        attributes,
+                        Attributes::empty(),
+                        &mut buf,
+                    )?;
+                    attributes = Attributes::empty();
+                }
+                if fg != Color::Reset {
+                    fg = Color::Reset;
+                    display_ops::write_fg(fg, &mut buf)?;
+                }
+                if bg != Color::Reset {
+                    bg = Color::Reset;
+                    display_ops::write_bg(bg, &mut buf)?;
+                }
                 writeln!(buf, "{}", symbols::BOX_LIGHT_VERTICAL)?;
             }
         }
