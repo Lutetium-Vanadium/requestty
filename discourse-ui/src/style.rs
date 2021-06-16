@@ -95,6 +95,7 @@ bitflags::bitflags! {
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct AttributeDiff {
     pub to_add: Attributes,
     pub to_remove: Attributes,

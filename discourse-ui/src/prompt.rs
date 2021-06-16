@@ -236,6 +236,7 @@ mod tests {
 
             prompt.render(&mut layout, &mut backend).unwrap();
 
+            crate::assert_backend_snapshot!(backend);
             assert_eq!(
                 layout,
                 expected_layout,

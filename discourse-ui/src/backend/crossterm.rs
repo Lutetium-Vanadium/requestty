@@ -153,7 +153,10 @@ impl From<ClearType> for terminal::ClearType {
     }
 }
 
-fn set_attributes<W: Write>(attributes: Attributes, mut w: W) -> error::Result<()> {
+pub(super) fn set_attributes<W: Write>(
+    attributes: Attributes,
+    mut w: W,
+) -> error::Result<()> {
     if attributes.contains(Attributes::RESET) {
         return queue!(w, SetAttribute(CAttribute::Reset)).map_err(Into::into);
     }
@@ -189,7 +192,7 @@ fn set_attributes<W: Write>(attributes: Attributes, mut w: W) -> error::Result<(
     Ok(())
 }
 
-fn remove_attributes<W: Write>(
+pub(super) fn remove_attributes<W: Write>(
     attributes: Attributes,
     mut w: W,
 ) -> error::Result<()> {

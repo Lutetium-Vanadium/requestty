@@ -538,7 +538,7 @@ fn test_render() {
         .render(&mut layout, &mut backend)
         .unwrap();
 
-    insta::assert_display_snapshot!(backend);
+    crate::assert_backend_snapshot!(backend);
     assert_eq!(layout, base_layout.with_offset(0, 5));
 
     layout = base_layout.with_line_offset(10);
@@ -551,7 +551,7 @@ fn test_render() {
     select.set_at(13);
     select.render(&mut layout, &mut backend).unwrap();
 
-    insta::assert_display_snapshot!(backend);
+    crate::assert_backend_snapshot!(backend);
     assert_eq!(layout, base_layout.with_offset(0, 11));
 
     layout = base_layout;
@@ -566,7 +566,7 @@ fn test_render() {
     select.page_end = 4;
     select.render(&mut layout, &mut backend).unwrap();
 
-    insta::assert_display_snapshot!(backend);
+    crate::assert_backend_snapshot!(backend);
     assert_eq!(layout, base_layout.with_offset(0, 10));
 
     let size = (120, 35).into();
@@ -589,6 +589,6 @@ fn test_render() {
     select.adjust_page(Movement::Up);
     select.render(&mut layout, &mut backend).unwrap();
 
-    insta::assert_display_snapshot!(backend);
+    crate::assert_backend_snapshot!(backend);
     assert_eq!(layout, base_layout.with_offset(20, 31));
 }

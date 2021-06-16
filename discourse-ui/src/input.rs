@@ -326,7 +326,7 @@ mod tests {
 
         backend.init().unwrap();
 
-        insta::assert_display_snapshot!(*backend);
+        crate::assert_backend_snapshot!(*backend);
     }
 
     #[test]
@@ -349,7 +349,7 @@ mod tests {
             14
         );
 
-        insta::assert_display_snapshot!(backend);
+        crate::assert_backend_snapshot!(backend);
 
         assert_eq!(
             Input {
@@ -362,7 +362,7 @@ mod tests {
             .unwrap(),
             14
         );
-        insta::assert_display_snapshot!(backend);
+        crate::assert_backend_snapshot!(backend);
 
         assert_eq!(
             Input {
@@ -375,7 +375,7 @@ mod tests {
             .unwrap(),
             10
         );
-        insta::assert_display_snapshot!(backend);
+        crate::assert_backend_snapshot!(backend);
     }
 
     #[test]
@@ -394,7 +394,7 @@ mod tests {
         .render()
         .is_ok());
 
-        insta::assert_display_snapshot!(backend);
+        crate::assert_backend_snapshot!(backend);
     }
 
     #[test]
@@ -414,7 +414,7 @@ mod tests {
         assert_eq!(input.base_row, 10);
         drop(input);
 
-        insta::assert_display_snapshot!(backend);
+        crate::assert_backend_snapshot!(backend);
     }
 
     #[test]
@@ -432,6 +432,6 @@ mod tests {
         .print_error(error)
         .is_ok());
 
-        insta::assert_display_snapshot!(backend);
+        crate::assert_backend_snapshot!(backend);
     }
 }

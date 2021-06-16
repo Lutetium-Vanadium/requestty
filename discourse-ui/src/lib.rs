@@ -57,6 +57,36 @@ pub mod symbols {
     pub const BOX_LIGHT_VERTICAL: char = '│';
 }
 
+#[doc(hidden)]
+pub mod features {
+    #[cfg(feature = "crossterm")]
+    pub const SNAPSHOT_PATH: &str = "crossterm-snapshots";
+
+    #[cfg(feature = "termion")]
+    pub const SNAPSHOT_PATH: &str = "termion-snapshots";
+}
+
+#[macro_export]
+macro_rules! assert_backend_snapshot {
+    ($value:expr, @$snapshot:literal) => {
+        $crate::assert_backend_snapshot!(@__impl ::insta::assert_display_snapshot!($value, @$snapshot))
+    };
+    ($name:expr, $value:expr) => {
+        $crate::assert_backend_snapshot!(@__impl ::insta::assert_display_snapshot!($name, $value))
+    };
+    ($value:expr) => {
+        $crate::assert_backend_snapshot!(@__impl ::insta::assert_display_snapshot!($value))
+    };
+
+    (@__impl $($tt:tt)*) => {
+        ::insta::with_settings!({
+            snapshot_path => $crate::features::SNAPSHOT_PATH
+        }, {
+            $($tt)*
+        })
+    }
+}
+
 #[cfg(test)]
 mod test_consts {
     /// ASCII placeholder text with 470 characters

@@ -126,9 +126,9 @@ impl<W: Write> Backend for TermionBackend<W> {
     }
 }
 
-struct Fg(Color);
+pub(super) struct Fg(pub Color);
 
-struct Bg(Color);
+pub(super) struct Bg(pub Color);
 
 impl fmt::Display for Fg {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -183,7 +183,10 @@ impl fmt::Display for Bg {
     }
 }
 
-fn set_attributes<W: Write>(attributes: Attributes, mut w: W) -> error::Result<()> {
+pub(super) fn set_attributes<W: Write>(
+    attributes: Attributes,
+    mut w: W,
+) -> error::Result<()> {
     if attributes.contains(Attributes::RESET) {
         write!(w, "{}", style::Reset)?;
     }
@@ -215,7 +218,7 @@ fn set_attributes<W: Write>(attributes: Attributes, mut w: W) -> error::Result<(
     Ok(())
 }
 
-fn remove_attributes<W: Write>(
+pub(super) fn remove_attributes<W: Write>(
     attributes: Attributes,
     mut w: W,
 ) -> error::Result<()> {

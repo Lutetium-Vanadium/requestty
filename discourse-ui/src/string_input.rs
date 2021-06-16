@@ -521,7 +521,7 @@ mod tests {
             input.set_value(text.into());
             input.render(&mut layout, &mut backend).unwrap();
 
-            insta::assert_display_snapshot!(backend);
+            crate::assert_backend_snapshot!(backend);
 
             assert_eq!(
                 layout,

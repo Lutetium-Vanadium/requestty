@@ -4,7 +4,7 @@ use std::{
     ops,
 };
 
-use super::{Backend, ClearType, MoveDirection, Size};
+use super::{ClearType, MoveDirection, Size};
 use crate::{
     error,
     layout::Layout,
@@ -198,7 +198,15 @@ impl TestBackend {
                 }
             }
             '\r' => self.cursor.x = 0,
-            '\t' => todo!("'\\t' is currently not supported"),
+            '\t' => {
+                let x = 8 + self.cursor.x - (self.cursor.x % 8);
+                if x >= self.size.width && self.cursor.y < self.size.width - 1 {
+                    self.cursor.x = 0;
+                    self.cursor.y += 1;
+                } else {
+                    self.move_x(x);
+                }
+            }
             c => {
                 self.cell().value = Some(c);
                 self.cell().attributes = self.current_attributes;
@@ -220,90 +228,6 @@ right:
 "#,
                 self, other
             );
-        }
-    }
-
-    pub fn write_to_buf<W: Write>(&self, buf: W) -> error::Result<()> {
-        let mut backend = super::get_backend(buf)?;
-
-        let mut fg = Color::Reset;
-        let mut bg = Color::Reset;
-        let mut attributes = Attributes::empty();
-
-        let cursor = if self.hidden_cursor {
-            usize::MAX
-        } else {
-            self.cursor.to_linear(self.size.width) as usize
-        };
-
-        let width = self.size.width as usize;
-
-        write!(backend, "{}", symbols::BOX_LIGHT_TOP_LEFT)?;
-        for _ in 0..self.size.width {
-            write!(backend, "{}", symbols::BOX_LIGHT_HORIZONTAL)?;
-        }
-        writeln!(backend, "{}", symbols::BOX_LIGHT_TOP_RIGHT)?;
-
-        for (i, cell) in self.viewport().iter().enumerate() {
-            if i % width == 0 {
-                write!(backend, "{}", symbols::BOX_LIGHT_VERTICAL)?;
-            }
-
-            if cell.attributes != attributes {
-                let diff = attributes.diff(cell.attributes);
-                backend.remove_attributes(diff.to_remove)?;
-                backend.set_attributes(diff.to_add)?;
-                attributes = cell.attributes;
-            }
-            let (cell_fg, cell_bg) = if i == cursor {
-                (
-                    cell.bg,
-                    match cell.fg {
-                        Color::Reset => Color::Grey,
-                        c => c,
-                    },
-                )
-            } else {
-                (cell.fg, cell.bg)
-            };
-
-            if cell_fg != fg {
-                backend.set_fg(cell_fg)?;
-                fg = cell_fg;
-            }
-            if cell_bg != bg {
-                backend.set_bg(cell_bg)?;
-                bg = cell_bg;
-            }
-
-            write!(backend, "{}", cell.value.unwrap_or(' '))?;
-
-            if (i + 1) % width == 0 {
-                writeln!(backend, "{}", symbols::BOX_LIGHT_VERTICAL)?;
-            }
-        }
-
-        write!(backend, "{}", symbols::BOX_LIGHT_BOTTOM_LEFT)?;
-        for _ in 0..self.size.width {
-            write!(backend, "{}", symbols::BOX_LIGHT_HORIZONTAL)?;
-        }
-        write!(backend, "{}", symbols::BOX_LIGHT_BOTTOM_RIGHT)?;
-
-        backend.flush().map_err(Into::into)
-    }
-}
-
-impl fmt::Display for TestBackend {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let mut buf = Vec::with_capacity(self.size.area() as usize);
-
-        if let Err(e) = self.write_to_buf(&mut buf) {
-            return write!(f, "<could not render TestBackend: {}>", e);
-        }
-
-        match std::str::from_utf8(&buf) {
-            Ok(s) => write!(f, "{}", s),
-            Err(e) => write!(f, "<could not render TestBackend: {}>", e),
         }
     }
 }
@@ -429,5 +353,150 @@ impl super::Backend for TestBackend {
 
     fn size(&self) -> error::Result<Size> {
         Ok(self.size)
+    }
+}
+
+impl fmt::Display for TestBackend {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let mut buf = Vec::with_capacity(self.size.area() as usize);
+
+        if let Err(e) = self.write_to_buf(&mut buf) {
+            return write!(f, "<could not render TestBackend: {}>", e);
+        }
+
+        match std::str::from_utf8(&buf) {
+            Ok(s) => write!(f, "{}", s),
+            Err(e) => write!(f, "<could not render TestBackend: {}>", e),
+        }
+    }
+}
+
+impl TestBackend {
+    pub fn write_to_buf<W: Write>(&self, mut buf: W) -> error::Result<()> {
+        let mut fg = Color::Reset;
+        let mut bg = Color::Reset;
+        let mut attributes = Attributes::empty();
+
+        let cursor = if self.hidden_cursor {
+            usize::MAX
+        } else {
+            self.cursor.to_linear(self.size.width) as usize
+        };
+
+        let width = self.size.width as usize;
+
+        write!(buf, "{}", symbols::BOX_LIGHT_TOP_LEFT)?;
+        for _ in 0..self.size.width {
+            write!(buf, "{}", symbols::BOX_LIGHT_HORIZONTAL)?;
+        }
+        writeln!(buf, "{}", symbols::BOX_LIGHT_TOP_RIGHT)?;
+
+        for (i, cell) in self.viewport().iter().enumerate() {
+            if i % width == 0 {
+                write!(buf, "{}", symbols::BOX_LIGHT_VERTICAL)?;
+            }
+
+            if cell.attributes != attributes {
+                let diff = attributes.diff(cell.attributes);
+                display_ops::write_attribute_diff(diff, &mut buf)?;
+                attributes = cell.attributes;
+            }
+
+            let (cell_fg, cell_bg) = if i == cursor {
+                (
+                    cell.bg,
+                    match cell.fg {
+                        Color::Reset => Color::Grey,
+                        c => c,
+                    },
+                )
+            } else {
+                (cell.fg, cell.bg)
+            };
+
+            if cell_fg != fg {
+                display_ops::write_fg(cell_fg, &mut buf)?;
+                fg = cell_fg;
+            }
+            if cell_bg != bg {
+                display_ops::write_bg(cell_bg, &mut buf)?;
+                bg = cell_bg;
+            }
+
+            write!(buf, "{}", cell.value.unwrap_or(' '))?;
+
+            if (i + 1) % width == 0 {
+                writeln!(buf, "{}", symbols::BOX_LIGHT_VERTICAL)?;
+            }
+        }
+
+        write!(buf, "{}", symbols::BOX_LIGHT_BOTTOM_LEFT)?;
+        for _ in 0..self.size.width {
+            write!(buf, "{}", symbols::BOX_LIGHT_HORIZONTAL)?;
+        }
+        write!(buf, "{}", symbols::BOX_LIGHT_BOTTOM_RIGHT)?;
+
+        buf.flush().map_err(Into::into)
+    }
+}
+
+#[cfg(feature = "crossterm")]
+mod display_ops {
+    use std::io::Write;
+
+    use crossterm::{
+        queue,
+        style::{SetBackgroundColor, SetForegroundColor},
+    };
+
+    use crate::{
+        backend::crossterm::{remove_attributes, set_attributes},
+        error,
+        style::{AttributeDiff, Color},
+    };
+
+    pub(super) fn write_attribute_diff<W: Write>(
+        diff: AttributeDiff,
+        mut w: W,
+    ) -> error::Result<()> {
+        remove_attributes(diff.to_remove, &mut w)?;
+        set_attributes(diff.to_add, w)?;
+        Ok(())
+    }
+
+    pub(super) fn write_fg<W: Write>(fg: Color, mut w: W) -> error::Result<()> {
+        queue!(w, SetForegroundColor(fg.into())).map_err(Into::into)
+    }
+
+    pub(super) fn write_bg<W: Write>(bg: Color, mut w: W) -> error::Result<()> {
+        queue!(w, SetBackgroundColor(bg.into())).map_err(Into::into)
+    }
+}
+
+#[cfg(feature = "termion")]
+mod display_ops {
+    use std::io::Write;
+
+    use crate::{
+        backend::termion,
+        error,
+        style::{AttributeDiff, Color},
+    };
+
+    pub(super) fn write_attribute_diff<W: Write>(
+        diff: AttributeDiff,
+        mut w: W,
+    ) -> error::Result<()> {
+        termion::remove_attributes(diff.to_remove, &mut w)?;
+        termion::set_attributes(diff.to_add, w)?;
+        Ok(())
+    }
+
+    pub(super) fn write_fg<W: Write>(fg: Color, mut w: W) -> error::Result<()> {
+        write!(w, "{}", termion::Fg(fg)).map_err(Into::into)
+    }
+
+    pub(super) fn write_bg<W: Write>(bg: Color, mut w: W) -> error::Result<()> {
+        write!(w, "{}", termion::Bg(bg)).map_err(Into::into)
     }
 }

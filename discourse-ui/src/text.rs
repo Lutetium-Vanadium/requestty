@@ -192,7 +192,7 @@ mod tests {
         let mut text = Text::new("Hello, World!");
         text.render(&mut layout, &mut backend).unwrap();
 
-        insta::assert_display_snapshot!(backend);
+        crate::assert_backend_snapshot!(backend);
         assert_eq!(layout, layout.with_offset(0, 1));
     }
 
@@ -205,7 +205,7 @@ mod tests {
         let mut text = Text::new(LOREM);
         text.render(&mut layout, &mut backend).unwrap();
 
-        insta::assert_display_snapshot!(backend);
+        crate::assert_backend_snapshot!(backend);
         assert_eq!(layout, Layout::new(0, size).with_offset(0, 5));
 
         layout = Layout::new(0, size).with_offset(10, 10);
@@ -214,7 +214,7 @@ mod tests {
         let mut text = Text::new(UNICODE);
         text.render(&mut layout, &mut backend).unwrap();
 
-        insta::assert_display_snapshot!(backend);
+        crate::assert_backend_snapshot!(backend);
         assert_eq!(layout, Layout::new(0, size).with_offset(10, 16));
     }
 }

@@ -164,7 +164,7 @@ mod tests {
         let mut backend = TestBackend::new(size);
         input.render(&mut layout, &mut backend).unwrap();
 
-        insta::assert_display_snapshot!(backend);
+        crate::assert_backend_snapshot!(backend);
 
         assert_eq!(layout, Layout::new(0, size).with_line_offset(1));
     }
