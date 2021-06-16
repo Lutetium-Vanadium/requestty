@@ -81,7 +81,6 @@ pub trait Backend: std::io::Write {
     }
     fn scroll(&mut self, dist: i16) -> error::Result<()>;
     fn set_attributes(&mut self, attributes: Attributes) -> error::Result<()>;
-    fn remove_attributes(&mut self, attributes: Attributes) -> error::Result<()>;
     fn set_fg(&mut self, color: Color) -> error::Result<()>;
     fn set_bg(&mut self, color: Color) -> error::Result<()>;
     fn write_styled(
@@ -152,9 +151,6 @@ impl<'a, B: Backend> Backend for &'a mut B {
     }
     fn set_attributes(&mut self, attributes: Attributes) -> error::Result<()> {
         (**self).set_attributes(attributes)
-    }
-    fn remove_attributes(&mut self, attributes: Attributes) -> error::Result<()> {
-        (**self).remove_attributes(attributes)
     }
     fn set_fg(&mut self, color: Color) -> error::Result<()> {
         (**self).set_fg(color)

@@ -17,11 +17,15 @@ use crate::error;
 
 pub struct CrosstermBackend<W> {
     buffer: W,
+    attributes: Attributes,
 }
 
 impl<W> CrosstermBackend<W> {
     pub fn new(buffer: W) -> error::Result<CrosstermBackend<W>> {
-        Ok(CrosstermBackend { buffer })
+        Ok(CrosstermBackend {
+            buffer,
+            attributes: Attributes::empty(),
+        })
     }
 }
 
@@ -91,11 +95,9 @@ impl<W: Write> Backend for CrosstermBackend<W> {
     }
 
     fn set_attributes(&mut self, attributes: Attributes) -> error::Result<()> {
-        set_attributes(attributes, &mut self.buffer)
-    }
-
-    fn remove_attributes(&mut self, attributes: Attributes) -> error::Result<()> {
-        remove_attributes(attributes, &mut self.buffer)
+        set_attributes(self.attributes, attributes, &mut self.buffer)?;
+        self.attributes = attributes;
+        Ok(())
     }
 
     fn set_fg(&mut self, color: Color) -> error::Result<()> {
@@ -154,75 +156,61 @@ impl From<ClearType> for terminal::ClearType {
 }
 
 pub(super) fn set_attributes<W: Write>(
-    attributes: Attributes,
+    from: Attributes,
+    to: Attributes,
     mut w: W,
 ) -> error::Result<()> {
-    if attributes.contains(Attributes::RESET) {
-        return queue!(w, SetAttribute(CAttribute::Reset)).map_err(Into::into);
-    }
-
-    if attributes.contains(Attributes::REVERSED) {
-        queue!(w, SetAttribute(CAttribute::Reverse))?;
-    }
-    if attributes.contains(Attributes::BOLD) {
-        queue!(w, SetAttribute(CAttribute::Bold))?;
-    }
-    if attributes.contains(Attributes::ITALIC) {
-        queue!(w, SetAttribute(CAttribute::Italic))?;
-    }
-    if attributes.contains(Attributes::UNDERLINED) {
-        queue!(w, SetAttribute(CAttribute::Underlined))?;
-    }
-    if attributes.contains(Attributes::DIM) {
-        queue!(w, SetAttribute(CAttribute::Dim))?;
-    }
-    if attributes.contains(Attributes::CROSSED_OUT) {
-        queue!(w, SetAttribute(CAttribute::CrossedOut))?;
-    }
-    if attributes.contains(Attributes::SLOW_BLINK) {
-        queue!(w, SetAttribute(CAttribute::SlowBlink))?;
-    }
-    if attributes.contains(Attributes::RAPID_BLINK) {
-        queue!(w, SetAttribute(CAttribute::RapidBlink))?;
-    }
-    if attributes.contains(Attributes::HIDDEN) {
-        queue!(w, SetAttribute(CAttribute::Hidden))?;
-    }
-
-    Ok(())
-}
-
-pub(super) fn remove_attributes<W: Write>(
-    attributes: Attributes,
-    mut w: W,
-) -> error::Result<()> {
-    if attributes.contains(Attributes::RESET) {
-        return queue!(w, SetAttribute(CAttribute::Reset)).map_err(Into::into);
-    }
-
-    if attributes.contains(Attributes::REVERSED) {
+    let diff = from.diff(to);
+    if diff.to_remove.contains(Attributes::REVERSED) {
         queue!(w, SetAttribute(CAttribute::NoReverse))?;
     }
-    if attributes.contains(Attributes::BOLD) {
-        queue!(w, SetAttribute(CAttribute::NoBold))?;
+    if diff.to_remove.contains(Attributes::BOLD) {
+        queue!(w, SetAttribute(CAttribute::NormalIntensity))?;
+        if to.contains(Attributes::DIM) {
+            queue!(w, SetAttribute(CAttribute::Dim))?;
+        }
     }
-    if attributes.contains(Attributes::ITALIC) {
+    if diff.to_remove.contains(Attributes::ITALIC) {
         queue!(w, SetAttribute(CAttribute::NoItalic))?;
     }
-    if attributes.contains(Attributes::UNDERLINED) {
+    if diff.to_remove.contains(Attributes::UNDERLINED) {
         queue!(w, SetAttribute(CAttribute::NoUnderline))?;
     }
-    if attributes.contains(Attributes::DIM) {
+    if diff.to_remove.contains(Attributes::DIM) {
         queue!(w, SetAttribute(CAttribute::NormalIntensity))?;
     }
-    if attributes.contains(Attributes::CROSSED_OUT) {
+    if diff.to_remove.contains(Attributes::CROSSED_OUT) {
         queue!(w, SetAttribute(CAttribute::NotCrossedOut))?;
     }
-    if attributes.contains(Attributes::SLOW_BLINK | Attributes::RAPID_BLINK) {
+    if diff.to_remove.contains(Attributes::SLOW_BLINK)
+        || diff.to_remove.contains(Attributes::RAPID_BLINK)
+    {
         queue!(w, SetAttribute(CAttribute::NoBlink))?;
     }
-    if attributes.contains(Attributes::HIDDEN) {
-        queue!(w, SetAttribute(CAttribute::NoHidden))?;
+
+    if diff.to_add.contains(Attributes::REVERSED) {
+        queue!(w, SetAttribute(CAttribute::Reverse))?;
+    }
+    if diff.to_add.contains(Attributes::BOLD) {
+        queue!(w, SetAttribute(CAttribute::Bold))?;
+    }
+    if diff.to_add.contains(Attributes::ITALIC) {
+        queue!(w, SetAttribute(CAttribute::Italic))?;
+    }
+    if diff.to_add.contains(Attributes::UNDERLINED) {
+        queue!(w, SetAttribute(CAttribute::Underlined))?;
+    }
+    if diff.to_add.contains(Attributes::DIM) {
+        queue!(w, SetAttribute(CAttribute::Dim))?;
+    }
+    if diff.to_add.contains(Attributes::CROSSED_OUT) {
+        queue!(w, SetAttribute(CAttribute::CrossedOut))?;
+    }
+    if diff.to_add.contains(Attributes::SLOW_BLINK) {
+        queue!(w, SetAttribute(CAttribute::SlowBlink))?;
+    }
+    if diff.to_add.contains(Attributes::RAPID_BLINK) {
+        queue!(w, SetAttribute(CAttribute::RapidBlink))?;
     }
 
     Ok(())

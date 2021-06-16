@@ -14,6 +14,7 @@ use super::{Attributes, Backend, ClearType, Color, MoveDirection, Size};
 use crate::error;
 
 pub struct TermionBackend<W: Write> {
+    attributes: Attributes,
     buffer: RawTerminal<W>,
 }
 
@@ -21,7 +22,10 @@ impl<W: Write> TermionBackend<W> {
     pub fn new(buffer: W) -> error::Result<TermionBackend<W>> {
         let buffer = buffer.into_raw_mode()?;
         buffer.suspend_raw_mode()?;
-        Ok(TermionBackend { buffer })
+        Ok(TermionBackend {
+            buffer,
+            attributes: Attributes::empty(),
+        })
     }
 }
 
@@ -89,11 +93,9 @@ impl<W: Write> Backend for TermionBackend<W> {
     }
 
     fn set_attributes(&mut self, attributes: Attributes) -> error::Result<()> {
-        set_attributes(attributes, &mut self.buffer)
-    }
-
-    fn remove_attributes(&mut self, attributes: Attributes) -> error::Result<()> {
-        remove_attributes(attributes, &mut self.buffer)
+        set_attributes(self.attributes, attributes, &mut self.buffer)?;
+        self.attributes = attributes;
+        Ok(())
     }
 
     fn set_fg(&mut self, color: Color) -> error::Result<()> {
@@ -184,70 +186,71 @@ impl fmt::Display for Bg {
 }
 
 pub(super) fn set_attributes<W: Write>(
-    attributes: Attributes,
+    from: Attributes,
+    to: Attributes,
     mut w: W,
 ) -> error::Result<()> {
-    if attributes.contains(Attributes::RESET) {
-        write!(w, "{}", style::Reset)?;
-    }
+    let diff = from.diff(to);
 
-    if attributes.contains(Attributes::REVERSED) {
-        write!(w, "{}", style::Invert)?;
-    }
-    if attributes.contains(Attributes::BOLD) {
-        write!(w, "{}", style::Bold)?;
-    }
-    if attributes.contains(Attributes::ITALIC) {
-        write!(w, "{}", style::Italic)?;
-    }
-    if attributes.contains(Attributes::UNDERLINED) {
-        write!(w, "{}", style::Underline)?;
-    }
-    if attributes.contains(Attributes::DIM) {
-        write!(w, "{}", style::Faint)?;
-    }
-    if attributes.contains(Attributes::CROSSED_OUT) {
-        write!(w, "{}", style::CrossedOut)?;
-    }
-    if attributes.contains(Attributes::SLOW_BLINK)
-        || attributes.contains(Attributes::RAPID_BLINK)
-    {
-        write!(w, "{}", style::Blink)?;
-    }
-
-    Ok(())
-}
-
-pub(super) fn remove_attributes<W: Write>(
-    attributes: Attributes,
-    mut w: W,
-) -> error::Result<()> {
-    if attributes.contains(Attributes::RESET) {
-        write!(w, "{}", style::Reset)?;
-    }
-
-    if attributes.contains(Attributes::REVERSED) {
+    if diff.to_remove.contains(Attributes::REVERSED) {
         write!(w, "{}", style::NoInvert)?;
     }
-    if attributes.contains(Attributes::BOLD) {
-        write!(w, "{}", style::NoBold)?;
+    if diff.to_remove.contains(Attributes::BOLD) {
+        // XXX: the termion NoBold flag actually enables double-underline on ECMA-48 compliant
+        // terminals, and NoFaint additionally disables bold... so we use this trick to get
+        // the right semantics.
+        write!(w, "{}", style::NoFaint)?;
+
+        if to.contains(Attributes::DIM) {
+            write!(w, "{}", style::Faint)?;
+        }
     }
-    if attributes.contains(Attributes::ITALIC) {
+    if diff.to_remove.contains(Attributes::ITALIC) {
         write!(w, "{}", style::NoItalic)?;
     }
-    if attributes.contains(Attributes::UNDERLINED) {
+    if diff.to_remove.contains(Attributes::UNDERLINED) {
         write!(w, "{}", style::NoUnderline)?;
     }
-    if attributes.contains(Attributes::DIM) {
+    if diff.to_remove.contains(Attributes::DIM) {
         write!(w, "{}", style::NoFaint)?;
+
+        // XXX: the NoFaint flag additionally disables bold as well, so we need to re-enable it
+        // here if we want it.
+        if to.contains(Attributes::BOLD) {
+            write!(w, "{}", style::Bold)?;
+        }
     }
-    if attributes.contains(Attributes::CROSSED_OUT) {
+    if diff.to_remove.contains(Attributes::CROSSED_OUT) {
         write!(w, "{}", style::NoCrossedOut)?;
     }
-    if attributes.contains(Attributes::SLOW_BLINK)
-        || attributes.contains(Attributes::RAPID_BLINK)
+    if diff.to_remove.contains(Attributes::SLOW_BLINK)
+        || diff.to_remove.contains(Attributes::RAPID_BLINK)
     {
         write!(w, "{}", style::NoBlink)?;
+    }
+
+    if diff.to_add.contains(Attributes::REVERSED) {
+        write!(w, "{}", style::Invert)?;
+    }
+    if diff.to_add.contains(Attributes::BOLD) {
+        write!(w, "{}", style::Bold)?;
+    }
+    if diff.to_add.contains(Attributes::ITALIC) {
+        write!(w, "{}", style::Italic)?;
+    }
+    if diff.to_add.contains(Attributes::UNDERLINED) {
+        write!(w, "{}", style::Underline)?;
+    }
+    if diff.to_add.contains(Attributes::DIM) {
+        write!(w, "{}", style::Faint)?;
+    }
+    if diff.to_add.contains(Attributes::CROSSED_OUT) {
+        write!(w, "{}", style::CrossedOut)?;
+    }
+    if diff.to_add.contains(Attributes::SLOW_BLINK)
+        || diff.to_add.contains(Attributes::RAPID_BLINK)
+    {
+        write!(w, "{}", style::Blink)?;
     }
 
     Ok(())

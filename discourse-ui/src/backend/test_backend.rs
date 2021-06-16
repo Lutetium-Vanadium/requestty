@@ -314,12 +314,7 @@ impl super::Backend for TestBackend {
     }
 
     fn set_attributes(&mut self, attributes: Attributes) -> error::Result<()> {
-        self.current_attributes.insert(attributes);
-        Ok(())
-    }
-
-    fn remove_attributes(&mut self, attributes: Attributes) -> error::Result<()> {
-        self.current_attributes.remove(attributes);
+        self.current_attributes = attributes;
         Ok(())
     }
 
@@ -397,8 +392,7 @@ impl TestBackend {
             }
 
             if cell.attributes != attributes {
-                let diff = attributes.diff(cell.attributes);
-                display_ops::write_attribute_diff(diff, &mut buf)?;
+                display_ops::set_attributes(attributes, cell.attributes, &mut buf)?;
                 attributes = cell.attributes;
             }
 
@@ -449,20 +443,9 @@ mod display_ops {
         style::{SetBackgroundColor, SetForegroundColor},
     };
 
-    use crate::{
-        backend::crossterm::{remove_attributes, set_attributes},
-        error,
-        style::{AttributeDiff, Color},
-    };
+    use crate::{error, style::Color};
 
-    pub(super) fn write_attribute_diff<W: Write>(
-        diff: AttributeDiff,
-        mut w: W,
-    ) -> error::Result<()> {
-        remove_attributes(diff.to_remove, &mut w)?;
-        set_attributes(diff.to_add, w)?;
-        Ok(())
-    }
+    pub(super) use crate::backend::crossterm::set_attributes;
 
     pub(super) fn write_fg<W: Write>(fg: Color, mut w: W) -> error::Result<()> {
         queue!(w, SetForegroundColor(fg.into())).map_err(Into::into)
@@ -477,20 +460,9 @@ mod display_ops {
 mod display_ops {
     use std::io::Write;
 
-    use crate::{
-        backend::termion,
-        error,
-        style::{AttributeDiff, Color},
-    };
+    use crate::{backend::termion, error, style::Color};
 
-    pub(super) fn write_attribute_diff<W: Write>(
-        diff: AttributeDiff,
-        mut w: W,
-    ) -> error::Result<()> {
-        termion::remove_attributes(diff.to_remove, &mut w)?;
-        termion::set_attributes(diff.to_add, w)?;
-        Ok(())
-    }
+    pub(super) use self::termion::set_attributes;
 
     pub(super) fn write_fg<W: Write>(fg: Color, mut w: W) -> error::Result<()> {
         write!(w, "{}", termion::Fg(fg)).map_err(Into::into)

@@ -44,7 +44,7 @@ impl<T: Display + ?Sized> Styled<T> {
             backend.set_bg(Color::Reset)?;
         }
         if !self.attributes.is_empty() {
-            backend.set_attributes(Attributes::RESET)?;
+            backend.set_attributes(Attributes::empty())?;
         }
         Ok(())
     }
@@ -82,16 +82,15 @@ pub enum Color {
 bitflags::bitflags! {
     /// Attributes change the way a piece of text is displayed.
     pub struct Attributes: u16 {
-        const RESET             = 0b0000_0000_0001;
-        const BOLD              = 0b0000_0000_0010;
-        const DIM               = 0b0000_0000_0100;
-        const ITALIC            = 0b0000_0000_1000;
-        const UNDERLINED        = 0b0000_0001_0000;
-        const SLOW_BLINK        = 0b0000_0010_0000;
-        const RAPID_BLINK       = 0b0000_0100_0000;
-        const REVERSED          = 0b0000_1000_0000;
-        const HIDDEN            = 0b0001_0000_0000;
-        const CROSSED_OUT       = 0b0010_0000_0000;
+        const BOLD              = 0b0000_0000_0001;
+        const DIM               = 0b0000_0000_0010;
+        const ITALIC            = 0b0000_0000_0100;
+        const UNDERLINED        = 0b0000_0000_1000;
+        const SLOW_BLINK        = 0b0000_0001_0000;
+        const RAPID_BLINK       = 0b0000_0010_0000;
+        const REVERSED          = 0b0000_0100_0000;
+        const HIDDEN            = 0b0000_1000_0000;
+        const CROSSED_OUT       = 0b0001_0000_0000;
     }
 }
 
@@ -156,7 +155,6 @@ pub trait Stylize<T> {
     fn on_rgb(self, r: u8, g: u8, b: u8) -> Styled<T>;
     fn on_ansi(self, ansi: u8) -> Styled<T>;
 
-    fn reset(self) -> Styled<T>;
     fn bold(self) -> Styled<T>;
     fn underlined(self) -> Styled<T>;
     fn reverse(self) -> Styled<T>;
@@ -351,11 +349,6 @@ impl<T, I: Into<Styled<T>>> Stylize<T> for I {
         styled
     }
 
-    fn reset(self) -> Styled<T> {
-        let mut styled = self.into();
-        styled.attributes |= Attributes::RESET;
-        styled
-    }
     fn bold(self) -> Styled<T> {
         let mut styled = self.into();
         styled.attributes |= Attributes::BOLD;
