@@ -78,12 +78,13 @@ macro_rules! assert_backend_snapshot {
         $crate::assert_backend_snapshot!(@__impl ::insta::assert_display_snapshot!($value))
     };
 
-    (@__impl $($tt:tt)*) => {
+    (@__impl $($tt:tt)*) => {{
         ::insta::with_settings!({
-            snapshot_path => $crate::features::SNAPSHOT_PATH
+            snapshot_path => ::std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join($crate::features::SNAPSHOT_PATH)
         }, {
             $($tt)*
         })
+    }
     }
 }
 

@@ -186,7 +186,9 @@ impl TestBackend {
             ops::Bound::Unbounded => self.cells.len(),
         };
 
-        self.cells[start..end].fill_with(Cell::default);
+        self.cells[start..end]
+            .iter_mut()
+            .for_each(|c| *c = Cell::default());
     }
 
     fn put_char(&mut self, c: char) {
