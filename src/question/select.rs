@@ -133,15 +133,14 @@ impl Select<'_> {
         .hide_cursor()
         .run(events)?;
 
-        match transform {
-            Transform::Sync(transform) => transform(&ans, answers, b)?,
-            _ => {
-                widgets::Prompt::write_finished_message(&message, b)?;
-                b.write_styled(&ans.name.lines().next().unwrap().cyan())?;
-                b.write_all(b"\n")?;
-                b.flush()?;
-            }
-        }
+        crate::write_final!(
+            transform,
+            message,
+            &ans,
+            answers,
+            b,
+            b.write_styled(&ans.name.lines().next().unwrap().cyan())?
+        );
 
         Ok(Answer::ListItem(ans))
     }
@@ -194,14 +193,11 @@ impl<'a> SelectBuilder<'a> {
         T: Into<super::Choice<String>>,
         I: IntoIterator<Item = T>,
     {
-        self.list
-            .choices
-            .choices
-            .extend(choices.into_iter().map(|choice| match choice.into() {
-                super::Choice::Choice(c) => super::Choice::Choice(Text::new(c)),
-                super::Choice::Separator(s) => super::Choice::Separator(s),
-                super::Choice::DefaultSeparator => super::Choice::DefaultSeparator,
-            }));
+        self.list.choices.choices.extend(
+            choices
+                .into_iter()
+                .map(|choice| choice.into().map(Text::new)),
+        );
         self
     }
 

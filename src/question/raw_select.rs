@@ -218,15 +218,14 @@ impl RawSelect<'_> {
         )
         .run(events)?;
 
-        match transform {
-            Transform::Sync(transform) => transform(&ans, answers, b)?,
-            _ => {
-                widgets::Prompt::write_finished_message(&message, b)?;
-                b.write_styled(&ans.name.lines().next().unwrap().cyan())?;
-                b.write_all(b"\n")?;
-                b.flush()?;
-            }
-        }
+        crate::write_final!(
+            transform,
+            message,
+            &ans,
+            answers,
+            b,
+            b.write_styled(&ans.name.lines().next().unwrap().cyan())?
+        );
 
         Ok(Answer::ListItem(ans))
     }
@@ -284,14 +283,12 @@ impl<'a> RawSelectBuilder<'a> {
         self.list
             .choices
             .choices
-            .extend(choices.into_iter().map(|choice| match choice.into() {
-                Choice::Choice(c) => {
-                    let choice = Choice::Choice((*choice_count, Text::new(c)));
+            .extend(choices.into_iter().map(|choice| {
+                choice.into().map(|c| {
+                    let choice = (*choice_count, Text::new(c));
                     *choice_count += 1;
                     choice
-                }
-                Choice::Separator(s) => Choice::Separator(s),
-                Choice::DefaultSeparator => Choice::DefaultSeparator,
+                })
             }));
         self
     }

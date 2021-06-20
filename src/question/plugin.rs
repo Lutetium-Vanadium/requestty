@@ -9,7 +9,7 @@ pub trait Plugin: std::fmt::Debug {
         message: String,
         answers: &Answers,
         stdout: &mut dyn Backend,
-        events: &mut events::Events,
+        events: &mut dyn Iterator<Item = error::Result<events::KeyEvent>>,
     ) -> error::Result<Answer>;
 }
 

@@ -33,9 +33,7 @@ impl Int<'_> {
     fn write<B: Backend>(i: i64, b: &mut B) -> error::Result<()> {
         b.set_fg(Color::Cyan)?;
         write!(b, "{}", i)?;
-        b.set_fg(Color::Reset)?;
-        b.write_all(b"\n")?;
-        b.flush().map_err(Into::into)
+        b.set_fg(Color::Reset)
     }
 
     fn delta(i: i64, delta: i64) -> i64 {
@@ -59,9 +57,7 @@ impl Float<'_> {
         } else {
             write!(b, "{}", f)?;
         }
-        b.set_fg(Color::Reset)?;
-        b.write_all(b"\n")?;
-        b.flush().map_err(Into::into)
+        b.set_fg(Color::Reset)
     }
 
     fn delta(f: f64, delta: i64) -> f64 {
@@ -207,13 +203,14 @@ macro_rules! impl_ask {
                 )
                 .run(events)?;
 
-                match transform {
-                    Transform::Sync(transform) => transform(ans, answers, b)?,
-                    _ => {
-                        widgets::Prompt::write_finished_message(&message, b)?;
-                        Self::write(ans, b)?
-                    }
-                }
+                crate::write_final!(
+                    transform,
+                    message,
+                    ans,
+                    answers,
+                    b,
+                    Self::write(ans, b)?
+                );
 
                 Ok(Answer::$t(ans))
             }

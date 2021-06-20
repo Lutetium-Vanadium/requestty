@@ -1,0 +1,5 @@
+[alias]
+tt = ["test", "--no-default-features", "--features=termion"]
+review = ["insta", "review", "--color=never"]
+snapshot = ["insta", "test", "--color=never"]
+snapshott = ["insta", "test", "--color=never", "--no-default-features", "--features=termion"]

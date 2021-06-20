@@ -12,6 +12,9 @@ use ui::{
 use super::{Choice, Filter, Options, Transform, Validate};
 use crate::{Answer, Answers, ListItem};
 
+#[cfg(test)]
+mod tests;
+
 #[derive(Debug, Default)]
 pub struct Checkbox<'a> {
     choices: super::ChoiceList<Text<String>>,
@@ -180,7 +183,20 @@ impl widgets::List for Checkbox<'_> {
     }
 }
 
-impl Checkbox<'_> {
+impl<'c> Checkbox<'c> {
+    fn into_checkbox_prompt<'a>(
+        self,
+        message: &'a str,
+        answers: &'a Answers,
+    ) -> CheckboxPrompt<'a, 'c> {
+        CheckboxPrompt {
+            prompt: widgets::Prompt::new(message)
+                .with_hint("Press <space> to select, <a> to toggle all, <i> to invert selection"),
+            select: widgets::Select::new(self),
+            answers,
+        }
+    }
+
     pub(crate) fn ask<B: Backend, E: Iterator<Item = error::Result<KeyEvent>>>(
         mut self,
         message: String,
@@ -190,34 +206,18 @@ impl Checkbox<'_> {
     ) -> error::Result<Answer> {
         let transform = self.transform.take();
 
-        let ans = ui::Input::new(
-            CheckboxPrompt {
-                prompt: widgets::Prompt::new(&*message)
-                    .with_hint("Press <space> to select, <a> to toggle all, <i> to invert selection"),
-                select: widgets::Select::new(self),
-                answers,
-            },
-            b,
-        )
-        .hide_cursor()
-        .run(events)?;
+        let ans = ui::Input::new(self.into_checkbox_prompt(&message, answers), b)
+            .hide_cursor()
+            .run(events)?;
 
-        match transform {
-            Transform::Sync(transform) => transform(&ans, answers, b)?,
-            _ => {
-                widgets::Prompt::write_finished_message(&message, b)?;
-
-                b.set_fg(Color::Cyan)?;
-                print_comma_separated(
-                    ans.iter().map(|item| item.name.lines().next().unwrap()),
-                    b,
-                )?;
-                b.set_fg(Color::Reset)?;
-
-                b.write_all(b"\n")?;
-                b.flush()?;
-            }
-        }
+        crate::write_final!(transform, message, &ans, answers, b, {
+            b.set_fg(Color::Cyan)?;
+            print_comma_separated(
+                ans.iter().map(|item| item.name.lines().next().unwrap()),
+                b,
+            )?;
+            b.set_fg(Color::Reset)?;
+        });
 
         Ok(Answer::ListItems(ans))
     }
@@ -276,11 +276,7 @@ impl<'a> CheckboxBuilder<'a> {
         self.checkbox
             .choices
             .choices
-            .extend(choices.into_iter().map(|c| match c.into() {
-                Choice::Choice(c) => Choice::Choice(Text::new(c)),
-                Choice::Separator(s) => Choice::Separator(s),
-                Choice::DefaultSeparator => Choice::DefaultSeparator,
-            }));
+            .extend(choices.into_iter().map(|c| c.into().map(Text::new)));
         self.checkbox
             .selected
             .resize(self.checkbox.choices.len(), false);

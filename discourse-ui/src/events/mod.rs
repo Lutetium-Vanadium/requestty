@@ -56,7 +56,7 @@ impl Iterator for Events {
     }
 }
 
-pub struct TestEvents<E: Iterator<Item = KeyEvent>> {
+pub struct TestEvents<E> {
     events: E,
 }
 

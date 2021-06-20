@@ -169,15 +169,14 @@ impl Editor<'_> {
         )
         .run(events)?;
 
-        match transform {
-            Transform::Sync(transform) => transform(&ans, answers, b)?,
-            _ => {
-                widgets::Prompt::write_finished_message(&message, b)?;
-                b.write_styled(&"Received".dark_grey())?;
-                b.write_all(b"\n")?;
-                b.flush()?;
-            }
-        }
+        crate::write_final!(
+            transform,
+            message,
+            &ans,
+            answers,
+            b,
+            b.write_styled(&"Received".dark_grey())?
+        );
 
         Ok(Answer::String(ans))
     }

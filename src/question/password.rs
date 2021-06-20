@@ -99,18 +99,14 @@ impl Password<'_> {
         )
         .run(events)?;
 
-        match transform {
-            Transform::Sync(transform) => transform(&ans, answers, b)?,
-            _ => {
-                b.write_styled(&ui::symbols::TICK.light_green())?;
-                b.write_all(b" ")?;
-                b.write_styled(&message.bold())?;
-                b.write_all(b" ")?;
-                b.write_styled(&"[hidden]".dark_grey())?;
-                b.write_all(b"\n")?;
-                b.flush()?;
-            }
-        }
+        crate::write_final!(
+            transform,
+            message,
+            &ans,
+            answers,
+            b,
+            b.write_styled(&"[hidden]".dark_grey())?
+        );
 
         Ok(Answer::String(ans))
     }

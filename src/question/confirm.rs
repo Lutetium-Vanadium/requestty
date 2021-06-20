@@ -103,17 +103,10 @@ impl Confirm<'_> {
         )
         .run(events)?;
 
-        match transform {
-            Transform::Sync(transform) => transform(ans, answers, b)?,
-            _ => {
-                widgets::Prompt::write_finished_message(&message, b)?;
-
-                let ans = if ans { "Yes" } else { "No" };
-                b.write_styled(&ans.cyan())?;
-                b.write_all(b"\n")?;
-                b.flush()?;
-            }
-        }
+        crate::write_final!(transform, message, ans, answers, b, {
+            let ans = if ans { "Yes" } else { "No" };
+            b.write_styled(&ans.cyan())?;
+        });
 
         Ok(Answer::Bool(ans))
     }

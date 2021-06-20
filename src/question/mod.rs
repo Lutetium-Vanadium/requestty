@@ -28,7 +28,7 @@ pub use choice::Choice;
 use choice::{get_sep_str, ChoiceList};
 use options::Options;
 pub use plugin::Plugin;
-use ui::{backend::Backend, error};
+use ui::{backend::Backend, error, events::KeyEvent};
 
 use std::fmt;
 
@@ -111,11 +111,11 @@ pub(crate) enum QuestionKind<'a> {
 }
 
 impl Question<'_> {
-    pub(crate) fn ask<B: Backend>(
+    pub(crate) fn ask<B: Backend, I: Iterator<Item = error::Result<KeyEvent>>>(
         mut self,
         answers: &Answers,
         b: &mut B,
-        events: &mut ui::events::Events,
+        events: &mut I,
     ) -> error::Result<Option<(String, Answer)>> {
         if (!self.opts.ask_if_answered && answers.contains_key(&self.opts.name))
             || !self.opts.when.get(answers)
@@ -307,4 +307,20 @@ macro_rules! impl_transform_builder {
             self
         }
     };
+}
+
+#[doc(hidden)]
+#[macro_export]
+macro_rules! write_final {
+    ($transform:expr, $message:expr, $ans:expr, $answers:expr, $backend:expr, $custom:expr) => {{
+        ui::widgets::Prompt::write_finished_message(&$message, $backend)?;
+
+        match $transform {
+            Transform::Sync(transform) => transform($ans, $answers, $backend)?,
+            _ => $custom,
+        }
+
+        $backend.write_all(b"\n")?;
+        $backend.flush()?;
+    }};
 }

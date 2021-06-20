@@ -4,7 +4,7 @@ use ui::{style::Color, widgets::List, Widget};
 
 use crate::ExpandItem;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub(crate) struct ChoiceList<T> {
     pub(crate) choices: Vec<Choice<T>>,
     page_size: usize,
@@ -138,7 +138,7 @@ impl<T: Widget> List for ChoiceList<T> {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Choice<T> {
     Choice(T),
     Separator(String),
@@ -146,11 +146,19 @@ pub enum Choice<T> {
 }
 
 impl<T> Choice<T> {
-    pub(crate) fn is_separator(&self) -> bool {
+    pub fn map<U, F: FnOnce(T) -> U>(self, f: F) -> Choice<U> {
+        match self {
+            Choice::Choice(c) => Choice::Choice(f(c)),
+            Choice::Separator(s) => Choice::Separator(s),
+            Choice::DefaultSeparator => Choice::DefaultSeparator,
+        }
+    }
+
+    pub fn is_separator(&self) -> bool {
         matches!(self, Choice::Separator(_) | Choice::DefaultSeparator)
     }
 
-    pub(crate) fn as_ref(&self) -> Choice<&T> {
+    pub fn as_ref(&self) -> Choice<&T> {
         match self {
             Choice::Choice(t) => Choice::Choice(t),
             Choice::Separator(s) => Choice::Separator(s.clone()),
@@ -158,7 +166,7 @@ impl<T> Choice<T> {
         }
     }
 
-    pub(crate) fn as_mut(&mut self) -> Choice<&mut T> {
+    pub fn as_mut(&mut self) -> Choice<&mut T> {
         match self {
             Choice::Choice(t) => Choice::Choice(t),
             Choice::Separator(s) => Choice::Separator(s.clone()),
@@ -166,7 +174,7 @@ impl<T> Choice<T> {
         }
     }
 
-    pub(crate) fn unwrap_choice(self) -> T {
+    pub fn unwrap_choice(self) -> T {
         match self {
             Choice::Choice(c) => c,
             _ => panic!("Called unwrap_choice on separator"),

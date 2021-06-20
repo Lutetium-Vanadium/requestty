@@ -314,15 +314,14 @@ impl Expand<'_> {
         )
         .run(events)?;
 
-        match transform {
-            Transform::Sync(transform) => transform(&ans, answers, b)?,
-            _ => {
-                widgets::Prompt::write_finished_message(&message, b)?;
-                b.write_styled(&ans.name.lines().next().unwrap().cyan())?;
-                b.write_all(b"\n")?;
-                b.flush()?;
-            }
-        }
+        crate::write_final!(
+            transform,
+            message,
+            &ans,
+            answers,
+            b,
+            b.write_styled(&ans.name.lines().next().unwrap().cyan())?
+        );
 
         Ok(Answer::ExpandItem(ans))
     }
@@ -391,28 +390,23 @@ impl<'a> ExpandBuilder<'a> {
             ..
         } = self;
 
-        expand
-            .choices
-            .choices
-            .extend(choices.into_iter().map(|c| match c.into() {
-                Choice::Choice(ExpandItem { name, mut key }) => {
-                    key = key.to_ascii_lowercase();
-                    if key == 'h' {
-                        panic!("Reserved key 'h'");
-                    }
-                    if keys.contains(&key) {
-                        panic!("Duplicate key '{}'", key);
-                    }
-                    keys.insert(key);
-
-                    Choice::Choice(ExpandItem {
-                        name: Text::new(name),
-                        key,
-                    })
+        expand.choices.choices.extend(choices.into_iter().map(|c| {
+            c.into().map(|ExpandItem { name, mut key }| {
+                key = key.to_ascii_lowercase();
+                if key == 'h' {
+                    panic!("Reserved key 'h'");
                 }
-                Choice::Separator(s) => Choice::Separator(s),
-                Choice::DefaultSeparator => Choice::DefaultSeparator,
-            }));
+                if keys.contains(&key) {
+                    panic!("Duplicate key '{}'", key);
+                }
+                keys.insert(key);
+
+                ExpandItem {
+                    name: Text::new(name),
+                    key,
+                }
+            })
+        }));
 
         self
     }
