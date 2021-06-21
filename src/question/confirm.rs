@@ -77,7 +77,21 @@ impl Prompt for ConfirmPrompt<'_> {
     }
 }
 
-impl Confirm<'_> {
+impl<'a> Confirm<'a> {
+    fn into_confirm_prompt(self, message: &'a str) -> ConfirmPrompt<'a> {
+        let hint = match self.default {
+            Some(true) => "Y/n",
+            Some(false) => "y/N",
+            None => "y/n",
+        };
+
+        ConfirmPrompt {
+            prompt: widgets::Prompt::new(message).with_hint(hint),
+            confirm: self,
+            input: widgets::CharInput::new(only_yn),
+        }
+    }
+
     pub(crate) fn ask<B: Backend, E: Iterator<Item = error::Result<KeyEvent>>>(
         mut self,
         message: String,
@@ -87,21 +101,8 @@ impl Confirm<'_> {
     ) -> error::Result<Answer> {
         let transform = self.transform.take();
 
-        let hint = match self.default {
-            Some(true) => "Y/n",
-            Some(false) => "y/N",
-            None => "y/n",
-        };
-
-        let ans = ui::Input::new(
-            ConfirmPrompt {
-                prompt: widgets::Prompt::new(&*message).with_hint(hint),
-                confirm: self,
-                input: widgets::CharInput::new(only_yn),
-            },
-            b,
-        )
-        .run(events)?;
+        let ans =
+            ui::Input::new(self.into_confirm_prompt(&message), b).run(events)?;
 
         crate::write_final!(transform, message, ans, answers, b, {
             let ans = if ans { "Yes" } else { "No" };
@@ -141,5 +142,131 @@ impl<'a> ConfirmBuilder<'a> {
 impl<'a> From<ConfirmBuilder<'a>> for super::Question<'a> {
     fn from(builder: ConfirmBuilder<'a>) -> Self {
         builder.build()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use ui::{backend::TestBackend, events::KeyCode, layout::Layout};
+
+    fn confirm(default: Option<bool>, message: &str) -> ConfirmPrompt {
+        Confirm {
+            default,
+            ..Default::default()
+        }
+        .into_confirm_prompt(message)
+    }
+
+    #[test]
+    fn test_render() {
+        let mut confirms = [
+            confirm(None, "message"),
+            confirm(Some(true), "message"),
+            confirm(Some(false), "message"),
+        ];
+
+        let size = (50, 20).into();
+        let base_layout = Layout::new(5, size);
+
+        let mut backend = TestBackend::new_with_layout(size, base_layout);
+
+        for confirm in confirms.iter_mut() {
+            let offsets = [21, 22, 22];
+            let keys = [
+                KeyEvent::from(KeyCode::Char('y')),
+                KeyCode::Char('n').into(),
+                KeyCode::Backspace.into(),
+            ];
+
+            let base_name = match confirm.confirm.default {
+                Some(true) => "default_y",
+                Some(false) => "default_n",
+                None => "no_default",
+            };
+
+            for (i, (&line_offset, &key)) in
+                offsets.iter().zip(keys.iter()).enumerate()
+            {
+                let mut layout = base_layout;
+                assert!(confirm.render(&mut layout, &mut backend).is_ok());
+                ui::assert_backend_snapshot!(
+                    format!("{}-{}", base_name, i),
+                    backend
+                );
+                assert_eq!(layout, base_layout.with_line_offset(line_offset));
+                backend.reset_with_layout(base_layout);
+                confirm.handle_key(key);
+            }
+
+            let mut layout = base_layout;
+            assert!(confirm.render(&mut layout, &mut backend).is_ok());
+            ui::assert_backend_snapshot!(
+                format!("{}-{}", base_name, keys.len()),
+                backend
+            );
+            assert_eq!(layout, base_layout.with_line_offset(21));
+            backend.reset_with_layout(base_layout);
+        }
+    }
+
+    #[test]
+    fn test_height() {
+        let mut confirms = [
+            confirm(None, "message"),
+            confirm(Some(true), "message"),
+            confirm(Some(false), "message"),
+        ];
+
+        let size = (50, 20).into();
+        let base_layout = Layout::new(5, size);
+
+        for confirm in confirms.iter_mut() {
+            let offsets = [21, 22, 22];
+            let keys = [
+                KeyEvent::from(KeyCode::Char('y')),
+                KeyCode::Char('n').into(),
+                KeyCode::Backspace.into(),
+            ];
+
+            for (&line_offset, &key) in offsets.iter().zip(keys.iter()) {
+                let mut layout = base_layout;
+                assert_eq!(confirm.height(&mut layout), 1);
+                assert_eq!(layout, base_layout.with_line_offset(line_offset));
+                confirm.handle_key(key);
+            }
+
+            let mut layout = base_layout;
+            assert_eq!(confirm.height(&mut layout), 1);
+            assert_eq!(layout, base_layout.with_line_offset(21));
+        }
+    }
+
+    #[test]
+    fn test_cursor_pos() {
+        let mut confirms = [
+            confirm(None, "message"),
+            confirm(Some(true), "message"),
+            confirm(Some(false), "message"),
+        ];
+
+        let size = (50, 20).into();
+        let layout = Layout::new(5, size);
+
+        for confirm in confirms.iter_mut() {
+            let offsets = [21, 22, 22];
+            let keys = [
+                KeyEvent::from(KeyCode::Char('y')),
+                KeyCode::Char('n').into(),
+                KeyCode::Backspace.into(),
+            ];
+
+            for (&line_offset, &key) in offsets.iter().zip(keys.iter()) {
+                assert_eq!(confirm.cursor_pos(layout), (line_offset, 0));
+                confirm.handle_key(key);
+            }
+
+            assert_eq!(confirm.cursor_pos(layout), (21, 0));
+        }
     }
 }
