@@ -69,9 +69,7 @@ impl Widget for InputPrompt<'_, '_> {
     fn height(&mut self, layout: &mut ui::layout::Layout) -> u16 {
         let mut height = self.prompt.height(layout) + self.input.height(layout) - 1;
         if let Some(ref mut select) = self.select {
-            height +=
-                select_op(&mut self.input, select, |select| select.height(layout))
-                    - 1;
+            height += select_op(&mut self.input, select, |select| select.height(layout)) - 1;
         }
         height
     }
@@ -98,9 +96,7 @@ impl Widget for InputPrompt<'_, '_> {
                         } else {
                             let res = std::mem::take(&mut completions[0]);
 
-                            *select = Some(widgets::Select::new(
-                                completions.into_iter().collect(),
-                            ));
+                            *select = Some(widgets::Select::new(completions.into_iter().collect()));
 
                             res
                         }
@@ -187,8 +183,7 @@ impl Input<'_> {
 
         let ans = ui::Input::new(
             InputPrompt {
-                prompt: widgets::Prompt::new(&message[..])
-                    .with_optional_hint(self.default.take()),
+                prompt: widgets::Prompt::new(&message[..]).with_optional_hint(self.default.take()),
                 input_opts: self,
                 input: widgets::StringInput::default(),
                 select: None,

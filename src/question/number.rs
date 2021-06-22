@@ -8,9 +8,7 @@ use ui::{
     widgets, Prompt, Validation, Widget,
 };
 
-use super::{
-    Filter, Options, TransformByVal as Transform, ValidateByVal as Validate,
-};
+use super::{Filter, Options, TransformByVal as Transform, ValidateByVal as Validate};
 use crate::{Answer, Answers};
 
 #[derive(Debug, Default)]
@@ -127,9 +125,8 @@ macro_rules! impl_number_prompt {
             }
 
             fn cursor_pos(&mut self, layout: ui::layout::Layout) -> (u16, u16) {
-                self.input.cursor_pos(
-                    layout.with_cursor_pos(self.prompt.cursor_pos(layout)),
-                )
+                self.input
+                    .cursor_pos(layout.with_cursor_pos(self.prompt.cursor_pos(layout)))
             }
         }
 
@@ -178,10 +175,7 @@ impl_number_prompt!(FloatPrompt, Float, f64);
 macro_rules! impl_ask {
     ($t:ident, $prompt_name:ident) => {
         impl $t<'_> {
-            pub(crate) fn ask<
-                B: Backend,
-                E: Iterator<Item = error::Result<KeyEvent>>,
-            >(
+            pub(crate) fn ask<B: Backend, E: Iterator<Item = error::Result<KeyEvent>>>(
                 mut self,
                 message: String,
                 answers: &Answers,
@@ -192,9 +186,8 @@ macro_rules! impl_ask {
 
                 let ans = ui::Input::new(
                     $prompt_name {
-                        prompt: widgets::Prompt::new(&*message).with_optional_hint(
-                            self.default.as_ref().map(ToString::to_string),
-                        ),
+                        prompt: widgets::Prompt::new(&*message)
+                            .with_optional_hint(self.default.as_ref().map(ToString::to_string)),
                         input: widgets::StringInput::new(Self::filter_map_char),
                         number: self,
                         answers,
@@ -203,14 +196,7 @@ macro_rules! impl_ask {
                 )
                 .run(events)?;
 
-                crate::write_final!(
-                    transform,
-                    message,
-                    ans,
-                    answers,
-                    b,
-                    Self::write(ans, b)?
-                );
+                crate::write_final!(transform, message, ans, answers, b, Self::write(ans, b)?);
 
                 Ok(Answer::$t(ans))
             }

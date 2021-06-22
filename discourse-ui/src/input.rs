@@ -115,8 +115,7 @@ impl<P: Prompt, B: Backend> Input<P, B> {
         self.backend.write_styled(&crate::symbols::CROSS.red())?;
         self.backend.write_all(b" ")?;
 
-        let mut layout =
-            Layout::new(2, self.size).with_offset(0, self.base_row + height);
+        let mut layout = Layout::new(2, self.size).with_offset(0, self.base_row + height);
 
         self.adjust_scrollback(height + e.height(&mut layout.clone()))?;
         e.render(&mut layout, &mut *self.backend)?;
@@ -156,9 +155,7 @@ impl<P: Prompt, B: Backend> Input<P, B> {
             let e = events.next().unwrap()?;
 
             let key_handled = match e.code {
-                KeyCode::Char('c')
-                    if e.modifiers.contains(KeyModifiers::CONTROL) =>
-                {
+                KeyCode::Char('c') if e.modifiers.contains(KeyModifiers::CONTROL) => {
                     self.exit()?;
                     return Err(error::ErrorKind::Interrupted);
                 }

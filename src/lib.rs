@@ -5,9 +5,7 @@ use ui::{backend, events};
 
 pub use answer::{Answer, Answers, ExpandItem, ListItem};
 pub use macros::questions;
-pub use question::{
-    Choice::Choice, Choice::DefaultSeparator, Choice::Separator, Question,
-};
+pub use question::{Choice::Choice, Choice::DefaultSeparator, Choice::Separator, Question};
 pub use ui::error::{ErrorKind, Result};
 
 #[macro_export]
@@ -57,9 +55,7 @@ where
         E: Iterator<Item = Result<events::KeyEvent>>,
     {
         while let Some(question) = self.questions.next() {
-            if let Some((name, answer)) =
-                question.ask(&self.answers, backend, events)?
-            {
+            if let Some((name, answer)) = question.ask(&self.answers, backend, events)? {
                 return Ok(Some(self.answers.insert(name, answer)));
             }
         }
@@ -77,11 +73,7 @@ where
         self.prompt_with(&mut stdout, &mut events::Events::new())
     }
 
-    pub fn prompt_all_with<B, E>(
-        mut self,
-        backend: &mut B,
-        events: &mut E,
-    ) -> Result<Answers>
+    pub fn prompt_all_with<B, E>(mut self, backend: &mut B, events: &mut E) -> Result<Answers>
     where
         B: backend::Backend,
         E: Iterator<Item = Result<events::KeyEvent>>,
@@ -122,11 +114,7 @@ pub fn prompt_one<'a, I: Into<Question<'a>>>(question: I) -> Result<Answer> {
     Ok(ans.into_iter().next().unwrap().1)
 }
 
-pub fn prompt_with<'a, Q, B, E>(
-    questions: Q,
-    backend: &mut B,
-    events: &mut E,
-) -> Result<Answers>
+pub fn prompt_with<'a, Q, B, E>(questions: Q, backend: &mut B, events: &mut E) -> Result<Answers>
 where
     Q: IntoIterator<Item = Question<'a>>,
     B: backend::Backend,
@@ -135,11 +123,7 @@ where
     PromptModule::new(questions).prompt_all_with(backend, events)
 }
 
-pub fn prompt_one_with<'a, Q, B, E>(
-    question: Q,
-    backend: &mut B,
-    events: &mut E,
-) -> Result<Answer>
+pub fn prompt_one_with<'a, Q, B, E>(question: Q, backend: &mut B, events: &mut E) -> Result<Answer>
 where
     Q: Into<Question<'a>>,
     B: backend::Backend,

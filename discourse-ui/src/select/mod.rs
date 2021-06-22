@@ -378,8 +378,7 @@ impl<L: List> Select<L> {
                     break;
                 }
                 self.page_end = i;
-                self.page_end_height =
-                    (height + heights[i]).min(max_height) - height;
+                self.page_end_height = (height + heights[i]).min(max_height) - height;
 
                 height += heights[i];
             }
@@ -435,15 +434,11 @@ impl<L: List> super::Widget for Select<L> {
         };
 
         let moved = match movement {
-            Movement::Up
-                if self.list.should_loop() || self.at > self.first_selectable =>
-            {
+            Movement::Up if self.list.should_loop() || self.at > self.first_selectable => {
                 self.at = self.prev_selectable();
                 Movement::Up
             }
-            Movement::Down
-                if self.list.should_loop() || self.at < self.last_selectable =>
-            {
+            Movement::Down if self.list.should_loop() || self.at < self.last_selectable => {
                 self.at = self.next_selectable();
                 Movement::Down
             }
@@ -552,11 +547,7 @@ impl<L: List> super::Widget for Select<L> {
         true
     }
 
-    fn render<B: Backend>(
-        &mut self,
-        layout: &mut Layout,
-        b: &mut B,
-    ) -> error::Result<()> {
+    fn render<B: Backend>(&mut self, layout: &mut Layout, b: &mut B) -> error::Result<()> {
         self.update_heights(*layout);
 
         // this is the first render, so we need to set page_end
@@ -582,9 +573,7 @@ impl<L: List> super::Widget for Select<L> {
 
         if self.is_paginating() {
             // This is the message at the end that other places refer to
-            b.write_styled(
-                &"(Move up and down to reveal more choices)".dark_grey(),
-            )?;
+            b.write_styled(&"(Move up and down to reveal more choices)".dark_grey())?;
             layout.offset_y += 1;
 
             b.move_cursor_to(layout.offset_x, layout.offset_y)?;

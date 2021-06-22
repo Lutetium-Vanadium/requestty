@@ -7,9 +7,7 @@ use termion::{event, input};
 
 use crate::error;
 
-pub fn next_event(
-    events: &mut input::Keys<Stdin>,
-) -> error::Result<super::KeyEvent> {
+pub fn next_event(events: &mut input::Keys<Stdin>) -> error::Result<super::KeyEvent> {
     let e = events.next().unwrap()?;
     e.try_into()
 }
@@ -34,10 +32,9 @@ impl TryFrom<event::Key> for super::KeyEvent {
             event::Key::F(n) => super::KeyCode::F(n).into(),
             event::Key::Char('\n') => super::KeyCode::Enter.into(),
             event::Key::Char('\t') => super::KeyCode::Tab.into(),
-            event::Key::Char(c @ 'A'..='Z') => super::KeyEvent::new(
-                super::KeyCode::Char(c),
-                super::KeyModifiers::SHIFT,
-            ),
+            event::Key::Char(c @ 'A'..='Z') => {
+                super::KeyEvent::new(super::KeyCode::Char(c), super::KeyModifiers::SHIFT)
+            }
             event::Key::Char(c) => super::KeyCode::Char(c).into(),
             event::Key::Alt(c) => parse_char(c, super::KeyModifiers::ALT)?,
             event::Key::Ctrl(c) => parse_char(c, super::KeyModifiers::CONTROL)?,
@@ -50,10 +47,7 @@ impl TryFrom<event::Key> for super::KeyEvent {
     }
 }
 
-fn parse_char(
-    mut c: char,
-    mut modifiers: super::KeyModifiers,
-) -> error::Result<super::KeyEvent> {
+fn parse_char(mut c: char, mut modifiers: super::KeyModifiers) -> error::Result<super::KeyEvent> {
     let code = loop {
         if c as u32 >= 256 {
             break super::KeyCode::Char(c);
@@ -64,11 +58,9 @@ fn parse_char(
             _ => match char::try_from(c as u32) {
                 Ok(c) => break super::KeyCode::Char(c),
                 Err(_) => {
-                    return Err(io::Error::new(
-                        io::ErrorKind::Other,
-                        "Could not parse an event",
+                    return Err(
+                        io::Error::new(io::ErrorKind::Other, "Could not parse an event").into(),
                     )
-                    .into())
                 }
             },
         };

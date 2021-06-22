@@ -1,9 +1,7 @@
 use discourse::Question;
 
 fn letter_and_numbers(password: &str, _: &discourse::Answers) -> Result<(), String> {
-    if password.contains(|c: char| c.is_ascii_digit())
-        && password.contains(char::is_alphabetic)
-    {
+    if password.contains(|c: char| c.is_ascii_digit()) && password.contains(char::is_alphabetic) {
         Ok(())
     } else {
         Err("Password needs to have at least 1 letter and 1 number.".to_owned())

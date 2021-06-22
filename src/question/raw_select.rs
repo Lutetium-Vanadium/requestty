@@ -93,9 +93,9 @@ impl Widget for RawSelectPrompt<'_> {
         if self.input.handle_key(key) {
             if let Ok(n) = self.input.value().parse::<usize>() {
                 if n <= self.select.list.len() && n > 0 {
-                    let pos = self.select.list.choices.choices[(n-1)..].iter().position(
-                        |choice| matches!(choice, Choice::Choice((i, _)) if *i == n),
-                    );
+                    let pos = self.select.list.choices.choices[(n - 1)..]
+                        .iter()
+                        .position(|choice| matches!(choice, Choice::Choice((i, _)) if *i == n));
 
                     if let Some(pos) = pos {
                         self.select.set_at(pos + n - 1);
@@ -151,8 +151,7 @@ impl widgets::List for RawSelect<'_> {
             separator => {
                 b.set_fg(Color::DarkGrey)?;
                 b.write_all(b"   ")?;
-                super::get_sep_str(separator)
-                    .render(&mut layout.with_line_offset(3), b)?;
+                super::get_sep_str(separator).render(&mut layout.with_line_offset(3), b)?;
                 b.set_fg(Color::Reset)?;
             }
         }
@@ -204,13 +203,7 @@ impl RawSelect<'_> {
 
         let ans = ui::Input::new(
             RawSelectPrompt {
-                input: widgets::StringInput::new(|c| {
-                    if c.is_digit(10) {
-                        Some(c)
-                    } else {
-                        None
-                    }
-                }),
+                input: widgets::StringInput::new(|c| if c.is_digit(10) { Some(c) } else { None }),
                 select,
                 prompt: widgets::Prompt::new(&message),
             },

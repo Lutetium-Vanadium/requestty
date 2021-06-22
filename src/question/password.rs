@@ -1,7 +1,4 @@
-use ui::{
-    backend::Backend, error, events::KeyEvent, style::Stylize, widgets, Validation,
-    Widget,
-};
+use ui::{backend::Backend, error, events::KeyEvent, style::Stylize, widgets, Validation, Widget};
 
 use super::{Filter, Options, Transform, Validate};
 use crate::{Answer, Answers};

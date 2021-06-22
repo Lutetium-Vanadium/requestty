@@ -28,8 +28,7 @@ fn test_validate() {
     assert!(events.next().is_none());
 
     let mut backend = helpers::SnapshotOnFlushBackend::new(size);
-    let mut events =
-        TestEvents::new(vec![KeyCode::Char('n').into(), KeyCode::Enter.into()]);
+    let mut events = TestEvents::new(vec![KeyCode::Char('n').into(), KeyCode::Enter.into()]);
 
     let ans = discourse::prompt_one_with(
         Question::confirm("name")

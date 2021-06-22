@@ -60,10 +60,7 @@ impl<S: AsRef<str>> Widget for Text<S> {
                 .enumerate()
             {
                 backend.write_all(line.as_bytes())?;
-                backend.move_cursor_to(
-                    layout.offset_x,
-                    layout.offset_y + i as u16 + 1,
-                )?;
+                backend.move_cursor_to(layout.offset_x, layout.offset_y + i as u16 + 1)?;
             }
 
             // note: it may be possible to render things after the end of the last line, but for now
@@ -115,8 +112,7 @@ fn fill(text: &str, layout: Layout) -> String {
 
     let mut text = textwrap::fill(
         text,
-        textwrap::Options::new(layout.available_width() as usize)
-            .initial_indent(indent),
+        textwrap::Options::new(layout.available_width() as usize).initial_indent(indent),
     );
 
     drop(text.drain(..indent_len));

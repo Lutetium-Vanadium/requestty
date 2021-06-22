@@ -58,10 +58,7 @@ impl backend::Backend for SnapshotOnFlushBackend {
         self.backend.move_cursor_to(x, y)
     }
 
-    fn move_cursor(
-        &mut self,
-        direction: backend::MoveDirection,
-    ) -> error::Result<()> {
+    fn move_cursor(&mut self, direction: backend::MoveDirection) -> error::Result<()> {
         self.backend.move_cursor(direction)
     }
 
@@ -69,10 +66,7 @@ impl backend::Backend for SnapshotOnFlushBackend {
         self.backend.scroll(dist)
     }
 
-    fn set_attributes(
-        &mut self,
-        attributes: style::Attributes,
-    ) -> error::Result<()> {
+    fn set_attributes(&mut self, attributes: style::Attributes) -> error::Result<()> {
         self.backend.set_attributes(attributes)
     }
 

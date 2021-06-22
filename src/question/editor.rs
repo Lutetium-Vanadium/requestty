@@ -8,10 +8,7 @@ use std::{
 
 use tempfile::TempPath;
 
-use ui::{
-    backend::Backend, error, events::KeyEvent, style::Stylize, widgets, Validation,
-    Widget,
-};
+use ui::{backend::Backend, error, events::KeyEvent, style::Stylize, widgets, Validation, Widget};
 
 use super::{Filter, Options, Transform, Validate};
 use crate::{Answer, Answers};
@@ -97,11 +94,7 @@ impl ui::Prompt for EditorPrompt<'_, '_> {
             .status()?
             .success()
         {
-            return Err(io::Error::new(
-                io::ErrorKind::Other,
-                "Could not open editor",
-            )
-            .into());
+            return Err(io::Error::new(io::ErrorKind::Other, "Could not open editor").into());
         }
 
         self.ans.clear();

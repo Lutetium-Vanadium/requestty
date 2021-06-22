@@ -67,11 +67,7 @@ where
         }
     }
 
-    fn render<B: Backend>(
-        &mut self,
-        layout: &mut Layout,
-        backend: &mut B,
-    ) -> error::Result<()> {
+    fn render<B: Backend>(&mut self, layout: &mut Layout, backend: &mut B) -> error::Result<()> {
         if let Some(value) = self.value {
             if layout.line_width() == 0 {
                 return Err(std::fmt::Error.into());
@@ -137,8 +133,7 @@ mod tests {
         assert!(!input.handle_key(KeyEvent::new(KeyCode::Delete, modifiers)));
         assert!(!input.handle_key(KeyEvent::new(KeyCode::Backspace, modifiers)));
 
-        let mut input =
-            CharInput::new(|c| if c.is_uppercase() { None } else { Some(c) });
+        let mut input = CharInput::new(|c| if c.is_uppercase() { None } else { Some(c) });
         assert!(!input.handle_key(KeyEvent::new(KeyCode::Char('C'), modifiers)));
         assert_eq!(input.value(), None);
         assert!(input.handle_key(KeyEvent::new(KeyCode::Char('c'), modifiers)));

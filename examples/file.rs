@@ -39,9 +39,7 @@ fn auto_complete(p: String) -> Vec<String> {
         return vec![p];
     } else {
         let fuzzer = SkimMatcherV2::default();
-        files.sort_by_cached_key(|file| {
-            fuzzer.fuzzy_match(file, last).unwrap_or(i64::MAX)
-        });
+        files.sort_by_cached_key(|file| fuzzer.fuzzy_match(file, last).unwrap_or(i64::MAX));
         files
     }
 }

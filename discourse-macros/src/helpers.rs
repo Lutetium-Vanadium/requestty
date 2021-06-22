@@ -67,9 +67,7 @@ impl Choices {
         Choices::parse_impl(input, Choice::parse)
     }
 
-    pub(crate) fn parse_checkbox_choice(
-        input: syn::parse::ParseStream,
-    ) -> syn::Result<Self> {
+    pub(crate) fn parse_checkbox_choice(input: syn::parse::ParseStream) -> syn::Result<Self> {
         Choices::parse_impl(input, parse_checkbox_choice)
     }
 }

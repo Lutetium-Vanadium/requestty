@@ -46,18 +46,14 @@ fn main() -> discourse::Result<()> {
             .build(),
         Question::expand("toppings")
             .message("What about the toppings?")
-            .when(|answers: &discourse::Answers| {
-                !answers["custom_toppings"].as_bool().unwrap()
-            })
+            .when(|answers: &discourse::Answers| !answers["custom_toppings"].as_bool().unwrap())
             .choice('p', "Pepperoni and cheese")
             .choice('a', "All dressed")
             .choice('w', "Hawaiian")
             .build(),
         Question::checkbox("toppings")
             .message("Select toppings")
-            .when(|answers: &discourse::Answers| {
-                answers["custom_toppings"].as_bool().unwrap()
-            })
+            .when(|answers: &discourse::Answers| answers["custom_toppings"].as_bool().unwrap())
             .separator(" = The Meats = ")
             .choices(vec!["Pepperoni", "Ham", "Ground Meat", "Bacon"])
             .separator(" = The Cheeses = ")
@@ -89,8 +85,7 @@ fn main() -> discourse::Result<()> {
             .message("For leaving a comment, you get a freebie")
             .choices(vec!["cake", "fries"])
             .when(|answers: &discourse::Answers| {
-                return answers["comments"].as_string().unwrap()
-                    != "Nope, all good!";
+                return answers["comments"].as_string().unwrap() != "Nope, all good!";
             })
             .build(),
     ])

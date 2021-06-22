@@ -52,14 +52,13 @@ fn test_validate() {
         KeyCode::Enter.into(),
     ]);
 
-    let ans: Vec<_> =
-        discourse::prompt_one_with(checkbox, &mut backend, &mut events)
-            .unwrap()
-            .try_into_list_items()
-            .unwrap()
-            .into_iter()
-            .map(|item| item.index)
-            .collect();
+    let ans: Vec<_> = discourse::prompt_one_with(checkbox, &mut backend, &mut events)
+        .unwrap()
+        .try_into_list_items()
+        .unwrap()
+        .into_iter()
+        .map(|item| item.index)
+        .collect();
 
     assert!(events.next().is_none());
     assert_eq!(ans, [3, 9]);
@@ -85,14 +84,13 @@ fn test_filter() {
         KeyCode::Enter.into(),
     ]);
 
-    let ans: Vec<_> =
-        discourse::prompt_one_with(checkbox, &mut backend, &mut events)
-            .unwrap()
-            .try_into_list_items()
-            .unwrap()
-            .into_iter()
-            .map(|item| item.index)
-            .collect();
+    let ans: Vec<_> = discourse::prompt_one_with(checkbox, &mut backend, &mut events)
+        .unwrap()
+        .try_into_list_items()
+        .unwrap()
+        .into_iter()
+        .map(|item| item.index)
+        .collect();
 
     assert!(events.next().is_none());
     assert_eq!(ans, [0, 4, 6, 7, 8]);
@@ -124,14 +122,13 @@ fn test_transform() {
         KeyCode::Enter.into(),
     ]);
 
-    let ans: Vec<_> =
-        discourse::prompt_one_with(checkbox, &mut backend, &mut events)
-            .unwrap()
-            .try_into_list_items()
-            .unwrap()
-            .into_iter()
-            .map(|item| item.index)
-            .collect();
+    let ans: Vec<_> = discourse::prompt_one_with(checkbox, &mut backend, &mut events)
+        .unwrap()
+        .try_into_list_items()
+        .unwrap()
+        .into_iter()
+        .map(|item| item.index)
+        .collect();
 
     assert!(events.next().is_none());
     assert_eq!(ans, [3, 9]);

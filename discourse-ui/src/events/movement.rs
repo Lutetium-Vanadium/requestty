@@ -40,9 +40,7 @@ impl Movement {
             {
                 Movement::PrevWord
             }
-            KeyCode::Char('b') if key.modifiers.contains(KeyModifiers::ALT) => {
-                Movement::PrevWord
-            }
+            KeyCode::Char('b') if key.modifiers.contains(KeyModifiers::ALT) => Movement::PrevWord,
 
             KeyCode::Right
                 if key
@@ -51,9 +49,7 @@ impl Movement {
             {
                 Movement::NextWord
             }
-            KeyCode::Char('f') if key.modifiers.contains(KeyModifiers::ALT) => {
-                Movement::NextWord
-            }
+            KeyCode::Char('f') if key.modifiers.contains(KeyModifiers::ALT) => Movement::NextWord,
 
             KeyCode::Up => Movement::Up,
             KeyCode::Char('k') => Movement::Up,
@@ -63,30 +59,22 @@ impl Movement {
 
             KeyCode::Left => Movement::Left,
             KeyCode::Char('h') => Movement::Left,
-            KeyCode::Char('b') if key.modifiers.contains(KeyModifiers::CONTROL) => {
-                Movement::Left
-            }
+            KeyCode::Char('b') if key.modifiers.contains(KeyModifiers::CONTROL) => Movement::Left,
 
             KeyCode::Right => Movement::Right,
             KeyCode::Char('l') => Movement::Right,
-            KeyCode::Char('f') if key.modifiers.contains(KeyModifiers::CONTROL) => {
-                Movement::Right
-            }
+            KeyCode::Char('f') if key.modifiers.contains(KeyModifiers::CONTROL) => Movement::Right,
 
             KeyCode::PageUp => Movement::PageUp,
             KeyCode::PageDown => Movement::PageDown,
 
             KeyCode::Home => Movement::Home,
             KeyCode::Char('g') => Movement::Home,
-            KeyCode::Char('a') if key.modifiers.contains(KeyModifiers::CONTROL) => {
-                Movement::Home
-            }
+            KeyCode::Char('a') if key.modifiers.contains(KeyModifiers::CONTROL) => Movement::Home,
 
             KeyCode::End => Movement::End,
             KeyCode::Char('G') => Movement::End,
-            KeyCode::Char('e') if key.modifiers.contains(KeyModifiers::CONTROL) => {
-                Movement::End
-            }
+            KeyCode::Char('e') if key.modifiers.contains(KeyModifiers::CONTROL) => Movement::End,
             _ => return None,
         };
 
@@ -101,17 +89,11 @@ fn test_movement() {
         Some(Movement::Left)
     );
     assert_eq!(
-        Movement::try_from_key(KeyEvent::new(
-            KeyCode::Char('h'),
-            KeyModifiers::empty()
-        )),
+        Movement::try_from_key(KeyEvent::new(KeyCode::Char('h'), KeyModifiers::empty())),
         Some(Movement::Left)
     );
     assert_eq!(
-        Movement::try_from_key(KeyEvent::new(
-            KeyCode::Char('b'),
-            KeyModifiers::CONTROL
-        )),
+        Movement::try_from_key(KeyEvent::new(KeyCode::Char('b'), KeyModifiers::CONTROL)),
         Some(Movement::Left)
     );
 
@@ -133,17 +115,11 @@ fn test_movement() {
         Some(Movement::Right)
     );
     assert_eq!(
-        Movement::try_from_key(KeyEvent::new(
-            KeyCode::Char('l'),
-            KeyModifiers::empty()
-        )),
+        Movement::try_from_key(KeyEvent::new(KeyCode::Char('l'), KeyModifiers::empty())),
         Some(Movement::Right)
     );
     assert_eq!(
-        Movement::try_from_key(KeyEvent::new(
-            KeyCode::Char('f'),
-            KeyModifiers::CONTROL
-        )),
+        Movement::try_from_key(KeyEvent::new(KeyCode::Char('f'), KeyModifiers::CONTROL)),
         Some(Movement::Right)
     );
 
@@ -165,10 +141,7 @@ fn test_movement() {
         Some(Movement::Up)
     );
     assert_eq!(
-        Movement::try_from_key(KeyEvent::new(
-            KeyCode::Char('k'),
-            KeyModifiers::empty()
-        )),
+        Movement::try_from_key(KeyEvent::new(KeyCode::Char('k'), KeyModifiers::empty())),
         Some(Movement::Up)
     );
 
@@ -177,25 +150,16 @@ fn test_movement() {
         Some(Movement::Down)
     );
     assert_eq!(
-        Movement::try_from_key(KeyEvent::new(
-            KeyCode::Char('j'),
-            KeyModifiers::empty()
-        )),
+        Movement::try_from_key(KeyEvent::new(KeyCode::Char('j'), KeyModifiers::empty())),
         Some(Movement::Down)
     );
 
     assert_eq!(
-        Movement::try_from_key(KeyEvent::new(
-            KeyCode::PageDown,
-            KeyModifiers::empty()
-        )),
+        Movement::try_from_key(KeyEvent::new(KeyCode::PageDown, KeyModifiers::empty())),
         Some(Movement::PageDown)
     );
     assert_eq!(
-        Movement::try_from_key(KeyEvent::new(
-            KeyCode::PageUp,
-            KeyModifiers::empty()
-        )),
+        Movement::try_from_key(KeyEvent::new(KeyCode::PageUp, KeyModifiers::empty())),
         Some(Movement::PageUp)
     );
 
@@ -204,17 +168,11 @@ fn test_movement() {
         Some(Movement::Home)
     );
     assert_eq!(
-        Movement::try_from_key(KeyEvent::new(
-            KeyCode::Char('g'),
-            KeyModifiers::empty()
-        )),
+        Movement::try_from_key(KeyEvent::new(KeyCode::Char('g'), KeyModifiers::empty())),
         Some(Movement::Home)
     );
     assert_eq!(
-        Movement::try_from_key(KeyEvent::new(
-            KeyCode::Char('a'),
-            KeyModifiers::CONTROL
-        )),
+        Movement::try_from_key(KeyEvent::new(KeyCode::Char('a'), KeyModifiers::CONTROL)),
         Some(Movement::Home)
     );
 
@@ -223,17 +181,11 @@ fn test_movement() {
         Some(Movement::End)
     );
     assert_eq!(
-        Movement::try_from_key(KeyEvent::new(
-            KeyCode::Char('G'),
-            KeyModifiers::empty()
-        )),
+        Movement::try_from_key(KeyEvent::new(KeyCode::Char('G'), KeyModifiers::empty())),
         Some(Movement::End)
     );
     assert_eq!(
-        Movement::try_from_key(KeyEvent::new(
-            KeyCode::Char('e'),
-            KeyModifiers::CONTROL
-        )),
+        Movement::try_from_key(KeyEvent::new(KeyCode::Char('e'), KeyModifiers::CONTROL)),
         Some(Movement::End)
     );
 }

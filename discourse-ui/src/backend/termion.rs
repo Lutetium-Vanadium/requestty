@@ -247,8 +247,7 @@ pub(super) fn set_attributes<W: Write>(
     if diff.to_add.contains(Attributes::CROSSED_OUT) {
         write!(w, "{}", style::CrossedOut)?;
     }
-    if diff.to_add.contains(Attributes::SLOW_BLINK)
-        || diff.to_add.contains(Attributes::RAPID_BLINK)
+    if diff.to_add.contains(Attributes::SLOW_BLINK) || diff.to_add.contains(Attributes::RAPID_BLINK)
     {
         write!(w, "{}", style::Blink)?;
     }

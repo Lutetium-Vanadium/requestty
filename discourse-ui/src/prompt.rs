@@ -53,8 +53,8 @@ impl<M: AsRef<str>, H: AsRef<str>> Prompt<M, H> {
     }
 
     pub fn with_hint(mut self, hint: H) -> Self {
-        self.hint_len = u16::try_from(hint.as_ref().chars().count())
-            .expect("hint must fit within a u16");
+        self.hint_len =
+            u16::try_from(hint.as_ref().chars().count()).expect("hint must fit within a u16");
         self.hint = Some(hint);
         self
     }
@@ -138,10 +138,7 @@ impl<M: AsRef<str>, H: AsRef<str>> Prompt<M, H> {
 
 impl<M: AsRef<str>> Prompt<M, &'static str> {
     /// `✔ <message> · `
-    pub fn write_finished_message<B: Backend>(
-        message: &M,
-        backend: &mut B,
-    ) -> error::Result<()> {
+    pub fn write_finished_message<B: Backend>(message: &M, backend: &mut B) -> error::Result<()> {
         backend.write_styled(&crate::symbols::TICK.light_green())?;
         backend.write_all(b" ")?;
         backend.write_styled(&message.as_ref().bold())?;
@@ -153,11 +150,7 @@ impl<M: AsRef<str>> Prompt<M, &'static str> {
 }
 
 impl<M: AsRef<str>, H: AsRef<str>> Widget for Prompt<M, H> {
-    fn render<B: Backend>(
-        &mut self,
-        layout: &mut Layout,
-        b: &mut B,
-    ) -> error::Result<()> {
+    fn render<B: Backend>(&mut self, layout: &mut Layout, b: &mut B) -> error::Result<()> {
         b.write_styled(&"? ".light_green())?;
         b.write_styled(&self.message.as_ref().bold())?;
         b.write_all(b" ")?;
@@ -165,9 +158,7 @@ impl<M: AsRef<str>, H: AsRef<str>> Widget for Prompt<M, H> {
         b.set_fg(Color::DarkGrey)?;
 
         match (&self.hint, self.delim.into()) {
-            (Some(hint), Some((start, end))) => {
-                write!(b, "{}{}{}", start, hint.as_ref(), end)?
-            }
+            (Some(hint), Some((start, end))) => write!(b, "{}{}{}", start, hint.as_ref(), end)?,
             (Some(hint), None) => write!(b, "{}", hint.as_ref())?,
             (None, _) => {
                 write!(b, "{}", crate::symbols::SMALL_ARROW)?;

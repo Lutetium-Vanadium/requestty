@@ -83,10 +83,7 @@ pub trait Backend: std::io::Write {
     fn set_attributes(&mut self, attributes: Attributes) -> error::Result<()>;
     fn set_fg(&mut self, color: Color) -> error::Result<()>;
     fn set_bg(&mut self, color: Color) -> error::Result<()>;
-    fn write_styled(
-        &mut self,
-        styled: &Styled<dyn Display + '_>,
-    ) -> error::Result<()> {
+    fn write_styled(&mut self, styled: &Styled<dyn Display + '_>) -> error::Result<()> {
         styled.write(self)
     }
     fn clear(&mut self, clear_type: ClearType) -> error::Result<()>;
@@ -158,10 +155,7 @@ impl<'a, B: Backend> Backend for &'a mut B {
     fn set_bg(&mut self, color: Color) -> error::Result<()> {
         (**self).set_bg(color)
     }
-    fn write_styled(
-        &mut self,
-        styled: &Styled<dyn Display + '_>,
-    ) -> error::Result<()> {
+    fn write_styled(&mut self, styled: &Styled<dyn Display + '_>) -> error::Result<()> {
         (**self).write_styled(styled)
     }
     fn clear(&mut self, clear_type: ClearType) -> error::Result<()> {

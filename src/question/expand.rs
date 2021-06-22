@@ -201,8 +201,7 @@ impl widgets::List for Expand<'_> {
             separator => {
                 b.set_fg(Color::DarkGrey)?;
                 b.write_all(b"   ")?;
-                super::get_sep_str(separator)
-                    .render(&mut layout.with_line_offset(3), b)?;
+                super::get_sep_str(separator).render(&mut layout.with_line_offset(3), b)?;
                 b.set_fg(Color::Reset)
             }
         }
@@ -262,8 +261,7 @@ impl Expand<'_> {
                 .as_mut()
                 .unwrap_choice()
                 .render(&mut layout, b)?,
-            None => "Help, list all options"
-                .render(&mut layout.with_line_offset(5), b)?,
+            None => "Help, list all options".render(&mut layout.with_line_offset(5), b)?,
         }
 
         if hovered {

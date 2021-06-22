@@ -266,8 +266,7 @@ macro_rules! impl_validate_builder {
         where
             F: FnMut($t, &crate::Answers) -> Result<(), String> + 'a,
         {
-            self.$inner.validate =
-                crate::question::ValidateByVal::Sync(Box::new(filter));
+            self.$inner.validate = crate::question::ValidateByVal::Sync(Box::new(filter));
             self
         }
     };
@@ -279,15 +278,9 @@ macro_rules! impl_transform_builder {
     ($t:ty; $inner:ident) => {
         pub fn transform<F>(mut self, transform: F) -> Self
         where
-            F: FnOnce(
-                    &$t,
-                    &crate::Answers,
-                    &mut dyn Backend,
-                ) -> ui::error::Result<()>
-                + 'a,
+            F: FnOnce(&$t, &crate::Answers, &mut dyn Backend) -> ui::error::Result<()> + 'a,
         {
-            self.$inner.transform =
-                crate::question::Transform::Sync(Box::new(transform));
+            self.$inner.transform = crate::question::Transform::Sync(Box::new(transform));
             self
         }
     };
@@ -295,15 +288,9 @@ macro_rules! impl_transform_builder {
     (by val $t:ty; $inner:ident) => {
         pub fn transform<F>(mut self, transform: F) -> Self
         where
-            F: FnOnce(
-                    $t,
-                    &crate::Answers,
-                    &mut dyn Backend,
-                ) -> ui::error::Result<()>
-                + 'a,
+            F: FnOnce($t, &crate::Answers, &mut dyn Backend) -> ui::error::Result<()> + 'a,
         {
-            self.$inner.transform =
-                crate::question::TransformByVal::Sync(Box::new(transform));
+            self.$inner.transform = crate::question::TransformByVal::Sync(Box::new(transform));
             self
         }
     };

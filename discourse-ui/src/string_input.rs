@@ -125,13 +125,10 @@ impl<F> StringInput<F> {
     }
 
     /// Get the word bound iterator for a given range
-    fn word_iter(
-        &self,
-        r: Range<usize>,
-    ) -> impl DoubleEndedIterator<Item = (usize, &str)> {
-        self.value[r].split_word_bound_indices().filter(|(_, s)| {
-            !s.chars().next().map(char::is_whitespace).unwrap_or(true)
-        })
+    fn word_iter(&self, r: Range<usize>) -> impl DoubleEndedIterator<Item = (usize, &str)> {
+        self.value[r]
+            .split_word_bound_indices()
+            .filter(|(_, s)| !s.chars().next().map(char::is_whitespace).unwrap_or(true))
     }
 
     /// Returns the byte index of the start of the first word to the left (< byte_i)
@@ -152,45 +149,25 @@ impl<F> StringInput<F> {
 
     fn get_delete_movement(&self, key: KeyEvent) -> Option<Movement> {
         let mov = match key.code {
-            KeyCode::Char('u') if key.modifiers.contains(KeyModifiers::CONTROL) => {
-                Movement::Home
-            }
-            KeyCode::Backspace if key.modifiers.contains(KeyModifiers::ALT) => {
-                Movement::PrevWord
-            }
-            KeyCode::Char('w') if key.modifiers.contains(KeyModifiers::ALT) => {
-                Movement::PrevWord
-            }
-            KeyCode::Char('w') if key.modifiers.contains(KeyModifiers::CONTROL) => {
-                Movement::Left
-            }
+            KeyCode::Char('u') if key.modifiers.contains(KeyModifiers::CONTROL) => Movement::Home,
+            KeyCode::Backspace if key.modifiers.contains(KeyModifiers::ALT) => Movement::PrevWord,
+            KeyCode::Char('w') if key.modifiers.contains(KeyModifiers::ALT) => Movement::PrevWord,
+            KeyCode::Char('w') if key.modifiers.contains(KeyModifiers::CONTROL) => Movement::Left,
             KeyCode::Backspace => Movement::Left,
 
-            KeyCode::Char('k') if key.modifiers.contains(KeyModifiers::CONTROL) => {
-                Movement::End
-            }
+            KeyCode::Char('k') if key.modifiers.contains(KeyModifiers::CONTROL) => Movement::End,
 
-            KeyCode::Delete if key.modifiers.contains(KeyModifiers::ALT) => {
-                Movement::NextWord
-            }
-            KeyCode::Char('d') if key.modifiers.contains(KeyModifiers::ALT) => {
-                Movement::NextWord
-            }
-            KeyCode::Char('d') if key.modifiers.contains(KeyModifiers::CONTROL) => {
-                Movement::Right
-            }
+            KeyCode::Delete if key.modifiers.contains(KeyModifiers::ALT) => Movement::NextWord,
+            KeyCode::Char('d') if key.modifiers.contains(KeyModifiers::ALT) => Movement::NextWord,
+            KeyCode::Char('d') if key.modifiers.contains(KeyModifiers::CONTROL) => Movement::Right,
             KeyCode::Delete => Movement::Right,
 
             _ => return None,
         };
 
         match mov {
-            Movement::Home | Movement::PrevWord | Movement::Left if self.at != 0 => {
-                Some(mov)
-            }
-            Movement::End | Movement::NextWord | Movement::Right
-                if self.at != self.value_len =>
-            {
+            Movement::Home | Movement::PrevWord | Movement::Left if self.at != 0 => Some(mov),
+            Movement::End | Movement::NextWord | Movement::Right if self.at != self.value_len => {
                 Some(mov)
             }
             _ => None,
@@ -292,16 +269,14 @@ where
 
         match Movement::try_from_key(key) {
             Some(Movement::PrevWord) if self.at != 0 => {
-                self.at =
-                    self.get_char_i(self.find_word_left(self.get_byte_i(self.at)));
+                self.at = self.get_char_i(self.find_word_left(self.get_byte_i(self.at)));
             }
             Some(Movement::Left) if self.at != 0 => {
                 self.at -= 1;
             }
 
             Some(Movement::NextWord) if self.at != self.value_len => {
-                self.at =
-                    self.get_char_i(self.find_word_right(self.get_byte_i(self.at)));
+                self.at = self.get_char_i(self.find_word_right(self.get_byte_i(self.at)));
             }
             Some(Movement::Right) if self.at != self.value_len => {
                 self.at += 1;
@@ -319,11 +294,7 @@ where
         true
     }
 
-    fn render<B: Backend>(
-        &mut self,
-        layout: &mut Layout,
-        backend: &mut B,
-    ) -> error::Result<()> {
+    fn render<B: Backend>(&mut self, layout: &mut Layout, backend: &mut B) -> error::Result<()> {
         if self.hide_output {
             return Ok(());
         }
@@ -395,9 +366,7 @@ fn print_mask<W: Write>(len: usize, mask: char, w: &mut W) -> io::Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{
-        backend::TestBackend, events::KeyModifiers, test_consts::*, Widget,
-    };
+    use crate::{backend::TestBackend, events::KeyModifiers, test_consts::*, Widget};
 
     #[test]
     fn test_print_mask() {
@@ -642,8 +611,7 @@ mod tests {
     #[test]
     fn test_height() {
         fn test(text: &str, indent: usize, max_width: usize, height: u16) {
-            let mut layout =
-                Layout::new(indent as u16, (max_width as u16, 40).into());
+            let mut layout = Layout::new(indent as u16, (max_width as u16, 40).into());
             let mut input = StringInput::default();
             input.set_value(text.into());
             assert_eq!(input.height(&mut layout), height);

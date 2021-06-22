@@ -60,29 +60,17 @@ impl QuestionKind {
                     | BuilderMethods::AUTO_COMPLETE
             }
             QuestionKind::Int | QuestionKind::Float => {
-                BuilderMethods::DEFAULT
-                    | BuilderMethods::TRANSFORM
-                    | BuilderMethods::VAL_FIL
+                BuilderMethods::DEFAULT | BuilderMethods::TRANSFORM | BuilderMethods::VAL_FIL
             }
-            QuestionKind::Confirm => {
-                BuilderMethods::DEFAULT | BuilderMethods::TRANSFORM
-            }
-            QuestionKind::Select
-            | QuestionKind::RawSelect
-            | QuestionKind::Expand => {
-                BuilderMethods::DEFAULT
-                    | BuilderMethods::TRANSFORM
-                    | BuilderMethods::LIST
+            QuestionKind::Confirm => BuilderMethods::DEFAULT | BuilderMethods::TRANSFORM,
+            QuestionKind::Select | QuestionKind::RawSelect | QuestionKind::Expand => {
+                BuilderMethods::DEFAULT | BuilderMethods::TRANSFORM | BuilderMethods::LIST
             }
             QuestionKind::Checkbox => {
-                BuilderMethods::TRANSFORM
-                    | BuilderMethods::VAL_FIL
-                    | BuilderMethods::LIST
+                BuilderMethods::TRANSFORM | BuilderMethods::VAL_FIL | BuilderMethods::LIST
             }
             QuestionKind::Password => {
-                BuilderMethods::TRANSFORM
-                    | BuilderMethods::VAL_FIL
-                    | BuilderMethods::MASK
+                BuilderMethods::TRANSFORM | BuilderMethods::VAL_FIL | BuilderMethods::MASK
             }
             QuestionKind::Editor => {
                 BuilderMethods::DEFAULT
@@ -289,12 +277,7 @@ impl Parse for Question {
                         _ => Choices::parse_choice,
                     };
 
-                    insert_non_dup_parse(
-                        ident,
-                        &mut opts.choices,
-                        &content,
-                        parser,
-                    )?;
+                    insert_non_dup_parse(ident, &mut opts.choices, &content, parser)?;
                 } else if ident == "page_size" {
                     insert_non_dup(ident, &mut opts.page_size, &content)?;
                 } else if ident == "should_loop" {
@@ -329,9 +312,8 @@ impl Parse for Question {
 
         Ok(Self {
             kind,
-            name: name.ok_or_else(|| {
-                syn::Error::new(brace.span, "missing required option `name`")
-            })?,
+            name: name
+                .ok_or_else(|| syn::Error::new(brace.span, "missing required option `name`"))?,
             opts,
         })
     }
@@ -385,21 +367,17 @@ impl quote::ToTokens for Question {
             tokens.extend(quote_spanned! { default.span() => .default(#default) });
         }
         if let Some(ref validate) = self.opts.validate {
-            tokens
-                .extend(quote_spanned! { validate.span() => .validate(#validate) });
+            tokens.extend(quote_spanned! { validate.span() => .validate(#validate) });
         }
         if let Some(ref filter) = self.opts.filter {
             tokens.extend(quote_spanned! { filter.span() => .filter(#filter) });
         }
         if let Some(ref transform) = self.opts.transform {
-            tokens.extend(
-                quote_spanned! { transform.span() => .transform(#transform) },
-            );
+            tokens.extend(quote_spanned! { transform.span() => .transform(#transform) });
         }
         if let Some(ref auto_complete) = self.opts.auto_complete {
-            tokens.extend(
-                quote_spanned! { auto_complete.span() => .auto_complete(#auto_complete) },
-            );
+            tokens
+                .extend(quote_spanned! { auto_complete.span() => .auto_complete(#auto_complete) });
         }
         if let Some(ref choices) = self.opts.choices {
             tokens.extend(match self.kind {
@@ -410,22 +388,16 @@ impl quote::ToTokens for Question {
             });
         }
         if let Some(ref page_size) = self.opts.page_size {
-            tokens.extend(
-                quote_spanned! { page_size.span() => .page_size(#page_size) },
-            );
+            tokens.extend(quote_spanned! { page_size.span() => .page_size(#page_size) });
         }
         if let Some(ref should_loop) = self.opts.should_loop {
-            tokens.extend(
-                quote_spanned! { should_loop.span() => .should_loop(#should_loop) },
-            );
+            tokens.extend(quote_spanned! { should_loop.span() => .should_loop(#should_loop) });
         }
         if let Some(ref mask) = self.opts.mask {
             tokens.extend(quote_spanned! { mask.span() => .mask(#mask) });
         }
         if let Some(ref extension) = self.opts.extension {
-            tokens.extend(
-                quote_spanned! { extension.span() => .extension(#extension) },
-            );
+            tokens.extend(quote_spanned! { extension.span() => .extension(#extension) });
         }
         tokens.extend(quote! { .build() });
     }

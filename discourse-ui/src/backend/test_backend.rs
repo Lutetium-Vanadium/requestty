@@ -133,8 +133,7 @@ impl TestBackend {
     }
 
     fn viewport(&self) -> &[Cell] {
-        &self.cells
-            [self.viewport_start..(self.viewport_start + self.size.area() as usize)]
+        &self.cells[self.viewport_start..(self.viewport_start + self.size.area() as usize)]
     }
 
     fn move_x(&mut self, x: u16) {
@@ -423,11 +422,7 @@ impl TestBackend {
 
             if (i + 1) % width == 0 {
                 if !attributes.is_empty() {
-                    display_ops::set_attributes(
-                        attributes,
-                        Attributes::empty(),
-                        &mut buf,
-                    )?;
+                    display_ops::set_attributes(attributes, Attributes::empty(), &mut buf)?;
                     attributes = Attributes::empty();
                 }
                 if fg != Color::Reset {

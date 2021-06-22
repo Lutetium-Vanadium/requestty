@@ -212,10 +212,7 @@ impl<'c> Checkbox<'c> {
 
         crate::write_final!(transform, message, &ans, answers, b, {
             b.set_fg(Color::Cyan)?;
-            print_comma_separated(
-                ans.iter().map(|item| item.name.lines().next().unwrap()),
-                b,
-            )?;
+            print_comma_separated(ans.iter().map(|item| item.name.lines().next().unwrap()), b)?;
             b.set_fg(Color::Reset)?;
         });
 
@@ -255,11 +252,7 @@ impl<'a> CheckboxBuilder<'a> {
         self.choice_with_default(choice, false)
     }
 
-    pub fn choice_with_default<I: Into<String>>(
-        mut self,
-        choice: I,
-        default: bool,
-    ) -> Self {
+    pub fn choice_with_default<I: Into<String>>(mut self, choice: I, default: bool) -> Self {
         self.checkbox
             .choices
             .choices

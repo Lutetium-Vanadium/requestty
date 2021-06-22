@@ -1,6 +1,5 @@
 use crate::{
-    backend::TestBackend, events::KeyCode, style::Color, test_consts::*,
-    widgets::Text, Widget,
+    backend::TestBackend, events::KeyCode, style::Color, test_consts::*, widgets::Text, Widget,
 };
 
 use super::*;
@@ -425,10 +424,9 @@ fn test_init_page() {
 fn test_handle_key() {
     let layout = Layout::new(0, (100, 20).into());
 
-    let mut select =
-        Select::new(List::new(multi_line_list(10)).with_selectable(vec![
-            false, true, true, true, false, true, false, true, true, true,
-        ]));
+    let mut select = Select::new(List::new(multi_line_list(10)).with_selectable(vec![
+        false, true, true, true, false, true, false, true, true, true,
+    ]));
 
     select.update_heights(layout);
     select.init_page();

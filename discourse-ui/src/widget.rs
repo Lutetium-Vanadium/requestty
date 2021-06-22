@@ -6,11 +6,7 @@ use crate::{backend::Backend, error, events::KeyEvent, layout::Layout};
 pub trait Widget {
     /// Render to a given backend. The widget is responsible for updating the layout to reflect the
     /// space that it has used.
-    fn render<B: Backend>(
-        &mut self,
-        layout: &mut Layout,
-        backend: &mut B,
-    ) -> error::Result<()>;
+    fn render<B: Backend>(&mut self, layout: &mut Layout, backend: &mut B) -> error::Result<()>;
 
     /// The number of rows of the terminal the widget will take when rendered. The widget is
     /// responsible for updating the layout to reflect the space that it will use.
@@ -25,11 +21,7 @@ pub trait Widget {
 
 impl<T: std::ops::Deref<Target = str>> Widget for T {
     /// Does not allow multi-line strings
-    fn render<B: Backend>(
-        &mut self,
-        layout: &mut Layout,
-        backend: &mut B,
-    ) -> error::Result<()> {
+    fn render<B: Backend>(&mut self, layout: &mut Layout, backend: &mut B) -> error::Result<()> {
         let max_width = layout.line_width() as usize;
 
         if max_width <= 3 {

@@ -1,6 +1,5 @@
 use ui::{
-    backend::Backend, error, events::KeyEvent, style::Stylize, widgets, Prompt,
-    Validation, Widget,
+    backend::Backend, error, events::KeyEvent, style::Stylize, widgets, Prompt, Validation, Widget,
 };
 
 use super::{Options, TransformByVal as Transform};
@@ -101,8 +100,7 @@ impl<'a> Confirm<'a> {
     ) -> error::Result<Answer> {
         let transform = self.transform.take();
 
-        let ans =
-            ui::Input::new(self.into_confirm_prompt(&message), b).run(events)?;
+        let ans = ui::Input::new(self.into_confirm_prompt(&message), b).run(events)?;
 
         crate::write_final!(transform, message, ans, answers, b, {
             let ans = if ans { "Yes" } else { "No" };
@@ -185,15 +183,10 @@ mod tests {
                 None => "no_default",
             };
 
-            for (i, (&line_offset, &key)) in
-                offsets.iter().zip(keys.iter()).enumerate()
-            {
+            for (i, (&line_offset, &key)) in offsets.iter().zip(keys.iter()).enumerate() {
                 let mut layout = base_layout;
                 assert!(confirm.render(&mut layout, &mut backend).is_ok());
-                ui::assert_backend_snapshot!(
-                    format!("{}-{}", base_name, i),
-                    backend
-                );
+                ui::assert_backend_snapshot!(format!("{}-{}", base_name, i), backend);
                 assert_eq!(layout, base_layout.with_line_offset(line_offset));
                 backend.reset_with_layout(base_layout);
                 confirm.handle_key(key);
@@ -201,10 +194,7 @@ mod tests {
 
             let mut layout = base_layout;
             assert!(confirm.render(&mut layout, &mut backend).is_ok());
-            ui::assert_backend_snapshot!(
-                format!("{}-{}", base_name, keys.len()),
-                backend
-            );
+            ui::assert_backend_snapshot!(format!("{}-{}", base_name, keys.len()), backend);
             assert_eq!(layout, base_layout.with_line_offset(21));
             backend.reset_with_layout(base_layout);
         }
