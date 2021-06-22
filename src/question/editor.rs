@@ -71,6 +71,7 @@ impl Widget for EditorPrompt<'_, '_> {
     }
 
     fn cursor_pos(&mut self, layout: ui::layout::Layout) -> (u16, u16) {
+        // Cannot return this directly since we want to remove the extra space at the end
         let (x, y) = self.prompt.cursor_pos(layout);
         if x == 0 {
             (layout.width - 1, y - 1)

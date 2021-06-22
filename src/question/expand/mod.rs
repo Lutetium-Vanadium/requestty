@@ -15,6 +15,9 @@ use ui::{
 use super::{Choice, Options, Transform};
 use crate::{Answer, Answers, ExpandItem};
 
+#[cfg(test)]
+mod tests;
+
 #[derive(Debug)]
 pub struct Expand<'a> {
     choices: super::ChoiceList<ExpandItem<Text<String>>>,
@@ -134,9 +137,19 @@ impl<F: Fn(char) -> Option<char>> ui::Widget for ExpandPrompt<'_, F> {
                 layout.offset_x += 3;
 
                 match self.selected() {
-                    Some(item) => item.render(layout, b)?,
-                    None => b.write_all(b"Help, list all options")?,
+                    Some(item) => {
+                        item.render(layout, b)?;
+                        b.move_cursor(MoveDirection::Column(0))?;
+                    }
+                    None => {
+                        layout.offset_y += 1;
+                        b.write_all(b"Help, list all options")?;
+                        b.move_cursor(MoveDirection::NextLine(1))?;
+                    }
                 }
+
+                layout.offset_x = 0;
+                layout.line_offset = 0;
             }
 
             Ok(())
@@ -147,13 +160,24 @@ impl<F: Fn(char) -> Option<char>> ui::Widget for ExpandPrompt<'_, F> {
         if self.expanded {
             // Don't need to add 1 for the answer prompt, since this will over count by 1 anyways
             let height = self.prompt.height(layout) + self.select.height(layout);
-            layout.offset_y += 1; // For the ANSWER prompt at the bottom
+            layout.line_offset = ANSWER_PROMPT.len() as u16 + self.input.value().is_some() as u16;
             height
         } else if self.input.value().is_some() {
-            self.prompt.height(layout) - 1
-                + self.input.height(layout)
-                // selected will return None if the help option is selected
-                + self.selected().map(|c| c.height(layout)).unwrap_or(1)
+            let height = self.prompt.height(layout) - 1 + self.input.height(layout);
+
+            layout.offset_y += 1;
+            layout.line_offset = 0;
+
+            // selected will return None if the help option is selected
+            let selected_height = match self.selected().map(|c| c.height(layout)) {
+                Some(height) => height,
+                None => {
+                    layout.offset_y += 1;
+                    1
+                }
+            };
+
+            height + selected_height
         } else {
             self.prompt.height(layout) + self.input.height(layout) - 1
         }
@@ -235,6 +259,13 @@ impl widgets::List for Expand<'_> {
 }
 
 impl Expand<'_> {
+    fn has_valid_default(&self) -> bool {
+        self.default == 'h'
+            || self.choices.choices.iter().any(
+                |c| matches!(c, Choice::Choice(ExpandItem { key, .. }) if *key == self.default),
+            )
+    }
+
     fn render_choice<B: Backend>(
         &mut self,
         index: Option<usize>,
@@ -423,6 +454,13 @@ impl<'a> ExpandBuilder<'a> {
     crate::impl_transform_builder!(ExpandItem<String>; expand);
 
     pub fn build(self) -> super::Question<'a> {
+        if !self.expand.has_valid_default() {
+            panic!(
+                "Invalid default '{}' does not occur in the given choices",
+                self.expand.default
+            );
+        }
+
         super::Question::new(self.opts, super::QuestionKind::Expand(self.expand))
     }
 }

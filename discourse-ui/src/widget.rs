@@ -52,16 +52,16 @@ impl<T: std::ops::Deref<Target = str>> Widget for T {
             }
 
             backend.write_all(b"...")?;
-            backend.move_cursor_to(layout.offset_x, layout.offset_y)
         } else {
             backend.write_all(self.as_bytes())?;
-            backend.move_cursor_to(layout.offset_x, layout.offset_y)
         }
+        backend.move_cursor_to(layout.offset_x, layout.offset_y)
     }
 
     /// Does not allow multi-line strings
     fn height(&mut self, layout: &mut Layout) -> u16 {
         layout.offset_y += 1;
+        layout.line_offset = 0;
         1
     }
 

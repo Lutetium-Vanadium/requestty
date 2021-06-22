@@ -33,6 +33,7 @@ pub mod style;
 mod text;
 mod widget;
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 /// Returned by [`Prompt::validate`]
 pub enum Validation {
     /// If the prompt is ready to finish.
