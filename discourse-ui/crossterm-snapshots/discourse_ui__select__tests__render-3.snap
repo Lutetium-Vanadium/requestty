@@ -14,7 +14,7 @@ expression: backend
 │3 list item                                                                                         │
 │4 list item                                                                                         │
 │[38;5;8m(Move up and down to reveal more choices)[39m                                                           │
-│[48;5;7m [49m                                                                                                   │
+│[38;5;0m[48;5;7m [39m[49m                                                                                                   │
 │                                                                                                    │
 │                                                                                                    │
 │                                                                                                    │

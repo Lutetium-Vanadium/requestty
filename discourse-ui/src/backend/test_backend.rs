@@ -38,7 +38,7 @@ struct Cursor {
 }
 
 impl Cursor {
-    fn to_linear(&self, width: u16) -> usize {
+    fn to_linear(self, width: u16) -> usize {
         (self.x + self.y * width) as usize
     }
 }
@@ -367,6 +367,13 @@ impl fmt::Display for TestBackend {
     }
 }
 
+fn map_reset(c: Color, to: Color) -> Color {
+    match c {
+        Color::Reset => to,
+        c => c,
+    }
+}
+
 impl TestBackend {
     pub fn write_to_buf<W: Write>(&self, mut buf: W) -> error::Result<()> {
         let mut fg = Color::Reset;
@@ -399,11 +406,8 @@ impl TestBackend {
 
             let (cell_fg, cell_bg) = if i == cursor {
                 (
-                    cell.bg,
-                    match cell.fg {
-                        Color::Reset => Color::Grey,
-                        c => c,
-                    },
+                    map_reset(cell.bg, Color::Black),
+                    map_reset(cell.fg, Color::Grey),
                 )
             } else {
                 (cell.fg, cell.bg)
