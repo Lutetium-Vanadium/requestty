@@ -15,4 +15,4 @@ jobs:
     - name: Run clippy
       run: cargo clippy --verbose --no-default-features --features=termion --bins --examples
     - name: Run tests
-      run: cargo test --workspace --verbose --no-default-features --features=termion
+      run: cargo test --workspace --verbose --no-default-features --features=termion -- --include-ignored

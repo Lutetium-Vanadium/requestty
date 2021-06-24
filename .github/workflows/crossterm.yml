@@ -15,4 +15,4 @@ jobs:
     - name: Run clippy
       run: cargo clippy --verbose --no-default-features --features=crossterm --bins --examples
     - name: Run tests
-      run: cargo test --workspace --verbose --no-default-features --features=crossterm
+      run: cargo test --workspace --verbose --no-default-features --features=crossterm -- --include-ignored

@@ -23,6 +23,7 @@ impl Runner {
 }
 
 #[test]
+#[ignore]
 fn duplicate() {
     let t = Runner::new("duplicate");
     t.compile_fail("name");
@@ -43,6 +44,7 @@ fn duplicate() {
 }
 
 #[test]
+#[ignore]
 fn unknown() {
     let t = Runner::new("unknown");
     t.compile_fail("kind");
@@ -50,6 +52,7 @@ fn unknown() {
 }
 
 #[test]
+#[ignore]
 fn missing() {
     let t = Runner::new("missing");
     t.compile_fail("name");
@@ -57,6 +60,7 @@ fn missing() {
 }
 
 #[test]
+#[ignore]
 fn checkbox() {
     let t = Runner::new("checkbox");
 
@@ -70,6 +74,7 @@ fn checkbox() {
 }
 
 #[test]
+#[ignore]
 fn confirm() {
     let t = Runner::new("confirm");
 
@@ -86,6 +91,7 @@ fn confirm() {
 }
 
 #[test]
+#[ignore]
 fn editor() {
     let t = Runner::new("editor");
 
@@ -99,6 +105,7 @@ fn editor() {
 }
 
 #[test]
+#[ignore]
 fn expand() {
     let t = Runner::new("expand");
 
@@ -112,6 +119,7 @@ fn expand() {
 }
 
 #[test]
+#[ignore]
 fn float() {
     let t = Runner::new("float");
 
@@ -126,6 +134,7 @@ fn float() {
 }
 
 #[test]
+#[ignore]
 fn input() {
     let t = Runner::new("input");
 
@@ -139,6 +148,7 @@ fn input() {
 }
 
 #[test]
+#[ignore]
 fn int() {
     let t = Runner::new("int");
 
@@ -153,6 +163,7 @@ fn int() {
 }
 
 #[test]
+#[ignore]
 fn select() {
     let t = Runner::new("select");
 
@@ -166,6 +177,7 @@ fn select() {
 }
 
 #[test]
+#[ignore]
 fn password() {
     let t = Runner::new("password");
 
@@ -180,6 +192,7 @@ fn password() {
 }
 
 #[test]
+#[ignore]
 fn plugin() {
     let t = Runner::new("plugin");
 
@@ -197,6 +210,7 @@ fn plugin() {
 }
 
 #[test]
+#[ignore]
 fn raw_select() {
     let t = Runner::new("raw_select");
 

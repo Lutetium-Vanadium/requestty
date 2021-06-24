@@ -69,7 +69,22 @@ impl Widget for PasswordPrompt<'_, '_> {
     }
 }
 
-impl Password<'_> {
+impl<'p> Password<'p> {
+    fn into_prompt<'a>(self, message: &'a str, answers: &'a Answers) -> PasswordPrompt<'a, 'p> {
+        PasswordPrompt {
+            prompt: widgets::Prompt::new(message)
+                .with_delim(widgets::Delimiter::SquareBracket)
+                .with_optional_hint(if self.mask.is_none() {
+                    Some("input is hidden")
+                } else {
+                    None
+                }),
+            input: widgets::StringInput::default().password(self.mask),
+            password: self,
+            answers,
+        }
+    }
+
     pub(crate) fn ask<B: Backend, E: Iterator<Item = error::Result<KeyEvent>>>(
         mut self,
         message: String,
@@ -79,22 +94,7 @@ impl Password<'_> {
     ) -> error::Result<Answer> {
         let transform = self.transform.take();
 
-        let ans = ui::Input::new(
-            PasswordPrompt {
-                prompt: widgets::Prompt::new(&*message)
-                    .with_delim(widgets::Delimiter::SquareBracket)
-                    .with_optional_hint(if self.mask.is_none() {
-                        Some("input is hidden")
-                    } else {
-                        None
-                    }),
-                input: widgets::StringInput::default().password(self.mask),
-                password: self,
-                answers,
-            },
-            b,
-        )
-        .run(events)?;
+        let ans = ui::Input::new(self.into_prompt(&message, answers), b).run(events)?;
 
         crate::write_final!(
             transform,
@@ -140,5 +140,109 @@ impl<'a> PasswordBuilder<'a> {
 impl<'a> From<PasswordBuilder<'a>> for super::Question<'a> {
     fn from(builder: PasswordBuilder<'a>) -> Self {
         builder.build()
+    }
+}
+#[cfg(test)]
+mod tests {
+    use ui::{backend::TestBackend, layout::Layout};
+
+    use super::*;
+
+    #[test]
+    fn test_render() {
+        let size = (50, 20).into();
+        let base_layout = Layout::new(5, size);
+        let answers = Answers::default();
+
+        let masks = [(None, 33), (Some('*'), 17)];
+
+        let mut backend = TestBackend::new_with_layout(size, base_layout);
+
+        for &(mask, line_offset) in masks.iter() {
+            let mut prompt = Password {
+                mask,
+                ..Default::default()
+            }
+            .into_prompt("message", &answers);
+
+            let base_name = mask.map(|_| "mask").unwrap_or("no_mask");
+
+            let mut layout = base_layout;
+            backend.reset_with_layout(layout);
+            assert!(prompt.render(&mut layout, &mut backend).is_ok());
+            assert_eq!(layout, base_layout.with_line_offset(line_offset));
+            ui::assert_backend_snapshot!(format!("{}-1", base_name), backend);
+
+            prompt.input.set_value("3".repeat(50));
+
+            layout = base_layout;
+            backend.reset_with_layout(layout);
+            assert!(prompt.render(&mut layout, &mut backend).is_ok());
+            assert_eq!(
+                layout,
+                base_layout
+                    .with_offset(0, mask.is_some() as u16)
+                    .with_line_offset(line_offset)
+            );
+            ui::assert_backend_snapshot!(format!("{}-2", base_name), backend);
+        }
+    }
+
+    #[test]
+    fn test_height() {
+        let size = (50, 20).into();
+        let base_layout = Layout::new(5, size);
+        let answers = Answers::default();
+
+        let masks = [(None, 33), (Some('*'), 17)];
+
+        for &(mask, line_offset) in masks.iter() {
+            let mut prompt = Password {
+                mask,
+                ..Default::default()
+            }
+            .into_prompt("message", &answers);
+
+            let mut layout = base_layout;
+
+            assert_eq!(prompt.height(&mut layout), 1);
+            assert_eq!(layout, base_layout.with_line_offset(line_offset));
+            layout = base_layout;
+
+            prompt.input.set_value("3".repeat(50));
+            assert_eq!(prompt.height(&mut layout), 1 + mask.is_some() as u16);
+            assert_eq!(
+                layout,
+                base_layout
+                    .with_offset(0, mask.is_some() as u16)
+                    .with_line_offset(line_offset)
+            );
+        }
+    }
+
+    #[test]
+    fn test_cursor_pos() {
+        let size = (50, 20).into();
+        let layout = Layout::new(5, size);
+        let answers = Answers::default();
+
+        let masks = [(None, 33), (Some('*'), 17)];
+
+        for &(mask, line_offset) in masks.iter() {
+            let mut prompt = Password {
+                mask,
+                ..Default::default()
+            }
+            .into_prompt("message", &answers);
+
+            assert_eq!(prompt.cursor_pos(layout), (line_offset, 0));
+
+            prompt.input.set_value("3".repeat(50));
+            prompt.input.set_at(50);
+            assert_eq!(
+                prompt.cursor_pos(layout),
+                (line_offset, mask.is_some() as u16)
+            );
+        }
     }
 }

@@ -15,4 +15,4 @@ jobs:
     - name: Run clippy
       run: cargo clippy --verbose --bins --examples
     - name: Run tests
-      run: cargo test --workspace --verbose
+      run: cargo test --workspace --verbose -- --include-ignored
