@@ -1,6 +1,3 @@
-#[cfg(feature = "ahash")]
-use ahash::AHashSet as HashSet;
-#[cfg(not(feature = "ahash"))]
 use std::collections::HashSet;
 
 use ui::{

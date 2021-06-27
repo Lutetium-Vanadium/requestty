@@ -1,13 +1,8 @@
 use std::{
-    collections::hash_map::{Entry, IntoIter},
+    collections::hash_map::{Entry, HashMap, IntoIter},
     hash::Hash,
     ops::{Deref, DerefMut},
 };
-
-#[cfg(feature = "ahash")]
-use ahash::AHashMap as HashMap;
-#[cfg(not(feature = "ahash"))]
-use std::collections::HashMap;
 
 #[derive(Debug, Clone, PartialEq, PartialOrd)]
 pub enum Answer {
