@@ -1,4 +1,4 @@
-use discourse::{Answer, Question};
+use discourse::{question::Completions, Answer, Question};
 use ui::{
     events::{KeyCode, TestEvents},
     style::Color,
@@ -107,7 +107,7 @@ fn test_auto_complete() {
     let prompt = Question::input("name")
         .message("message")
         .auto_complete(|s, _| {
-            let mut completions: Vec<_> = ('g'..='j')
+            let mut completions: Completions<_> = ('g'..='j')
                 .map(|c| {
                     let mut s = s.clone();
                     s.push(c);

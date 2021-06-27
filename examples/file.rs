@@ -2,7 +2,9 @@ use std::path::Path;
 
 use fuzzy_matcher::{skim::SkimMatcherV2, FuzzyMatcher};
 
-fn auto_complete(p: String) -> Vec<String> {
+use discourse::question::Completions;
+
+fn auto_complete(p: String) -> Completions<String> {
     let current: &Path = p.as_ref();
     let (mut dir, last) = if p.ends_with('/') {
         (current, "")
@@ -19,7 +21,7 @@ fn auto_complete(p: String) -> Vec<String> {
         dir = ".".as_ref();
     }
 
-    let mut files: Vec<_> = match dir.read_dir() {
+    let mut files: Completions<_> = match dir.read_dir() {
         Ok(files) => files
             .flatten()
             .flat_map(|file| {
@@ -32,11 +34,13 @@ fn auto_complete(p: String) -> Vec<String> {
                 }
             })
             .collect(),
-        Err(_) => return vec![p],
+        Err(_) => {
+            return Completions::from([p]);
+        }
     };
 
     if files.is_empty() {
-        return vec![p];
+        Completions::from([p])
     } else {
         let fuzzer = SkimMatcherV2::default();
         files.sort_by_cached_key(|file| fuzzer.fuzzy_match(file, last).unwrap_or(i64::MAX));

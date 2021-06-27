@@ -6,7 +6,7 @@ use ui::{
     widgets, Prompt, Validation, Widget,
 };
 
-use super::{AutoComplete, ChoiceList, Filter, Options, Transform, Validate};
+use super::{AutoComplete, ChoiceList, Completions, Filter, Options, Transform, Validate};
 use crate::{Answer, Answers};
 
 #[derive(Debug, Default)]
@@ -269,7 +269,7 @@ mod tests {
             (
                 Input {
                     auto_complete: AutoComplete::Sync(Box::new(|s, _| {
-                        let mut completions: Vec<_> = ('a'..='d')
+                        let mut completions: Completions<_> = ('a'..='d')
                             .map(|c| {
                                 let mut s = s.clone();
                                 s.push(c);

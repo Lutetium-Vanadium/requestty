@@ -17,6 +17,8 @@ atty = "0.2"
 ui = { package = "discourse-ui", path = "./discourse-ui" }
 macros = { package = "discourse-macros", path = "./discourse-macros" }
 
+smallvec = { version = "1.6", optional = true }
+
 [dev-dependencies]
 trybuild = { version = "1.0.42", features = ["diff"] }
 # remove color printing since it messes with the snapshot's colours
@@ -29,6 +31,6 @@ regex = "1.5"           # examples/prompt_module.rs
 fuzzy-matcher = "0.3"   # examples/file.rs
 
 [features]
-default = ["crossterm"]
+default = ["crossterm", "smallvec"]
 crossterm = ["ui/crossterm"]
 termion = ["ui/termion"]

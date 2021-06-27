@@ -210,8 +210,13 @@ macro_rules! handler {
     };
 }
 
+#[cfg(feature = "smallvec")]
+pub type Completions<T> = smallvec::SmallVec<[T; 1]>;
+#[cfg(not(feature = "smallvec"))]
+pub type Completions<T> = Vec<T>;
+
 handler!(Filter, FnOnce(T, &Answers) -> T);
-handler!(AutoComplete, FnMut(T, &Answers) -> Vec<T>);
+handler!(AutoComplete, FnMut(T, &Answers) -> Completions<T>);
 handler!(Validate, ?Sized FnMut(&T, &Answers) -> Result<(), String>);
 handler!(ValidateByVal, FnMut(T, &Answers) -> Result<(), String>);
 handler!(Transform, ?Sized FnOnce(&T, &Answers, &mut dyn Backend) -> error::Result<()>);
@@ -240,7 +245,7 @@ macro_rules! impl_auto_complete_builder {
     ($t:ty; $inner:ident) => {
         pub fn auto_complete<F>(mut self, auto_complete: F) -> Self
         where
-            F: FnMut($t, &crate::Answers) -> Vec<$t> + 'a,
+            F: FnMut($t, &crate::Answers) -> Completions<$t> + 'a,
         {
             self.$inner.auto_complete =
                 crate::question::AutoComplete::Sync(Box::new(auto_complete));
