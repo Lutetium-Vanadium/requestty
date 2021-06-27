@@ -3,9 +3,9 @@ use discourse::plugin::*;
 #[derive(Debug)]
 struct TestPlugin;
 
-impl discourse::question::Plugin for TestPlugin {
+impl Plugin for TestPlugin {
     fn ask(
-        &mut self,
+        self,
         _message: String,
         _answers: &Answers,
         _stdout: &mut dyn Backend,
