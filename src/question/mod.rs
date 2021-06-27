@@ -28,6 +28,7 @@ pub use choice::Choice;
 use choice::{get_sep_str, ChoiceList};
 use options::Options;
 pub use plugin::Plugin;
+use plugin::PluginInteral;
 use ui::{backend::Backend, error, events::KeyEvent};
 
 use std::fmt;
@@ -39,7 +40,7 @@ pub struct Question<'a> {
 }
 
 impl<'a> Question<'a> {
-    pub(crate) fn new(opts: Options<'a>, kind: QuestionKind<'a>) -> Self {
+    fn new(opts: Options<'a>, kind: QuestionKind<'a>) -> Self {
         Self { kind, opts }
     }
 }
@@ -85,17 +86,18 @@ impl Question<'static> {
         EditorBuilder::new(name.into())
     }
 
-    pub fn plugin<'a, N, P>(name: N, plugin: P) -> PluginBuilder<'a>
+    pub fn plugin<'a, N, P, I>(name: N, plugin: I) -> PluginBuilder<'a>
     where
         N: Into<String>,
-        P: Into<Box<dyn Plugin + 'a>>,
+        P: Plugin + 'a,
+        I: Into<P>,
     {
-        PluginBuilder::new(name.into(), plugin.into())
+        PluginBuilder::new(name.into(), Box::new(Some(plugin.into())))
     }
 }
 
 #[derive(Debug)]
-pub(crate) enum QuestionKind<'a> {
+enum QuestionKind<'a> {
     Input(input::Input<'a>),
     Int(number::Int<'a>),
     Float(number::Float<'a>),
@@ -106,8 +108,7 @@ pub(crate) enum QuestionKind<'a> {
     Checkbox(checkbox::Checkbox<'a>),
     Password(password::Password<'a>),
     Editor(editor::Editor<'a>),
-    // random lifetime so that it doesn't have to be static
-    Plugin(Box<dyn Plugin + 'a>),
+    Plugin(Box<dyn PluginInteral + 'a>),
 }
 
 impl Question<'_> {
