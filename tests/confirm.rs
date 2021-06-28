@@ -93,4 +93,5 @@ fn test_transform() {
     .unwrap();
 
     assert_eq!(ans, Answer::Bool(true));
+    assert!(events.next().is_none());
 }

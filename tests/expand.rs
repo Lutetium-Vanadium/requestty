@@ -37,6 +37,7 @@ fn test_tranform() {
         .unwrap();
 
     assert_eq!(ans.key, 'b');
+    assert!(events.next().is_none());
 }
 
 #[test]
@@ -83,4 +84,5 @@ fn test_default() {
         .unwrap();
 
     assert_eq!(ans.key, 'd');
+    assert!(events.next().is_none());
 }

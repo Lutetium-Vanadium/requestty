@@ -10,6 +10,9 @@ use ui::{
 use super::{Choice, Options, Transform};
 use crate::{Answer, Answers, ListItem};
 
+#[cfg(test)]
+mod tests;
+
 // Kind of a bad name
 #[derive(Debug, Default)]
 pub struct RawSelect<'a> {
@@ -85,8 +88,8 @@ impl Widget for RawSelectPrompt<'_> {
     fn height(&mut self, layout: &mut ui::layout::Layout) -> u16 {
         // We don't need to add 1 for the answer prompt because this will over count by one
         let height = self.prompt.height(layout) + self.select.height(layout);
-        layout.offset_y += 1;
-        height
+        layout.line_offset = ANSWER_PROMPT.len() as u16;
+        height + self.input.height(layout) - 1
     }
 
     fn handle_key(&mut self, key: KeyEvent) -> bool {
@@ -186,7 +189,20 @@ impl widgets::List for RawSelect<'_> {
     }
 }
 
-impl RawSelect<'_> {
+impl<'a> RawSelect<'a> {
+    fn into_prompt(self, message: &'a str) -> RawSelectPrompt<'a> {
+        let mut select = widgets::Select::new(self);
+        if let Some(default) = select.list.choices.default() {
+            select.set_at(default);
+        }
+
+        RawSelectPrompt {
+            input: widgets::StringInput::new(|c| if c.is_digit(10) { Some(c) } else { None }),
+            select,
+            prompt: widgets::Prompt::new(&message),
+        }
+    }
+
     pub(crate) fn ask<B: Backend, E: Iterator<Item = error::Result<KeyEvent>>>(
         mut self,
         message: String,
@@ -196,20 +212,7 @@ impl RawSelect<'_> {
     ) -> error::Result<Answer> {
         let transform = self.transform.take();
 
-        let mut select = widgets::Select::new(self);
-        if let Some(default) = select.list.choices.default() {
-            select.set_at(default);
-        }
-
-        let ans = ui::Input::new(
-            RawSelectPrompt {
-                input: widgets::StringInput::new(|c| if c.is_digit(10) { Some(c) } else { None }),
-                select,
-                prompt: widgets::Prompt::new(&message),
-            },
-            b,
-        )
-        .run(events)?;
+        let ans = ui::Input::new(self.into_prompt(&message), b).run(events)?;
 
         crate::write_final!(
             transform,

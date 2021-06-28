@@ -48,6 +48,6 @@ fn test_transform() {
         .try_into_list_item()
         .unwrap();
 
-    assert!(events.next().is_none());
     assert_eq!(ans.index, 8);
+    assert!(events.next().is_none());
 }
