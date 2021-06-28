@@ -1,0 +1,27 @@
+---
+source: src/question/select.rs
+expression: backend
+
+---
+┌──────────────────────────────────────────────────┐
+│     [38;5;10m? [1m[39mmessage[22m [38;5;8m›[39m                                  │
+│  Choice 6                                        │
+│  Choice 7                                        │
+│  Choice 8                                        │
+│  Choice 9                                        │
+│  Choice 10                                       │
+│  Choice 11                                       │
+│  [38;5;8mSeparator 12[39m                                    │
+│  Choice 13                                       │
+│  Choice 14                                       │
+│  [38;5;8mSeparator 15[39m                                    │
+│[38;5;6m❯ Choice 16[39m                                       │
+│  Choice 17                                       │
+│  [38;5;8mSeparator 18[39m                                    │
+│  Choice 19                                       │
+│[38;5;8m(Move up and down to reveal more choices)[39m         │
+│[38;5;0m[48;5;7m [39m[49m                                                 │
+│                                                  │
+│                                                  │
+│                                                  │
+└──────────────────────────────────────────────────┘
