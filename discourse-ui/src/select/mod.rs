@@ -506,18 +506,17 @@ impl<L: List> super::Widget for Select<L> {
                 self.at = self.try_get_index(1).unwrap_or(self.at);
                 self.adjust_page(Movement::Up);
 
-                if self.page_end + 1 == self.list.len() {
-                    // We've reached the end, it is possible that because of the bounds
-                    // we gave earlier, self.page_start may not be right so we have to
-                    // recompute it
-                    self.at = self.page_end;
+                // Now that the page is determined, we want to set self.at to be some
+                // _selectable_ element which is not the bottom most element visible,
+                // so we overshoot by 1...
+                self.at = self.page_end;
+
+                if self.page_end + 1 == self.list.len() && !self.list.should_loop() {
+                    // ...but since we reached the end and there is no looping, self.page_start may
+                    // not be right so we have to recompute it
                     self.adjust_page(Movement::Down);
                     self.at = self.last_selectable;
                 } else {
-                    // Now that the page is determined, we want to set self.at to be some
-                    // _selectable_ element which is not the bottom most element visible,
-                    // so we overshoot by 1
-                    self.at = self.page_end;
                     // ...and then go back to at least one element
                     //
                     // note: self.at cannot directly be set to self.page_end - 1, since it
