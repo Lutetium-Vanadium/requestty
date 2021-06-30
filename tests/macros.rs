@@ -24,7 +24,7 @@ impl Runner {
 
 #[test]
 #[ignore]
-fn duplicate() {
+fn test_duplicate() {
     let t = Runner::new("duplicate");
     t.compile_fail("name");
     t.compile_fail("message");
@@ -45,7 +45,7 @@ fn duplicate() {
 
 #[test]
 #[ignore]
-fn unknown() {
+fn test_unknown() {
     let t = Runner::new("unknown");
     t.compile_fail("kind");
     t.compile_fail("option");
@@ -53,7 +53,7 @@ fn unknown() {
 
 #[test]
 #[ignore]
-fn missing() {
+fn test_missing() {
     let t = Runner::new("missing");
     t.compile_fail("name");
     t.compile_fail("plugin");
@@ -61,7 +61,7 @@ fn missing() {
 
 #[test]
 #[ignore]
-fn checkbox() {
+fn test_checkbox() {
     let t = Runner::new("checkbox");
 
     t.pass("valid");
@@ -75,7 +75,7 @@ fn checkbox() {
 
 #[test]
 #[ignore]
-fn confirm() {
+fn test_confirm() {
     let t = Runner::new("confirm");
 
     t.pass("valid");
@@ -92,7 +92,7 @@ fn confirm() {
 
 #[test]
 #[ignore]
-fn editor() {
+fn test_editor() {
     let t = Runner::new("editor");
 
     t.pass("valid");
@@ -106,7 +106,7 @@ fn editor() {
 
 #[test]
 #[ignore]
-fn expand() {
+fn test_expand() {
     let t = Runner::new("expand");
 
     t.pass("valid");
@@ -120,7 +120,7 @@ fn expand() {
 
 #[test]
 #[ignore]
-fn float() {
+fn test_float() {
     let t = Runner::new("float");
 
     t.pass("valid");
@@ -135,7 +135,7 @@ fn float() {
 
 #[test]
 #[ignore]
-fn input() {
+fn test_input() {
     let t = Runner::new("input");
 
     t.pass("valid");
@@ -149,7 +149,7 @@ fn input() {
 
 #[test]
 #[ignore]
-fn int() {
+fn test_int() {
     let t = Runner::new("int");
 
     t.pass("valid");
@@ -164,7 +164,7 @@ fn int() {
 
 #[test]
 #[ignore]
-fn select() {
+fn test_select() {
     let t = Runner::new("select");
 
     t.pass("valid");
@@ -178,7 +178,7 @@ fn select() {
 
 #[test]
 #[ignore]
-fn password() {
+fn test_password() {
     let t = Runner::new("password");
 
     t.pass("valid");
@@ -193,7 +193,7 @@ fn password() {
 
 #[test]
 #[ignore]
-fn plugin() {
+fn test_plugin() {
     let t = Runner::new("plugin");
 
     t.pass("valid");
@@ -211,7 +211,7 @@ fn plugin() {
 
 #[test]
 #[ignore]
-fn raw_select() {
+fn test_raw_select() {
     let t = Runner::new("raw_select");
 
     t.pass("valid");

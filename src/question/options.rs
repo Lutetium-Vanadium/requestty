@@ -78,7 +78,7 @@ impl<T> Getter<'_, T> {
 
 macro_rules! impl_getter_from_val {
     ($T:ty, $I:ty) => {
-        impl From<$I> for Getter<'static, $T> {
+        impl<'a> From<$I> for Getter<'a, $T> {
             fn from(value: $I) -> Self {
                 Self::Value(value.into())
             }
@@ -86,7 +86,7 @@ macro_rules! impl_getter_from_val {
     };
 
     ($T:ty, $I:ty, $value:ident => $body:expr) => {
-        impl From<$I> for Getter<'static, $T> {
+        impl<'a> From<$I> for Getter<'a, $T> {
             fn from(value: $I) -> Self {
                 let $value = value;
                 Self::Value($body)

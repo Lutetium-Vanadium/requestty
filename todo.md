@@ -1,5 +1,4 @@
 ## Required
-- tests
 - docs
 
 ## Would be nice
