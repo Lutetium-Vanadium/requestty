@@ -49,7 +49,7 @@ fn create_list_items(
 }
 
 impl Prompt for CheckboxPrompt<'_, '_> {
-    type ValidateErr = String;
+    type ValidateErr = widgets::Text<String>;
     type Output = Vec<ListItem>;
 
     fn validate(&mut self) -> Result<Validation, Self::ValidateErr> {

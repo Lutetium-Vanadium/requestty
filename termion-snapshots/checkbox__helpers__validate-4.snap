@@ -16,8 +16,8 @@ expression: self.backend
 │  [38;5;8m✔ [39mChoice 7                                      │
 │  [38;5;8m✔ [39mChoice 8                                      │
 │  [38;5;8m✔ [39mChoice 9                                      │
-│[38;5;1m✖[39m At least 2 items must be checked. 1 items...    │
-│                                                  │
+│[38;5;1m✖[39m At least 2 items must be checked. 1 items were  │
+│checked                                           │
 │                                                  │
 │                                                  │
 │                                                  │

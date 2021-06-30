@@ -134,7 +134,7 @@ impl Widget for InputPrompt<'_, '_> {
 }
 
 impl Prompt for InputPrompt<'_, '_> {
-    type ValidateErr = String;
+    type ValidateErr = widgets::Text<String>;
     type Output = String;
 
     fn finish(self) -> Self::Output {
@@ -161,7 +161,7 @@ impl Prompt for InputPrompt<'_, '_> {
             if self.has_default() {
                 return Ok(Validation::Finish);
             } else {
-                return Err("Please enter a string".into());
+                return Err("Please enter a string".to_owned().into());
             }
         }
 

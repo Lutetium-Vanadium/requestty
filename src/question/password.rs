@@ -19,7 +19,7 @@ struct PasswordPrompt<'a, 'p> {
 }
 
 impl ui::Prompt for PasswordPrompt<'_, '_> {
-    type ValidateErr = String;
+    type ValidateErr = widgets::Text<String>;
     type Output = String;
 
     fn validate(&mut self) -> Result<Validation, Self::ValidateErr> {

@@ -131,7 +131,7 @@ macro_rules! impl_number_prompt {
         }
 
         impl Prompt for $prompt_name<'_, '_> {
-            type ValidateErr = String;
+            type ValidateErr = widgets::Text<String>;
             type Output = $inner_ty;
 
             fn validate(&mut self) -> Result<Validation, Self::ValidateErr> {

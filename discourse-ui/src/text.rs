@@ -8,6 +8,14 @@ pub struct Text<S> {
     width: u16,
 }
 
+impl<S: PartialEq> PartialEq for Text<S> {
+    fn eq(&self, other: &Self) -> bool {
+        self.text == other.text
+    }
+}
+
+impl<S: Eq> Eq for Text<S> {}
+
 impl<S: AsRef<str>> Text<S> {
     pub fn new(text: S) -> Self {
         Self {
@@ -93,6 +101,12 @@ impl<S: AsRef<str>> AsRef<str> for Text<S> {
     }
 }
 
+impl<S: AsRef<str>> From<S> for Text<S> {
+    fn from(text: S) -> Self {
+        Self::new(text)
+    }
+}
+
 // 200 spaces to remove allocation for indent
 static SPACES: &str = "                                                                                                                                                                                                        ";
 
@@ -118,12 +132,6 @@ fn fill(text: &str, layout: Layout) -> String {
     drop(text.drain(..indent_len));
 
     text
-}
-
-impl<E: std::error::Error> From<E> for Text<String> {
-    fn from(e: E) -> Self {
-        Text::new(e.to_string())
-    }
 }
 
 #[cfg(test)]

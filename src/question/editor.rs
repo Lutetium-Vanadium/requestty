@@ -85,6 +85,10 @@ impl Widget for EditorPrompt<'_, '_> {
     }
 }
 
+fn map_err(err: io::Error) -> widgets::Text<String> {
+    widgets::Text::new(err.to_string())
+}
+
 impl ui::Prompt for EditorPrompt<'_, '_> {
     type ValidateErr = widgets::Text<String>;
     type Output = String;
@@ -92,19 +96,24 @@ impl ui::Prompt for EditorPrompt<'_, '_> {
     fn validate(&mut self) -> Result<Validation, Self::ValidateErr> {
         if !Command::new(&self.editor.editor)
             .arg(&self.path)
-            .status()?
+            .status()
+            .map_err(map_err)?
             .success()
         {
-            return Err(io::Error::new(io::ErrorKind::Other, "Could not open editor").into());
+            return Err(
+                io::Error::new(io::ErrorKind::Other, "Could not open editor")
+                    .to_string()
+                    .into(),
+            );
         }
 
         self.ans.clear();
-        self.file.read_to_string(&mut self.ans)?;
-        self.file.seek(SeekFrom::Start(0))?;
+        self.file.read_to_string(&mut self.ans).map_err(map_err)?;
+        self.file.seek(SeekFrom::Start(0)).map_err(map_err)?;
 
         if let Validate::Sync(ref mut validate) = self.editor.validate {
             validate(&self.ans, self.answers)
-                .map_err(|err| io::Error::new(io::ErrorKind::InvalidInput, err))?;
+                .map_err(|err| map_err(io::Error::new(io::ErrorKind::InvalidInput, err)))?;
         }
 
         Ok(Validation::Finish)
