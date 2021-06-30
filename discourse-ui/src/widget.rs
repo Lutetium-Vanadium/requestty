@@ -1,4 +1,4 @@
-use textwrap::core::Fragment;
+use textwrap::{core::Fragment, word_separators::WordSeparator};
 
 use crate::{backend::Backend, error, events::KeyEvent, layout::Layout};
 
@@ -24,19 +24,19 @@ impl<T: std::ops::Deref<Target = str>> Widget for T {
     fn render<B: Backend>(&mut self, layout: &mut Layout, backend: &mut B) -> error::Result<()> {
         let max_width = layout.line_width() as usize;
 
-        if max_width <= 3 {
-            return Err(std::fmt::Error.into());
-        }
-
         layout.offset_y += 1;
         layout.line_offset = 0;
 
-        if textwrap::core::display_width(self) > max_width {
+        if max_width <= 3 {
+            for _ in 0..max_width {
+                backend.write_all(b".")?;
+            }
+        } else if textwrap::core::display_width(self) > max_width {
             let mut width = 0;
             let mut prev_whitespace_len = 0;
             let max_width = max_width - 3; // leave space for the '...'
 
-            for word in textwrap::core::find_words(self) {
+            for word in textwrap::word_separators::UnicodeBreakProperties.find_words(self) {
                 width += word.width() + prev_whitespace_len;
                 if width > max_width {
                     break;
@@ -55,6 +55,7 @@ impl<T: std::ops::Deref<Target = str>> Widget for T {
         } else {
             backend.write_all(self.as_bytes())?;
         }
+
         backend.move_cursor_to(layout.offset_x, layout.offset_y)
     }
 

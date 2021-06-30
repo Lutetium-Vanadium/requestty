@@ -64,9 +64,6 @@ where
     }
 
     pub fn prompt(&mut self) -> Result<Option<&mut Answer>> {
-        if atty::isnt(atty::Stream::Stdout) {
-            return Err(ErrorKind::NotATty);
-        }
         let stdout = std::io::stdout();
         let mut stdout = backend::get_backend(stdout.lock())?;
 
@@ -86,10 +83,6 @@ where
     }
 
     pub fn prompt_all(self) -> Result<Answers> {
-        if atty::isnt(atty::Stream::Stdout) {
-            return Err(ErrorKind::NotATty);
-        }
-
         let stdout = std::io::stdout();
         let mut stdout = backend::get_backend(stdout.lock())?;
         let mut events = events::Events::new();

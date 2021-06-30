@@ -45,10 +45,6 @@ impl<S: AsRef<str>> Widget for Text<S> {
         layout: &mut Layout,
         backend: &mut B,
     ) -> error::Result<()> {
-        if layout.max_height == 0 {
-            return Err(std::fmt::Error.into());
-        }
-
         // Update just in case the layout is out of date
         let height = self.max_height(*layout);
 

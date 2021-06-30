@@ -6,10 +6,10 @@ edition = "2018"
 
 [dependencies]
 bitflags = "1.2"
-textwrap = "0.13"
+textwrap = "0.14"
 unicode-segmentation = "1.7"
 
-crossterm = { version = "0.19", optional = true }
+crossterm = { version = "0.20", optional = true }
 termion = { version = "1.5", optional = true }
 
 [dev-dependencies]

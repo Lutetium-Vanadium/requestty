@@ -69,9 +69,6 @@ where
 
     fn render<B: Backend>(&mut self, layout: &mut Layout, backend: &mut B) -> error::Result<()> {
         if let Some(value) = self.value {
-            if layout.line_width() == 0 {
-                return Err(std::fmt::Error.into());
-            }
             layout.line_offset += 1;
 
             write!(backend, "{}", value)?;

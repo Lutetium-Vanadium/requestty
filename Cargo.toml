@@ -13,7 +13,6 @@ members = [
 
 [dependencies]
 tempfile = "3"
-atty = "0.2"
 ui = { package = "discourse-ui", path = "./discourse-ui" }
 macros = { package = "discourse-macros", path = "./discourse-macros" }
 
@@ -26,7 +25,7 @@ insta = { version = "1.7.1", default-features = false }
 rand = "0.8"
 rand_chacha = "0.3"
 
-csscolorparser = "0.4"  # examples/input.rs
+csscolorparser = "0.5"  # examples/input.rs
 regex = "1.5"           # examples/prompt_module.rs
 fuzzy-matcher = "0.3"   # examples/file.rs
 
