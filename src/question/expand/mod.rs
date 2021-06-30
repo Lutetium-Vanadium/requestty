@@ -128,10 +128,11 @@ impl<F: Fn(char) -> Option<char>> ui::Widget for ExpandPrompt<'_, F> {
 
             if self.input.value().is_some() {
                 b.move_cursor(MoveDirection::NextLine(1))?;
-                b.write_styled(&">> ".cyan())?;
+                b.write_styled(&ui::symbols::SMALL_ARROW.cyan())?;
+                b.write_all(b" ")?;
 
                 layout.offset_y += 1;
-                layout.offset_x += 3;
+                layout.offset_x += 2;
 
                 match self.selected() {
                     Some(item) => {
