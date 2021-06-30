@@ -18,6 +18,8 @@ pub struct Input<'a> {
     auto_complete: AutoComplete<'a, String>,
 }
 
+type CompletionSelector = widgets::Select<ChoiceList<widgets::Text<String>>>;
+
 struct InputPrompt<'i, 'a> {
     prompt: widgets::Prompt<&'a str, String>,
     input_opts: Input<'i>,
@@ -25,7 +27,7 @@ struct InputPrompt<'i, 'a> {
     /// When the select is Some, then currently the user is selecting from the
     /// auto complete options. The select must not be used directly, and instead by used
     /// through `select`. See `select_op`s documentation for more.
-    select: Option<widgets::Select<ChoiceList<String>>>,
+    select: Option<CompletionSelector>,
     answers: &'a Answers,
 }
 
@@ -35,17 +37,23 @@ struct InputPrompt<'i, 'a> {
 /// actually contain the element, it is contained by the input. This function
 /// temporarily swaps the select's selected item and the input, performs the function,
 /// and swaps back.
-fn select_op<T, F: FnOnce(&mut widgets::Select<ChoiceList<String>>) -> T>(
+fn select_op<T, F: FnOnce(&mut CompletionSelector) -> T>(
     input: &mut widgets::StringInput,
-    select: &mut widgets::Select<ChoiceList<String>>,
+    select: &mut CompletionSelector,
     op: F,
 ) -> T {
     let mut res = None;
 
     input.replace_with(|mut s| {
-        std::mem::swap(&mut s, select.selected_mut().as_mut().unwrap_choice());
+        std::mem::swap(
+            &mut s,
+            &mut select.selected_mut().as_mut().unwrap_choice().text,
+        );
         res = Some(op(select));
-        std::mem::swap(&mut s, select.selected_mut().as_mut().unwrap_choice());
+        std::mem::swap(
+            &mut s,
+            &mut select.selected_mut().as_mut().unwrap_choice().text,
+        );
         s
     });
 
@@ -96,7 +104,9 @@ impl Widget for InputPrompt<'_, '_> {
                         } else {
                             let res = std::mem::take(&mut completions[0]);
 
-                            *select = Some(widgets::Select::new(completions.into_iter().collect()));
+                            *select = Some(widgets::Select::new(
+                                completions.into_iter().map(widgets::Text::new).collect(),
+                            ));
 
                             res
                         }
