@@ -15,17 +15,24 @@ use crossterm::{
 use super::{Attributes, Backend, ClearType, Color, MoveDirection, Size};
 use crate::error;
 
+/// A backend that uses the `crossterm` library.
+#[derive(Debug, Clone)]
 pub struct CrosstermBackend<W> {
     buffer: W,
     attributes: Attributes,
 }
 
 impl<W> CrosstermBackend<W> {
-    pub fn new(buffer: W) -> error::Result<CrosstermBackend<W>> {
-        Ok(CrosstermBackend {
+    /// Creates a new [`CrosstermBackend`]
+    pub fn new(buffer: W) -> CrosstermBackend<W> {
+        CrosstermBackend {
             buffer,
             attributes: Attributes::empty(),
-        })
+        }
+    }
+
+    pub(super) fn new_as_result(buffer: W) -> error::Result<CrosstermBackend<W>> {
+        Ok(Self::new(buffer))
     }
 }
 

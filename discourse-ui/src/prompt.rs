@@ -8,13 +8,20 @@ use crate::{
     Widget,
 };
 
+/// The different delimiters that can be used with hints in [`Prompt`].
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Delimiter {
+    /// `(` and `)`
     Parentheses,
+    /// `{` and `}`
     Braces,
+    /// `[` and `]`
     SquareBracket,
+    /// `<` and `>`
     AngleBracket,
+    /// Any other delimiter
     Other(char, char),
+    /// No delimiter.
     None,
 }
 
@@ -31,6 +38,7 @@ impl From<Delimiter> for Option<(char, char)> {
     }
 }
 
+/// A generic prompt that renders a message and an optional hint.
 #[derive(Debug, Clone)]
 pub struct Prompt<M, H = &'static str> {
     message: M,
@@ -41,6 +49,7 @@ pub struct Prompt<M, H = &'static str> {
 }
 
 impl<M: AsRef<str>, H: AsRef<str>> Prompt<M, H> {
+    /// Creates a new `Prompt`
     pub fn new(message: M) -> Self {
         Self {
             message_len: u16::try_from(message.as_ref().chars().count())
@@ -52,6 +61,7 @@ impl<M: AsRef<str>, H: AsRef<str>> Prompt<M, H> {
         }
     }
 
+    /// Sets the hint
     pub fn with_hint(mut self, hint: H) -> Self {
         self.hint_len =
             u16::try_from(hint.as_ref().chars().count()).expect("hint must fit within a u16");
@@ -59,6 +69,7 @@ impl<M: AsRef<str>, H: AsRef<str>> Prompt<M, H> {
         self
     }
 
+    /// Sets the hint
     pub fn with_optional_hint(self, hint: Option<H>) -> Self {
         match hint {
             Some(hint) => self.with_hint(hint),
@@ -66,39 +77,48 @@ impl<M: AsRef<str>, H: AsRef<str>> Prompt<M, H> {
         }
     }
 
+    /// Sets the hint delimiter
     pub fn with_delim(mut self, delim: Delimiter) -> Self {
         self.delim = delim;
         self
     }
 
+    /// Get the message
     pub fn message(&self) -> &M {
         &self.message
     }
 
+    /// Get the hint
     pub fn hint(&self) -> Option<&H> {
         self.hint.as_ref()
     }
 
+    /// Get the delimiter
     pub fn delim(&self) -> Delimiter {
         self.delim
     }
 
+    /// Consume self returning the owned message
     pub fn into_message(self) -> M {
         self.message
     }
 
+    /// Consume self returning the owned hint
     pub fn into_hint(self) -> Option<H> {
         self.hint
     }
 
+    /// Consume self returning the owned message and hint
     pub fn into_message_and_hint(self) -> (M, Option<H>) {
         (self.message, self.hint)
     }
 
+    /// The character length of the message
     pub fn message_len(&self) -> u16 {
         self.message_len
     }
 
+    /// The character length of the hint. It is 0 if the hint is absent
     pub fn hint_len(&self) -> u16 {
         if self.hint.is_some() {
             match self.delim {
@@ -110,6 +130,7 @@ impl<M: AsRef<str>, H: AsRef<str>> Prompt<M, H> {
         }
     }
 
+    /// The character length of the fully rendered prompt
     pub fn width(&self) -> u16 {
         if self.hint.is_some() {
             // `? <message> <hint> `
@@ -130,14 +151,10 @@ impl<M: AsRef<str>, H: AsRef<str>> Prompt<M, H> {
             (layout.line_offset + width, 0)
         }
     }
-
-    pub fn line_offset(&self, layout: Layout) -> u16 {
-        self.cursor_pos_impl(layout).0
-    }
 }
 
 impl<M: AsRef<str>> Prompt<M, &'static str> {
-    /// `✔ <message> · `
+    /// The end prompt to be printed once the question is answered.
     pub fn write_finished_message<B: Backend>(message: &M, backend: &mut B) -> error::Result<()> {
         backend.write_styled(&crate::symbols::TICK.light_green())?;
         backend.write_all(b" ")?;

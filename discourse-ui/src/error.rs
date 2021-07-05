@@ -1,12 +1,18 @@
+//! Error definitions for `discourse`
+
 use std::{fmt, io};
 
+/// The `discourse` result type.
 pub type Result<T> = std::result::Result<T, ErrorKind>;
 
+/// The errors that can occur in `discourse`.
 #[derive(Debug)]
-#[non_exhaustive]
 pub enum ErrorKind {
+    /// A regular [`std::io::Error`].
     IoError(io::Error),
+    /// This occurs when `Ctrl+C` is received in [`Input`](crate::Input).
     Interrupted,
+    /// This occurs when `Null` is received in [`Input`](crate::Input).
     Eof,
 }
 

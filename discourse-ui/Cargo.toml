@@ -13,4 +13,5 @@ crossterm = { version = "0.20", optional = true }
 termion = { version = "1.5", optional = true }
 
 [dev-dependencies]
+# remove color printing since it messes with the snapshot's colours
 insta = { version = "1.7.1", default-features = false }

@@ -12,7 +12,15 @@ use crate::{
     layout::Layout,
 };
 
-/// A widget that inputs a line of text
+/// A widget that inputs a string.
+///
+/// A `filter_map` function can optionally be provided to limit and change the characters allowed,
+/// similar to [`Iterator::filter_map`].
+///
+/// If only a single character is required, use [`CharInput`].
+///
+/// [`CharInput`]: crate::widgets::CharInput
+#[derive(Debug, Clone)]
 pub struct StringInput<F = super::widgets::FilterMapChar> {
     value: String,
     mask: Option<char>,
@@ -21,30 +29,40 @@ pub struct StringInput<F = super::widgets::FilterMapChar> {
     value_len: usize,
     /// The position of the 'cursor' in characters
     at: usize,
-    filter_map_char: F,
+    filter_map: F,
+}
+
+impl StringInput {
+    /// Creates a new [`StringInput`] which accepts all characters.
+    pub fn new() -> Self {
+        Self::with_filter_map(crate::widgets::no_filter)
+    }
 }
 
 impl<F> StringInput<F> {
-    /// Creates a new [`StringInput`]. The filter_map_char is used in [`StringInput::handle_key`] to
-    /// avoid some characters to limit and filter characters.
-    pub fn new(filter_map_char: F) -> Self {
+    /// Creates a new [`StringInput`] which only accepts characters as per the `filter_map` function.
+    pub fn with_filter_map(filter_map: F) -> Self {
         Self {
             value: String::new(),
             value_len: 0,
             at: 0,
-            filter_map_char,
+            filter_map,
             mask: None,
             hide_output: false,
         }
     }
 
-    /// A mask to print in render instead of the actual characters
+    /// A mask to render instead of the actual characters.
+    ///
+    /// This is useful for passwords.
     pub fn mask(mut self, mask: char) -> Self {
         self.mask = Some(mask);
         self
     }
 
-    /// Whether to render nothing, but still keep track of all the characters
+    /// Hide the value being entered, and render nothing.
+    ///
+    /// This is useful for passwords.
     pub fn hide_output(mut self) -> Self {
         self.hide_output = true;
         self
@@ -58,15 +76,17 @@ impl<F> StringInput<F> {
         }
     }
 
+    /// Gets the location of the 'cursor' in characters.
     pub fn get_at(&self) -> usize {
         self.at
     }
 
+    /// Sets the location of the 'cursor' in characters.
     pub fn set_at(&mut self, at: usize) {
         self.at = at.min(self.value_len);
     }
 
-    /// The currently inputted value
+    /// The value of the `StringInput`
     pub fn value(&self) -> &str {
         &self.value
     }
@@ -90,15 +110,18 @@ impl<F> StringInput<F> {
         }
     }
 
-    /// Check whether any character has come to the input
+    /// Check whether any character has come to the input.
+    ///
+    /// This does not check if the string is empty. So a character is added, and then deleted, it
+    /// `has_value` will return `true`.
     pub fn has_value(&self) -> bool {
         self.value.capacity() > 0
     }
 
-    /// Returns None if no characters have been inputted, otherwise returns Some
+    /// Returns `None` if no characters have been inputted, otherwise returns `Some(_)`.
     ///
-    /// note: it can return Some(""), if a character was added and then deleted. It will only return
-    /// None when no character was ever received
+    /// It can return `Some("")`, if a character was added and then deleted. It will only return
+    /// `None` when no character was ever received.
     pub fn finish(self) -> Option<String> {
         if self.has_value() {
             Some(self.value)
@@ -179,7 +202,6 @@ impl<F> super::Widget for StringInput<F>
 where
     F: Fn(char) -> Option<char>,
 {
-    /// Handles characters, backspace, delete, left arrow, right arrow, home and end.
     fn handle_key(&mut self, key: KeyEvent) -> bool {
         if let Some(movement) = self.get_delete_movement(key) {
             match movement {
@@ -250,7 +272,7 @@ where
                     .modifiers
                     .intersects(KeyModifiers::CONTROL | KeyModifiers::ALT) =>
             {
-                if let Some(c) = (self.filter_map_char)(c) {
+                if let Some(c) = (self.filter_map)(c) {
                     if self.at == self.value_len {
                         self.value.push(c);
                     } else {
@@ -294,6 +316,9 @@ where
         true
     }
 
+    /// This widget ignores [`layout.offset_x`] and wraps around in the terminal.
+    ///
+    /// [`layout.offset_x`]: Layout.offset_x
     fn render<B: Backend>(&mut self, layout: &mut Layout, backend: &mut B) -> error::Result<()> {
         if self.hide_output {
             return Ok(());
@@ -348,7 +373,7 @@ where
 
 impl Default for StringInput {
     fn default() -> Self {
-        Self::new(super::widgets::no_filter)
+        Self::new()
     }
 }
 
@@ -507,7 +532,7 @@ mod tests {
 
     #[test]
     fn test_handle_key() {
-        let mut input = StringInput::new(|c| if c == 'i' { None } else { Some(c) });
+        let mut input = StringInput::with_filter_map(|c| if c == 'i' { None } else { Some(c) });
         input.set_value(LOREM.into());
         input.set_at(40);
 
@@ -558,7 +583,7 @@ mod tests {
         assert_eq!(input.get_at(), 41);
         assert_eq!(input.value().chars().count(), 389);
 
-        let mut input = StringInput::new(|c| if c == 'ȼ' { None } else { Some(c) });
+        let mut input = StringInput::with_filter_map(|c| if c == 'ȼ' { None } else { Some(c) });
         input.set_value(UNICODE.into());
         input.set_at(40);
 

@@ -38,7 +38,7 @@ impl Int<'_> {
         i.wrapping_add(delta)
     }
 
-    fn filter_map_char(c: char) -> Option<char> {
+    fn filter_map(c: char) -> Option<char> {
         if c.is_digit(10) || c == '-' || c == '+' {
             Some(c)
         } else {
@@ -62,8 +62,8 @@ impl Float<'_> {
         f + delta as f64
     }
 
-    fn filter_map_char(c: char) -> Option<char> {
-        if Int::filter_map_char(c).is_some() || c == '.' || c == 'e' || c == 'E' {
+    fn filter_map(c: char) -> Option<char> {
+        if Int::filter_map(c).is_some() || c == '.' || c == 'e' || c == 'E' {
             Some(c)
         } else {
             None
@@ -183,7 +183,7 @@ macro_rules! impl_ask {
                 $prompt_name {
                     prompt: widgets::Prompt::new(message)
                         .with_optional_hint(self.default.as_ref().map(ToString::to_string)),
-                    input: widgets::StringInput::new(Self::filter_map_char),
+                    input: widgets::StringInput::with_filter_map(Self::filter_map),
                     number: self,
                     answers,
                 }

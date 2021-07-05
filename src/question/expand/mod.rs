@@ -60,7 +60,7 @@ impl<F: Fn(char) -> Option<char>> ExpandPrompt<'_, F> {
     fn finish_with(self, c: char) -> ExpandItem<String> {
         let item = self
             .select
-            .finish()
+            .into_inner()
             .choices
             .choices
             .into_iter()
@@ -86,7 +86,7 @@ impl<F: Fn(char) -> Option<char>> Prompt for ExpandPrompt<'_, F> {
         match self.input.value().unwrap_or(self.select.list.default) {
             'h' => {
                 self.expanded = true;
-                self.input.set_value(None);
+                self.input.clear_value();
                 self.select.list.selected = None;
                 Ok(Validation::Continue)
             }
@@ -328,7 +328,7 @@ impl Expand<'_> {
         let ans = ui::Input::new(
             ExpandPrompt {
                 prompt: widgets::Prompt::new(&*message).with_hint(&hint),
-                input: widgets::CharInput::new(|c| {
+                input: widgets::CharInput::with_filter_map(|c| {
                     let c = c.to_ascii_lowercase();
                     hint.chars()
                         .find(|o| o.eq_ignore_ascii_case(&c))

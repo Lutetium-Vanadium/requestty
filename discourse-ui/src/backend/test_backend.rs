@@ -49,6 +49,12 @@ impl From<Cursor> for (u16, u16) {
     }
 }
 
+/// A backend that can be used for tests.
+///
+/// When asserting equality, it is recommended to use [`TestBackend::assert_eq`] or
+/// [`assert_backend_snapshot`] instead of [`assert_eq`].
+///
+/// [`assert_backend_snapshot`]: crate::assert_backend_snapshot
 #[derive(Debug, Clone)]
 pub struct TestBackend {
     cells: Vec<Cell>,
@@ -78,10 +84,12 @@ impl PartialEq for TestBackend {
 impl Eq for TestBackend {}
 
 impl TestBackend {
+    /// Creates a new `TestBackend`
     pub fn new(size: Size) -> Self {
         Self::new_with_layout(size, Layout::new(0, size))
     }
 
+    /// Creates a new `TestBackend` with the cursor starting at the offsets given by the layout.
     pub fn new_with_layout(size: Size, layout: Layout) -> Self {
         let mut this = Self {
             cells: [Cell::default()].repeat(size.area() as usize),
@@ -101,11 +109,16 @@ impl TestBackend {
         this
     }
 
-    /// Creates a new backend from the lines. There must be <=size.height lines, and <=size.width
-    /// chars per line.
+    /// Creates a new `TestBackend` from the lines. There must be `<= size.height` lines, and
+    /// `<= size.width` chars per line.
     ///
-    /// note: It is not necessary to fill the lines so that it matches the dimensions of size
-    /// exactly. Padding will be added to the end as required.
+    /// It is not necessary to fill the lines so that it matches the dimensions of size exactly.
+    /// Padding will be added to the end as required.
+    ///
+    /// # Panics
+    ///
+    /// It panics if there are more than `size.height` lines or more than `size.width` chars per
+    /// line.
     pub fn from_lines(lines: &[&str], size: Size) -> Self {
         let mut backend = Self::new(size);
 
@@ -126,6 +139,7 @@ impl TestBackend {
         backend
     }
 
+    /// Clears all the cells and moves the cursor to the offsets given by the layout.
     pub fn reset_with_layout(&mut self, layout: Layout) {
         self.clear_range(..);
         self.move_x(layout.offset_x + layout.line_offset);
@@ -218,6 +232,8 @@ impl TestBackend {
         }
     }
 
+    /// Asserts that two backends are equal to each other, otherwise it panics printing what the
+    /// backend would look like.
     pub fn assert_eq(&self, other: &Self) {
         if *self != *other {
             panic!(
@@ -353,6 +369,11 @@ impl super::Backend for TestBackend {
 }
 
 impl fmt::Display for TestBackend {
+    /// Writes all the cells of the `TestBackend` using [`write_to_buf`].
+    ///
+    /// ![](https://raw.githubusercontent.com/lutetium-vanadium/discourse/master/assets/test-backend-rendered.png)
+    ///
+    /// [`write_to_buf`]: TestBackend::write_to_buf
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let mut buf = Vec::with_capacity(self.size.area() as usize);
 
@@ -375,6 +396,11 @@ fn map_reset(c: Color, to: Color) -> Color {
 }
 
 impl TestBackend {
+    /// Writes all the cells of the `TestBackend` with the default backend (see [`get_backend`]).
+    ///
+    /// ![](https://raw.githubusercontent.com/lutetium-vanadium/discourse/master/assets/test-backend-rendered.png)
+    ///
+    /// [`get_backend`]: crate::backend::get_backend
     pub fn write_to_buf<W: Write>(&self, mut buf: W) -> error::Result<()> {
         let mut fg = Color::Reset;
         let mut bg = Color::Reset;

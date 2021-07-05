@@ -1,8 +1,11 @@
 bitflags::bitflags! {
     /// Represents key modifiers (shift, control, alt).
     pub struct KeyModifiers: u8 {
+        #[allow(missing_docs)]
         const SHIFT = 0b0000_0001;
+        #[allow(missing_docs)]
         const CONTROL = 0b0000_0010;
+        #[allow(missing_docs)]
         const ALT = 0b0000_0100;
     }
 }
@@ -17,6 +20,7 @@ pub struct KeyEvent {
 }
 
 impl KeyEvent {
+    /// Creates a new `KeyEvent`
     pub fn new(code: KeyCode, modifiers: KeyModifiers) -> KeyEvent {
         KeyEvent { code, modifiers }
     }
@@ -62,7 +66,7 @@ pub enum KeyCode {
     Delete,
     /// Insert key.
     Insert,
-    /// F key.
+    /// A function key.
     ///
     /// `KeyEvent::F(1)` represents F1 key, etc.
     F(u8),

@@ -61,7 +61,7 @@ impl Prompt for ConfirmPrompt<'_> {
     }
 
     fn finish(self) -> Self::Output {
-        match self.input.finish() {
+        match self.input.value() {
             Some('y') | Some('Y') => true,
             Some('n') | Some('N') => false,
             _ => self.confirm.default.unwrap(),
@@ -87,7 +87,7 @@ impl<'a> Confirm<'a> {
         ConfirmPrompt {
             prompt: widgets::Prompt::new(message).with_hint(hint),
             confirm: self,
-            input: widgets::CharInput::new(only_yn),
+            input: widgets::CharInput::with_filter_map(only_yn),
         }
     }
 

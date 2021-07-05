@@ -29,7 +29,7 @@ pub enum Movement {
 impl Movement {
     /// Gets the movement (if any) from the current event
     ///
-    /// note: it also captures 'h', 'j', 'k', 'l', 'g', and 'G'. If these are required
+    /// It also captures 'h', 'j', 'k', 'l', 'g', and 'G'. If these are required
     /// for some input, it must be checked before capturing a movement
     pub fn try_from_key(key: KeyEvent) -> Option<Movement> {
         let movement = match key.code {

@@ -1,14 +1,18 @@
+//! A module to represent a terminal and operations on it.
+
 use std::fmt::Display;
 
 use crate::error;
 
+/// Gets the default backend based on the features enabled.
 pub fn get_backend<W: std::io::Write>(buf: W) -> error::Result<impl Backend> {
     #[cfg(feature = "crossterm")]
     type Backend<W> = CrosstermBackend<W>;
+
     #[cfg(feature = "termion")]
     type Backend<W> = TermionBackend<W>;
 
-    Backend::new(buf)
+    Backend::new_as_result(buf)
 }
 
 mod test_backend;
@@ -26,14 +30,17 @@ pub use self::crossterm::CrosstermBackend;
 
 use crate::style::{Attributes, Color, Styled};
 
+/// A 2D size.
 #[derive(Debug, PartialEq, Eq, Clone, Copy, Hash, Default)]
+#[allow(missing_docs)]
 pub struct Size {
     pub width: u16,
     pub height: u16,
 }
 
 impl Size {
-    pub fn area(&self) -> u16 {
+    /// The area of the size
+    pub fn area(self) -> u16 {
         self.width * self.height
     }
 }
@@ -44,8 +51,10 @@ impl From<(u16, u16)> for Size {
     }
 }
 
+/// The different parts of the terminal that can be cleared at once.
 #[derive(Debug, PartialEq, Eq, Clone, Copy, Hash)]
 pub enum ClearType {
+    /// All cells.
     All,
     /// All cells from the cursor position downwards.
     FromCursorDown,
@@ -57,36 +66,69 @@ pub enum ClearType {
     UntilNewLine,
 }
 
+/// The directions the terminal cursor can be moved relative to the current position.
 #[derive(Debug, PartialEq, Eq, Clone, Copy, Hash)]
 pub enum MoveDirection {
+    /// Moves a given number of rows up.
     Up(u16),
+    /// Moves a given number of rows down.
     Down(u16),
+    /// Moves a given number of columns left.
     Left(u16),
+    /// Moves a given number of columns right.
     Right(u16),
+    /// Moves a given number of rows down and goes to the start of the line.
     NextLine(u16),
-    Column(u16),
+    /// Moves a given number of rows up and goes to the start of the line.
     PrevLine(u16),
+    /// Goes to a given column.
+    Column(u16),
 }
 
+/// A trait to represent a terminal that can be rendered to.
 pub trait Backend: std::io::Write {
+    /// Enables raw mode.
     fn enable_raw_mode(&mut self) -> error::Result<()>;
+    /// Disables raw mode.
     fn disable_raw_mode(&mut self) -> error::Result<()>;
+    /// Hides the cursor.
     fn hide_cursor(&mut self) -> error::Result<()>;
+    /// Shows the cursor.
     fn show_cursor(&mut self) -> error::Result<()>;
 
+    /// Gets the cursor position as (col, row). The top-left cell is (0, 0).
     fn get_cursor_pos(&mut self) -> error::Result<(u16, u16)>;
+    /// Moves the cursor to given position. The top-left cell is (0, 0).
     fn move_cursor_to(&mut self, x: u16, y: u16) -> error::Result<()>;
+    /// Moves the cursor relative to the current position as per the `direction`.
     fn move_cursor(&mut self, direction: MoveDirection) -> error::Result<()> {
         default_move_cursor(self, direction)
     }
+    /// Scrolls the terminal the given number of rows.
+    ///
+    // FIXME: this should probably be the other way around
+    /// A negative number means the terminal scrolls upwards, while a positive number means the
+    /// terminal scrolls downwards.
     fn scroll(&mut self, dist: i16) -> error::Result<()>;
+
+    /// Sets the given `attributes` removing ones which were previous applied.
     fn set_attributes(&mut self, attributes: Attributes) -> error::Result<()>;
+    /// Sets the foreground color.
     fn set_fg(&mut self, color: Color) -> error::Result<()>;
+    /// Sets the background color.
     fn set_bg(&mut self, color: Color) -> error::Result<()>;
+    /// Write a styled object to the backend.
+    ///
+    /// See also [`Styled`] and [`Stylize`].
+    ///
+    /// [`Stylize`]: crate::style::Stylize
     fn write_styled(&mut self, styled: &Styled<dyn Display + '_>) -> error::Result<()> {
         styled.write(self)
     }
+
+    /// Clears the cells given by clear_type
     fn clear(&mut self, clear_type: ClearType) -> error::Result<()>;
+    /// Gets the size of the terminal in rows and columns.
     fn size(&self) -> error::Result<Size>;
 }
 
@@ -94,12 +136,6 @@ fn default_move_cursor<B: Backend + ?Sized>(
     backend: &mut B,
     direction: MoveDirection,
 ) -> error::Result<()> {
-    // There are a lot of `MoveDirection::NextLine(1)`, so this will slightly speed up
-    // the rendering process as the cursor doesn't need to be gotten every time
-    if let MoveDirection::NextLine(1) = direction {
-        return write!(backend, "\n\r").map_err(Into::into);
-    }
-
     let (mut x, mut y) = backend.get_cursor_pos()?;
 
     match direction {

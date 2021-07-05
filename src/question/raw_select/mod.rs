@@ -32,7 +32,7 @@ impl RawSelectPrompt<'_> {
             index,
             name: self
                 .select
-                .finish()
+                .into_inner()
                 .choices
                 .choices
                 .swap_remove(index)
@@ -197,7 +197,13 @@ impl<'a> RawSelect<'a> {
         }
 
         RawSelectPrompt {
-            input: widgets::StringInput::new(|c| if c.is_digit(10) { Some(c) } else { None }),
+            input: widgets::StringInput::with_filter_map(|c| {
+                if c.is_digit(10) {
+                    Some(c)
+                } else {
+                    None
+                }
+            }),
             select,
             prompt: widgets::Prompt::new(&message),
         }

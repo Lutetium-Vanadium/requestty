@@ -1,6 +1,6 @@
 use std::ops::{Deref, DerefMut};
 
-use super::{Validation, Widget};
+use super::Widget;
 use crate::{
     backend::{Backend, ClearType, MoveDirection, Size},
     error,
@@ -9,29 +9,49 @@ use crate::{
     style::Stylize,
 };
 
+/// The state of a prompt on validation.
+///
+/// See [`Prompt::validate`]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Validation {
+    /// If the prompt is ready to finish.
+    Finish,
+    /// If the state is valid, but the prompt should still persist.
+    ///
+    /// Unlike returning an Err, this will not show an error and is a way for the prompt to progress
+    /// its internal state machine.
+    Continue,
+}
+
 /// This trait should be implemented by all 'root' widgets.
 ///
-/// It provides the functionality specifically required only by the main controlling widget. For the
-/// trait required for general rendering to terminal, see [`Widget`].
+/// It provides the functionality required only by the main controlling widget. For the trait
+/// required for general rendering to terminal, see [`Widget`].
 pub trait Prompt: Widget {
-    /// The error type returned by validate. It **must** be only one line long.
+    /// The error type returned by validate. It can be any widget and the [render cycle] is guaranteed
+    /// to be called only once.
+    ///
+    /// [render cycle]: trait.Widget.html#render-cycle
     type ValidateErr: Widget;
 
     /// The output type returned by [`Input::run`]
     type Output;
 
-    /// Determine whether the prompt state is ready to be submitted. It is called whenever the use
+    /// Determine whether the prompt state is ready to be submitted. It is called whenever the user
     /// presses the enter key.
-    #[allow(unused_variables)]
+    ///
+    /// See [`Validation`]
     fn validate(&mut self) -> Result<Validation, Self::ValidateErr> {
         Ok(Validation::Finish)
     }
     /// The value to return from [`Input::run`]. This will only be called once validation returns
-    /// [`Validation::Finish`];
+    /// [`Validation::Finish`]
     fn finish(self) -> Self::Output;
 
-    /// The prompt has some default value that can be returned.
+    // FIXME: delete default
+    /// If the prompt has some default value that can be returned.
     fn has_default(&self) -> bool;
+
     /// The default value to be returned. It will only be called when has_default is true and the
     /// user presses escape.
     fn finish_default(self) -> Self::Output
@@ -42,14 +62,41 @@ pub trait Prompt: Widget {
     }
 }
 
-/// The ui runner. It renders and processes events with the help of a type that implements [`Prompt`]
+/// A ui runner which implements the [render cycle].
+///
+/// It renders and processes events with the help of a type that implements [`Prompt`].
 ///
 /// See [`run`](Input::run) for more information
+///
+/// [render cycle]: trait.Widget.html#render-cycle
+#[derive(Debug)]
 pub struct Input<P, B: Backend> {
     prompt: P,
     backend: TerminalState<B>,
     base_row: u16,
     size: Size,
+}
+
+impl<P, B: Backend> Input<P, B> {
+    #[allow(clippy::new_ret_no_self)]
+    /// Creates a new `Input`. This won't do anything until it is [run](Input::run).
+    pub fn new(prompt: P, backend: &mut B) -> Input<P, &mut B> {
+        // The method doesn't return self directly, as its always used with a `&mut B`,
+        // and this tells the compiler that it doesn't need to consume the `&mut B`, but
+        // once the Input has been dropped, it can be used again
+        Input {
+            prompt,
+            backend: TerminalState::new(backend, false),
+            base_row: 0,
+            size: Size::default(),
+        }
+    }
+
+    /// Hides the cursor while running the input. This won't do anything until it is [run](Input::run).
+    pub fn hide_cursor(mut self) -> Self {
+        self.backend.hide_cursor = true;
+        self
+    }
 }
 
 impl<P: Prompt, B: Backend> Input<P, B> {
@@ -103,13 +150,16 @@ impl<P: Prompt, B: Backend> Input<P, B> {
     }
 
     fn goto_last_line(&mut self, height: u16) -> error::Result<()> {
-        self.base_row = self.adjust_scrollback(height + 1)?;
         self.backend.move_cursor_to(0, self.base_row + height)
     }
 
     fn print_error(&mut self, mut e: P::ValidateErr) -> error::Result<()> {
         self.size = self.backend.size()?;
         let height = self.prompt.height(&mut self.layout());
+        self.base_row = self.adjust_scrollback(height + 1)?;
+
+        self.clear()?;
+        self.prompt.render(&mut self.layout(), &mut *self.backend)?;
         self.goto_last_line(height)?;
 
         self.backend.write_styled(&crate::symbols::CROSS.red())?;
@@ -126,9 +176,9 @@ impl<P: Prompt, B: Backend> Input<P, B> {
     fn exit(&mut self) -> error::Result<()> {
         self.size = self.backend.size()?;
         let height = self.prompt.height(&mut self.layout());
+        self.base_row = self.adjust_scrollback(height + 1)?;
         self.goto_last_line(height)?;
-        self.backend.reset()?;
-        Ok(())
+        self.backend.reset()
     }
 
     #[inline]
@@ -143,8 +193,9 @@ impl<P: Prompt, B: Backend> Input<P, B> {
         }
     }
 
-    /// Run the ui on the given writer. It will return when the user presses `Enter` or `Escape`
-    /// based on the [`Prompt`] implementation.
+    /// Display the prompt and process events until the user presses `Enter`.
+    ///
+    /// After the user presses `Enter`, [`validate`](Prompt::validate) will be called.
     pub fn run<E>(mut self, events: &mut E) -> error::Result<P::Output>
     where
         E: Iterator<Item = error::Result<KeyEvent>>,
@@ -188,28 +239,7 @@ impl<P: Prompt, B: Backend> Input<P, B> {
     }
 }
 
-impl<P, B: Backend> Input<P, B> {
-    #[allow(clippy::new_ret_no_self)]
-    /// Creates a new Input
-    pub fn new(prompt: P, backend: &mut B) -> Input<P, &mut B> {
-        // The method doesn't return self directly, as its always used with a `&mut B`,
-        // and this tells the compiler that it doesn't need to consume the `&mut B`, but
-        // once the Input goes out of scope, it can be used again
-        Input {
-            prompt,
-            backend: TerminalState::new(backend, false),
-            base_row: 0,
-            size: Size::default(),
-        }
-    }
-
-    /// Hides the cursor while running the input
-    pub fn hide_cursor(mut self) -> Self {
-        self.backend.hide_cursor = true;
-        self
-    }
-}
-
+#[derive(Debug)]
 struct TerminalState<B: Backend> {
     backend: B,
     hide_cursor: bool,

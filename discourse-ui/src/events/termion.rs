@@ -7,7 +7,7 @@ use termion::{event, input};
 
 use crate::error;
 
-pub fn next_event(events: &mut input::Keys<Stdin>) -> error::Result<super::KeyEvent> {
+pub(super) fn next_event(events: &mut input::Keys<Stdin>) -> error::Result<super::KeyEvent> {
     let e = events.next().unwrap()?;
     e.try_into()
 }
@@ -32,9 +32,6 @@ impl TryFrom<event::Key> for super::KeyEvent {
             event::Key::F(n) => super::KeyCode::F(n).into(),
             event::Key::Char('\n') => super::KeyCode::Enter.into(),
             event::Key::Char('\t') => super::KeyCode::Tab.into(),
-            event::Key::Char(c @ 'A'..='Z') => {
-                super::KeyEvent::new(super::KeyCode::Char(c), super::KeyModifiers::SHIFT)
-            }
             event::Key::Char(c) => super::KeyCode::Char(c).into(),
             event::Key::Alt(c) => parse_char(c, super::KeyModifiers::ALT)?,
             event::Key::Ctrl(c) => parse_char(c, super::KeyModifiers::CONTROL)?,

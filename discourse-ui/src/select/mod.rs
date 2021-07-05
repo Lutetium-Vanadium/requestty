@@ -11,9 +11,23 @@ use crate::{
 #[cfg(test)]
 mod tests;
 
-/// A trait to represent a renderable list
+/// A trait to represent a renderable list.
+///
+/// See [`Select`]
 pub trait List {
-    /// Render a single element at some index in **only** one line
+    /// Render a single element at some index.
+    ///
+    /// When rendering the element, only _at most_ [`layout.max_height`] lines can be used. If more
+    /// lines are used, the list may not be rendered properly. The place the terminal cursor ends at
+    /// does not matter.
+    ///
+    /// [`layout.max_height`] may be less than the height given by [`height_at`].
+    /// [`layout.render_region`] can be used to determine which part of the element you want to
+    /// render.
+    ///
+    /// [`height_at`]: List::height_at
+    /// [`layout.max_height`]: Layout::max_height
+    /// [`layout.render_region`]: Layout.render_region
     fn render_item<B: Backend>(
         &mut self,
         index: usize,
@@ -23,33 +37,40 @@ pub trait List {
     ) -> error::Result<()>;
 
     /// Whether the element at a particular index is selectable. Those that are not selectable are
-    /// skipped over when the navigation keys are used
+    /// skipped during navigation.
     fn is_selectable(&self, index: usize) -> bool;
 
-    /// The maximum height that can be taken by the list. If there are more elements than the page
-    /// size, the list will be scrollable
+    /// The maximum height that can be taken by the list. If the total height exceeds the page size,
+    /// the list will be scrollable.
     fn page_size(&self) -> usize;
-    /// Whether to wrap around when user gets to the last element
+
+    /// Whether to wrap around when user gets to the last element.
+    ///
+    /// This only applies when the list is not scrollable, i.e. page size > total height.
     fn should_loop(&self) -> bool;
 
-    /// The height of the element that an index will take to render
+    /// The height of the element at an index will take to render
     fn height_at(&mut self, index: usize, layout: Layout) -> u16;
 
     /// The length of the list
     fn len(&self) -> usize;
+
     /// Returns true if the list has no elements
     fn is_empty(&self) -> bool {
         self.len() == 0
     }
 }
 
+#[derive(Debug, Clone)]
 struct Heights {
     heights: Vec<u16>,
     prev_layout: Layout,
 }
 
-/// A widget to select a single item from a list. It can also be used to generally keep track of
-/// movements within a list.
+/// A widget to select a single item from a list.
+///
+/// The list must implement the [`List`] trait.
+#[derive(Debug, Clone)]
 pub struct Select<L> {
     first_selectable: usize,
     last_selectable: usize,
@@ -64,20 +85,12 @@ pub struct Select<L> {
     pub list: L,
 }
 
-impl<L: Index<usize>> Select<L> {
-    pub fn selected(&self) -> &L::Output {
-        &self.list[self.at]
-    }
-}
-
-impl<L: IndexMut<usize>> Select<L> {
-    pub fn selected_mut(&mut self) -> &mut L::Output {
-        &mut self.list[self.at]
-    }
-}
-
 impl<L: List> Select<L> {
-    /// Creates a new [`Select`]
+    /// Creates a new [`Select`].
+    ///
+    /// # Panics
+    ///
+    /// Panics if there are no selectable items, or if `list.page_size()` is less than 5.
     pub fn new(list: L) -> Self {
         let first_selectable = (0..list.len())
             .position(|i| list.is_selectable(i))
@@ -103,14 +116,15 @@ impl<L: List> Select<L> {
         }
     }
 
-    /// The index of the element that is currently being hovered
+    /// The index of the element that is currently being hovered.
     pub fn get_at(&self) -> usize {
         self.at
     }
 
-    /// Set the index of the element that is currently being hovered
-    /// `at` can be any number (even beyond list.len()), but the caller is responsible for making
-    /// sure that it is a selectable element
+    /// Set the index of the element that is currently being hovered.
+    ///
+    /// `at` can be any number (even beyond `list.len()`), but the caller is responsible for making
+    /// sure that it is a selectable element.
     pub fn set_at(&mut self, at: usize) {
         let dir = if self.at >= self.list.len() || self.at < at {
             Movement::Down
@@ -124,14 +138,13 @@ impl<L: List> Select<L> {
             if at >= self.list.len() {
                 self.init_page();
             } else {
-                self.try_adjust_page(dir);
+                self.maybe_adjust_page(dir);
             }
         }
     }
 
-    /// Consumes the [`Select`] returning the original list. If you need the selected item, use
-    /// [`get_at`](Select::get_at)
-    pub fn finish(self) -> L {
+    /// Consumes the [`Select`] returning the original list.
+    pub fn into_inner(self) -> L {
         self.list
     }
 
@@ -175,7 +188,7 @@ impl<L: List> Select<L> {
         at
     }
 
-    fn update_heights(&mut self, mut layout: Layout) {
+    fn maybe_update_heights(&mut self, mut layout: Layout) {
         let heights = match self.heights {
             Some(ref mut heights) if heights.prev_layout != layout => {
                 heights.heights.clear();
@@ -211,9 +224,10 @@ impl<L: List> Select<L> {
         self.height > self.page_size()
     }
 
-    /// Checks whether the page needs to be adjusted
-    /// note: this returns true if at == page_start || at == page_end, and so even though it is
-    /// visible, the page should be resized
+    /// Checks whether the page bounds need to be adjusted
+    ///
+    /// This returns true if at == page_start || at == page_end, and so even though it is visible,
+    /// the page bounds should be adjusted
     fn at_outside_page(&self) -> bool {
         if self.page_start < self.page_end {
             // - a - - S - - - - - - E - a -
@@ -226,8 +240,8 @@ impl<L: List> Select<L> {
         }
     }
 
-    /// Gets the index at a given delta taking into account looping if enabled -- delta
-    /// must be within ±len
+    /// Gets the index at a given delta taking into account looping if enabled -- delta must be
+    /// within ±len
     fn try_get_index(&self, delta: isize) -> Option<usize> {
         if delta.is_positive() {
             let res = self.at + delta as usize;
@@ -250,10 +264,10 @@ impl<L: List> Select<L> {
     }
 
     /// Adjust the page considering the direction we moved to
-    fn adjust_page(&mut self, moved: Movement) {
+    fn adjust_page(&mut self, moved_to: Movement) {
         // note direction here refers to the direction we moved _from_, while moved means the
         // direction we moved _to_, and so they have opposite meanings
-        let direction = match moved {
+        let direction = match moved_to {
             Movement::Down => -1,
             Movement::Up => 1,
             _ => unreachable!(),
@@ -337,7 +351,7 @@ impl<L: List> Select<L> {
             height += elem_height;
         }
 
-        if let Movement::Down = moved {
+        if let Movement::Down = moved_to {
             // When moving down, the special case is the element after `self.at`, so it
             // is the page_end
             self.page_start = bound_a.0;
@@ -354,10 +368,11 @@ impl<L: List> Select<L> {
         }
     }
 
-    fn try_adjust_page(&mut self, moved: Movement) {
+    /// Adjust the page if required considering the direction we moved to
+    fn maybe_adjust_page(&mut self, moved_to: Movement) {
         // Check whether at is within second and second last element of the page
         if self.at_outside_page() {
-            self.adjust_page(moved)
+            self.adjust_page(moved_to)
         }
     }
 
@@ -389,9 +404,9 @@ impl<L: List> Select<L> {
     }
 
     /// Renders the lines in a given iterator
-    fn render_in<B: Backend>(
+    fn render_in<I: Iterator<Item = usize>, B: Backend>(
         &mut self,
-        iter: impl Iterator<Item = usize>,
+        iter: I,
         old_layout: &mut Layout,
         b: &mut B,
     ) -> error::Result<()> {
@@ -425,8 +440,21 @@ impl<L: List> Select<L> {
     }
 }
 
+impl<L: Index<usize>> Select<L> {
+    /// Returns a reference to the currently hovered item.
+    pub fn selected(&self) -> &L::Output {
+        &self.list[self.at]
+    }
+}
+
+impl<L: IndexMut<usize>> Select<L> {
+    /// Returns a mutable reference to the currently hovered item.
+    pub fn selected_mut(&mut self) -> &mut L::Output {
+        &mut self.list[self.at]
+    }
+}
+
 impl<L: List> super::Widget for Select<L> {
-    /// It handles the `Up`, `Down`, `Home`, `End`, `PageUp` and `PageDown` [`Movements`].
     fn handle_key(&mut self, key: KeyEvent) -> bool {
         let movement = match Movement::try_from_key(key) {
             Some(movement) => movement,
@@ -540,14 +568,14 @@ impl<L: List> super::Widget for Select<L> {
         };
 
         if self.is_paginating() {
-            self.try_adjust_page(moved)
+            self.maybe_adjust_page(moved)
         }
 
         true
     }
 
     fn render<B: Backend>(&mut self, layout: &mut Layout, b: &mut B) -> error::Result<()> {
-        self.update_heights(*layout);
+        self.maybe_update_heights(*layout);
 
         // this is the first render, so we need to set page_end
         if self.page_end == usize::MAX {
@@ -581,12 +609,14 @@ impl<L: List> super::Widget for Select<L> {
         Ok(())
     }
 
-    fn cursor_pos(&mut self, _: Layout) -> (u16, u16) {
-        unimplemented!("list does not support cursor pos")
+    /// Returns the starting location of the layout. It should not be relied upon for a sensible
+    /// cursor position.
+    fn cursor_pos(&mut self, layout: Layout) -> (u16, u16) {
+        (layout.line_offset, 0)
     }
 
     fn height(&mut self, layout: &mut Layout) -> u16 {
-        self.update_heights(*layout);
+        self.maybe_update_heights(*layout);
 
         let height = (layout.line_offset != 0) as u16 // Add one if we go to the next line
             // Try to show everything

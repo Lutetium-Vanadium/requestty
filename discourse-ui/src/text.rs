@@ -1,8 +1,19 @@
 use crate::{backend, error, layout::Layout, Widget};
 
-#[derive(Debug)]
+/// A string that can render over multiple lines.
+///
+/// If you need to render a single line of text or you don't want the text to wrap, use the [`Widget`]
+/// implementation on [`str`].
+#[derive(Debug, Clone)]
 pub struct Text<S> {
+    /// The text to render.
+    ///
+    /// If this is changed, the updated text is not guaranteed to be rendered. If the text is
+    /// changed, [`force_recompute`](Text::force_recompute) should be called.
     pub text: S,
+    // FIXME: currently textwrap doesn't provide a way to find the locations at which the text
+    // should be split. Using that will be much more efficient than essentially duplicating the
+    // string.
     wrapped: String,
     line_offset: u16,
     width: u16,
@@ -17,6 +28,7 @@ impl<S: PartialEq> PartialEq for Text<S> {
 impl<S: Eq> Eq for Text<S> {}
 
 impl<S: AsRef<str>> Text<S> {
+    /// Creates a new `Text`
     pub fn new(text: S) -> Self {
         Self {
             text,
@@ -24,6 +36,14 @@ impl<S: AsRef<str>> Text<S> {
             width: 0,
             line_offset: 0,
         }
+    }
+
+    /// The computed lines are cached between renders, and are only recomputed if the layout changes.
+    /// This will force a recomputation even if the layout is the same. This is useful if you need
+    /// to change the text.
+    pub fn force_recompute(&mut self) {
+        self.line_offset = u16::MAX;
+        self.width = u16::MAX;
     }
 
     fn max_height(&mut self, layout: Layout) -> u16 {
@@ -40,6 +60,11 @@ impl<S: AsRef<str>> Text<S> {
 }
 
 impl<S: AsRef<str>> Widget for Text<S> {
+    /// Renders the Text moving to the next line after its done. This can trigger a recomputation.
+    /// In case the text cannot be fully rendered, [`layout.render_region`] is used to determine the
+    /// lines which are rendered.
+    ///
+    /// [`layout.render_region`]: crate::layout::Layout::render_region
     fn render<B: backend::Backend>(
         &mut self,
         layout: &mut Layout,
@@ -76,18 +101,21 @@ impl<S: AsRef<str>> Widget for Text<S> {
         Ok(())
     }
 
+    /// Calculates the height the text will take. This can trigger a recomputation.
     fn height(&mut self, layout: &mut Layout) -> u16 {
         let height = self.max_height(*layout).min(layout.max_height);
         layout.offset_y += height;
         height
     }
 
+    /// Returns the location of the first character
     fn cursor_pos(&mut self, layout: Layout) -> (u16, u16) {
-        self.text.as_ref().cursor_pos(layout)
+        (layout.line_offset, 0)
     }
 
-    fn handle_key(&mut self, key: crate::events::KeyEvent) -> bool {
-        self.text.as_ref().handle_key(key)
+    /// This widget does not handle any events
+    fn handle_key(&mut self, _: crate::events::KeyEvent) -> bool {
+        false
     }
 }
 

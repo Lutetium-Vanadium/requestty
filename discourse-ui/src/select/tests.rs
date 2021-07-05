@@ -119,7 +119,7 @@ fn test_selectable() {
     ]);
 
     let mut select = Select::new(list);
-    select.update_heights(Layout::new(0, (100, 20).into()));
+    select.maybe_update_heights(Layout::new(0, (100, 20).into()));
     select.init_page();
 
     assert_eq!(select.first_selectable, 1);
@@ -136,10 +136,10 @@ fn test_selectable() {
     select.set_at(5);
     assert_eq!(select.next_selectable(), 8);
 
-    let list = select.finish().with_should_loop(false);
+    let list = select.into_inner().with_should_loop(false);
 
     let mut select = Select::new(list);
-    select.update_heights(Layout::new(0, (100, 20).into()));
+    select.maybe_update_heights(Layout::new(0, (100, 20).into()));
     select.init_page();
 
     assert_eq!(select.get_at(), 1);
@@ -166,14 +166,14 @@ fn test_update_heights() {
     let layout = Layout::new(0, (100, 20).into());
 
     let mut select = Select::new(List::new(single_line_vec(20)));
-    select.update_heights(layout);
+    select.maybe_update_heights(layout);
     let heights = &select.heights.as_ref().unwrap().heights[..];
     assert_eq!(heights.len(), 20);
     assert_eq!(select.height, 20);
     assert!(heights.iter().all(|&h| h == 1));
 
     let mut select = Select::new(List::new(multi_line_list(10)));
-    select.update_heights(layout);
+    select.maybe_update_heights(layout);
     let heights = &select.heights.as_ref().unwrap().heights[..];
     assert_eq!(heights.len(), 10);
     assert_eq!(select.height, 26);
@@ -185,7 +185,7 @@ fn test_update_heights() {
 #[test]
 fn test_at_outside_page() {
     let mut select = Select::new(List::new(single_line_vec(20)).with_page_size(10));
-    select.update_heights(Layout::new(0, (100, 20).into()));
+    select.maybe_update_heights(Layout::new(0, (100, 20).into()));
     select.init_page();
 
     select.at = 6;
@@ -229,7 +229,7 @@ fn test_at_outside_page() {
 #[test]
 fn test_try_get_index() {
     let mut select = Select::new(List::new(single_line_vec(20)).with_page_size(10));
-    select.update_heights(Layout::new(0, (100, 20).into()));
+    select.maybe_update_heights(Layout::new(0, (100, 20).into()));
     select.init_page();
 
     select.at = 1;
@@ -270,7 +270,7 @@ fn test_try_get_index() {
 #[test]
 fn test_adjust_page() {
     let mut select = Select::new(List::new(multi_line_list(10)).with_page_size(11));
-    select.update_heights(Layout::new(0, (100, 20).into()));
+    select.maybe_update_heights(Layout::new(0, (100, 20).into()));
     select.init_page();
 
     select.at = 1;
@@ -328,7 +328,7 @@ fn test_adjust_page() {
             .with_page_size(11)
             .with_should_loop(false),
     );
-    select.update_heights(Layout::new(0, (100, 20).into()));
+    select.maybe_update_heights(Layout::new(0, (100, 20).into()));
     select.init_page();
 
     select.at = 0;
@@ -375,7 +375,7 @@ fn test_init_page() {
     let layout = Layout::new(0, (100, 20).into());
 
     let mut select = Select::new(List::new(single_line_vec(10)));
-    select.update_heights(layout);
+    select.maybe_update_heights(layout);
     select.init_page();
 
     assert_eq!(select.page_start, 0);
@@ -384,7 +384,7 @@ fn test_init_page() {
     assert_eq!(select.page_end_height, 1);
 
     let mut select = Select::new(List::new(single_line_vec(20)));
-    select.update_heights(layout);
+    select.maybe_update_heights(layout);
     select.init_page();
 
     assert_eq!(select.page_start, 0);
@@ -393,7 +393,7 @@ fn test_init_page() {
     assert_eq!(select.page_end_height, 1);
 
     let mut select = Select::new(List::new(multi_line_list(4)));
-    select.update_heights(layout);
+    select.maybe_update_heights(layout);
     select.init_page();
 
     assert_eq!(select.page_start, 0);
@@ -402,7 +402,7 @@ fn test_init_page() {
     assert_eq!(select.page_end_height, 5);
 
     let mut select = Select::new(List::new(multi_line_list(5)));
-    select.update_heights(layout);
+    select.maybe_update_heights(layout);
     select.init_page();
 
     assert_eq!(select.page_start, 0);
@@ -411,7 +411,7 @@ fn test_init_page() {
     assert_eq!(select.page_end_height, 3);
 
     let mut select = Select::new(List::new(multi_line_list(10)));
-    select.update_heights(layout);
+    select.maybe_update_heights(layout);
     select.init_page();
 
     assert_eq!(select.page_start, 0);
@@ -428,7 +428,7 @@ fn test_handle_key() {
         false, true, true, true, false, true, false, true, true, true,
     ]));
 
-    select.update_heights(layout);
+    select.maybe_update_heights(layout);
     select.init_page();
 
     assert_eq!(select.get_at(), 1);
@@ -486,7 +486,7 @@ fn test_handle_key() {
             ])
             .with_should_loop(false),
     );
-    select.update_heights(layout);
+    select.maybe_update_heights(layout);
     select.init_page();
 
     assert!(!select.handle_key(KeyCode::Home.into()));
@@ -544,7 +544,7 @@ fn test_render() {
 
     let list = single_line_vec(20);
     let mut select = Select::new(List::new(list).with_page_size(10));
-    select.update_heights(layout);
+    select.maybe_update_heights(layout);
     select.init_page();
     select.set_at(13);
     select.render(&mut layout, &mut backend).unwrap();
@@ -557,7 +557,7 @@ fn test_render() {
 
     let list = single_line_vec(20);
     let mut select = Select::new(List::new(list).with_page_size(10));
-    select.update_heights(layout);
+    select.maybe_update_heights(layout);
     select.init_page();
     select.at = 18;
     select.page_start = 16;
@@ -581,7 +581,7 @@ fn test_render() {
         Text::new(UNICODE),
     ];
     let mut select = Select::new(List::new(list).with_page_size(10));
-    select.update_heights(layout);
+    select.maybe_update_heights(layout);
     select.init_page();
     select.set_at(1);
     select.adjust_page(Movement::Up);

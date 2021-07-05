@@ -65,7 +65,7 @@ impl Prompt for CheckboxPrompt<'_, '_> {
             choices,
             filter,
             ..
-        } = self.select.finish();
+        } = self.select.into_inner();
 
         if let Filter::Sync(filter) = filter {
             selected = filter(selected, self.answers);

@@ -1,7 +1,15 @@
+//! A module to control the looks of text.
+
 use std::fmt::Display;
 
 use crate::error;
 
+/// Some content with a particular style applied.
+///
+/// See also [`write_styled`] and [`Stylize`].
+///
+/// [`write_styled`]: crate::backend::Backend::write_styled
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Styled<T: ?Sized> {
     fg: Option<Color>,
     bg: Option<Color>,
@@ -10,6 +18,7 @@ pub struct Styled<T: ?Sized> {
 }
 
 impl<T: Display> Styled<T> {
+    /// Creates a new [`Styled`]
     pub fn new(content: T) -> Self {
         Self {
             fg: None,
@@ -56,7 +65,10 @@ impl<T: Display> From<T> for Styled<T> {
     }
 }
 
+/// Represents a color. See the underlying terminal library documentation for information on
+/// terminal compatibility.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[allow(missing_docs)]
 pub enum Color {
     Reset,
     Black,
@@ -82,40 +94,58 @@ pub enum Color {
 bitflags::bitflags! {
     /// Attributes change the way a piece of text is displayed.
     pub struct Attributes: u16 {
+        /// Increases the text intensity.
         const BOLD              = 0b0000_0000_0001;
+        /// Decreases the text intensity.
         const DIM               = 0b0000_0000_0010;
+        /// Emphasises the text.
         const ITALIC            = 0b0000_0000_0100;
+        /// Underlines the text.
         const UNDERLINED        = 0b0000_0000_1000;
+        /// Makes the text blinking (< 150 per minute).
         const SLOW_BLINK        = 0b0000_0001_0000;
+        /// Makes the text blinking (>= 150 per minute).
         const RAPID_BLINK       = 0b0000_0010_0000;
+        /// Swaps foreground and background colors.
         const REVERSED          = 0b0000_0100_0000;
+        /// Hides the text (also known as Conceal).
         const HIDDEN            = 0b0000_1000_0000;
+        /// Crosses the text.
         const CROSSED_OUT       = 0b0001_0000_0000;
     }
 }
 
+impl Attributes {
+    /// Gets the attribute diff that needs to be applied to transition from the attributes in `self`
+    /// to the attributes in `to`.
+    pub fn diff(self, to: Attributes) -> AttributeDiff {
+        let diff = self ^ to;
+        AttributeDiff {
+            to_remove: diff & self,
+            to_add: diff & to,
+        }
+    }
+}
+
+/// The change in attributes. Use [`Attributes::diff`] to create one.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[allow(missing_docs)]
 pub struct AttributeDiff {
     pub to_add: Attributes,
     pub to_remove: Attributes,
 }
 
-impl Attributes {
-    pub fn diff(self, other: Attributes) -> AttributeDiff {
-        let diff = self ^ other;
-        AttributeDiff {
-            to_remove: diff & self,
-            to_add: diff & other,
-        }
-    }
-}
-
 /// Provides a set of methods to set the colors and attributes.
 ///
 /// Every method with the `on_` prefix sets the background color. Other color methods set the
-/// foreground color. Method names correspond to the [`Attributes`] names.
+/// foreground color.
 ///
-/// Method names correspond to the [`Color`](enum.Color.html) enum variants.
+/// Method names correspond to the [`Color`] enum variants and [`Attributes`] names.
+///
+/// See also [`Styled`] and [`write_styled`].
+///
+/// [`write_styled`]: crate::backend::Backend::write_styled
+#[allow(missing_docs)]
 pub trait Stylize<T> {
     fn black(self) -> Styled<T>;
     fn dark_grey(self) -> Styled<T>;

@@ -27,7 +27,7 @@ impl SelectPrompt<'_> {
             index,
             name: self
                 .select
-                .finish()
+                .into_inner()
                 .choices
                 .choices
                 .swap_remove(index)

@@ -13,12 +13,15 @@ use termion::{
 use super::{Attributes, Backend, ClearType, Color, MoveDirection, Size};
 use crate::error;
 
+/// A backend that uses the `termion` library.
+#[allow(missing_debug_implementations)]
 pub struct TermionBackend<W: Write> {
     attributes: Attributes,
     buffer: RawTerminal<W>,
 }
 
 impl<W: Write> TermionBackend<W> {
+    /// Creates a new [`TermionBackend`]
     pub fn new(buffer: W) -> error::Result<TermionBackend<W>> {
         let buffer = buffer.into_raw_mode()?;
         buffer.suspend_raw_mode()?;
@@ -26,6 +29,10 @@ impl<W: Write> TermionBackend<W> {
             buffer,
             attributes: Attributes::empty(),
         })
+    }
+
+    pub(super) fn new_as_result(buffer: W) -> error::Result<TermionBackend<W>> {
+        Self::new(buffer)
     }
 }
 
@@ -128,12 +135,12 @@ impl<W: Write> Backend for TermionBackend<W> {
     }
 }
 
-pub(super) struct Fg(pub Color);
+pub(super) struct Fg(pub(super) Color);
 
-pub(super) struct Bg(pub Color);
+pub(super) struct Bg(pub(super) Color);
 
 impl fmt::Display for Fg {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         use color::Color as TermionColor;
         match self.0 {
             Color::Reset => color::Reset.write_fg(f),
@@ -159,7 +166,7 @@ impl fmt::Display for Fg {
     }
 }
 impl fmt::Display for Bg {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         use color::Color as TermionColor;
         match self.0 {
             Color::Reset => color::Reset.write_bg(f),
