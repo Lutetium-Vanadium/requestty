@@ -150,6 +150,7 @@ impl<P: Prompt, B: Backend> Input<P, B> {
     }
 
     fn goto_last_line(&mut self, height: u16) -> error::Result<()> {
+        self.base_row = self.adjust_scrollback(height + 1)?;
         self.backend.move_cursor_to(0, self.base_row + height)
     }
 
@@ -176,7 +177,6 @@ impl<P: Prompt, B: Backend> Input<P, B> {
     fn exit(&mut self) -> error::Result<()> {
         self.size = self.backend.size()?;
         let height = self.prompt.height(&mut self.layout());
-        self.base_row = self.adjust_scrollback(height + 1)?;
         self.goto_last_line(height)?;
         self.backend.reset()
     }

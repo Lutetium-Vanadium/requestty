@@ -65,7 +65,7 @@ macro_rules! expand {
 
         let mut $expand = ExpandPrompt {
             prompt: widgets::Prompt::new($message).with_hint(&hint),
-            input: widgets::CharInput::new(|c| {
+            input: widgets::CharInput::with_filter_map(|c| {
                 let c = c.to_ascii_lowercase();
                 hint.chars()
                     .find(|o| o.eq_ignore_ascii_case(&c))

@@ -371,6 +371,7 @@ impl super::Backend for TestBackend {
 impl fmt::Display for TestBackend {
     /// Writes all the cells of the `TestBackend` using [`write_to_buf`].
     ///
+    /// A screenshot of what the printed output looks like:
     /// ![](https://raw.githubusercontent.com/lutetium-vanadium/discourse/master/assets/test-backend-rendered.png)
     ///
     /// [`write_to_buf`]: TestBackend::write_to_buf
@@ -398,6 +399,7 @@ fn map_reset(c: Color, to: Color) -> Color {
 impl TestBackend {
     /// Writes all the cells of the `TestBackend` with the default backend (see [`get_backend`]).
     ///
+    /// A screenshot of what the printed output looks like:
     /// ![](https://raw.githubusercontent.com/lutetium-vanadium/discourse/master/assets/test-backend-rendered.png)
     ///
     /// [`get_backend`]: crate::backend::get_backend
