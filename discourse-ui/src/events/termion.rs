@@ -5,15 +5,13 @@ use std::{
 
 use termion::{event, input};
 
-use crate::error;
-
 pub(super) fn next_event(events: &mut input::Keys<Stdin>) -> io::Result<super::KeyEvent> {
     let e = events.next().unwrap()?;
     e.try_into()
 }
 
 impl TryFrom<event::Key> for super::KeyEvent {
-    type Error = io::ErrorKind;
+    type Error = io::Error;
 
     fn try_from(key: event::Key) -> io::Result<super::KeyEvent> {
         let key = match key {

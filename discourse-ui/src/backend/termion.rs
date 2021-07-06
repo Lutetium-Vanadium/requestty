@@ -29,10 +29,6 @@ impl<W: Write> TermionBackend<W> {
             attributes: Attributes::empty(),
         })
     }
-
-    pub(super) fn new_as_result(buffer: W) -> io::Result<TermionBackend<W>> {
-        Self::new(buffer)
-    }
 }
 
 impl<W: Write> Write for TermionBackend<W> {
@@ -47,30 +43,29 @@ impl<W: Write> Write for TermionBackend<W> {
 
 impl<W: Write> Backend for TermionBackend<W> {
     fn enable_raw_mode(&mut self) -> io::Result<()> {
-        self.buffer.activate_raw_mode().map_err(Into::into)
+        self.buffer.activate_raw_mode()
     }
 
     fn disable_raw_mode(&mut self) -> io::Result<()> {
-        self.buffer.suspend_raw_mode().map_err(Into::into)
+        self.buffer.suspend_raw_mode()
     }
 
     fn hide_cursor(&mut self) -> io::Result<()> {
-        write!(self.buffer, "{}", cursor::Hide).map_err(Into::into)
+        write!(self.buffer, "{}", cursor::Hide)
     }
 
     fn show_cursor(&mut self) -> io::Result<()> {
-        write!(self.buffer, "{}", cursor::Show).map_err(Into::into)
+        write!(self.buffer, "{}", cursor::Show)
     }
 
     fn get_cursor_pos(&mut self) -> io::Result<(u16, u16)> {
         cursor::DetectCursorPos::cursor_pos(&mut self.buffer)
             // 0 index the position
             .map(|(x, y)| (x - 1, y - 1))
-            .map_err(Into::into)
     }
 
     fn move_cursor_to(&mut self, x: u16, y: u16) -> io::Result<()> {
-        write!(self.buffer, "{}", cursor::Goto(x + 1, y + 1)).map_err(Into::into)
+        write!(self.buffer, "{}", cursor::Goto(x + 1, y + 1))
     }
 
     fn move_cursor(&mut self, direction: MoveDirection) -> io::Result<()> {
@@ -95,7 +90,6 @@ impl<W: Write> Backend for TermionBackend<W> {
             }
             Ordering::Equal => Ok(()),
         }
-        .map_err(Into::into)
     }
 
     fn set_attributes(&mut self, attributes: Attributes) -> io::Result<()> {
@@ -105,11 +99,11 @@ impl<W: Write> Backend for TermionBackend<W> {
     }
 
     fn set_fg(&mut self, color: Color) -> io::Result<()> {
-        write!(self.buffer, "{}", Fg(color)).map_err(Into::into)
+        write!(self.buffer, "{}", Fg(color))
     }
 
     fn set_bg(&mut self, color: Color) -> io::Result<()> {
-        write!(self.buffer, "{}", Bg(color)).map_err(Into::into)
+        write!(self.buffer, "{}", Bg(color))
     }
 
     fn clear(&mut self, clear_type: ClearType) -> io::Result<()> {
@@ -126,11 +120,10 @@ impl<W: Write> Backend for TermionBackend<W> {
                 write!(self.buffer, "{}", clear::UntilNewline)
             }
         }
-        .map_err(Into::into)
     }
 
     fn size(&self) -> io::Result<Size> {
-        termion::terminal_size().map(Into::into).map_err(Into::into)
+        termion::terminal_size().map(Into::into)
     }
 }
 

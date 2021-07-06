@@ -120,7 +120,7 @@ impl<P: Prompt, B: Backend> Input<P, B> {
             let (dcw, dch) = self.prompt.cursor_pos(self.layout());
             self.backend.move_cursor_to(dcw, self.base_row + dch)?;
         }
-        self.backend.flush().map_err(Into::into)
+        self.backend.flush()
     }
 
     fn render(&mut self) -> io::Result<()> {
@@ -131,7 +131,7 @@ impl<P: Prompt, B: Backend> Input<P, B> {
 
         self.prompt.render(&mut self.layout(), &mut *self.backend)?;
 
-        self.flush().map_err(Into::into)
+        self.flush()
     }
 
     fn clear(&mut self) -> io::Result<()> {
@@ -161,7 +161,7 @@ impl<P: Prompt, B: Backend> Input<P, B> {
         self.adjust_scrollback(height + e.height(&mut layout.clone()))?;
         e.render(&mut layout, &mut *self.backend)?;
 
-        self.flush().map_err(Into::into)
+        self.flush()
     }
 
     fn exit(&mut self) -> io::Result<()> {

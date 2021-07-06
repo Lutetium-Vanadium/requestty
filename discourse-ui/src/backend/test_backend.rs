@@ -474,7 +474,7 @@ impl TestBackend {
         }
         write!(buf, "{}", symbols::BOX_LIGHT_BOTTOM_RIGHT)?;
 
-        buf.flush().map_err(Into::into)
+        buf.flush()
     }
 }
 
@@ -492,11 +492,11 @@ mod display_ops {
     pub(super) use crate::backend::crossterm::set_attributes;
 
     pub(super) fn write_fg<W: Write>(fg: Color, mut w: W) -> io::Result<()> {
-        queue!(w, SetForegroundColor(fg.into())).map_err(Into::into)
+        queue!(w, SetForegroundColor(fg.into()))
     }
 
     pub(super) fn write_bg<W: Write>(bg: Color, mut w: W) -> io::Result<()> {
-        queue!(w, SetBackgroundColor(bg.into())).map_err(Into::into)
+        queue!(w, SetBackgroundColor(bg.into()))
     }
 }
 
@@ -509,10 +509,10 @@ mod display_ops {
     pub(super) use self::termion::set_attributes;
 
     pub(super) fn write_fg<W: Write>(fg: Color, mut w: W) -> io::Result<()> {
-        write!(w, "{}", termion::Fg(fg)).map_err(Into::into)
+        write!(w, "{}", termion::Fg(fg))
     }
 
     pub(super) fn write_bg<W: Write>(bg: Color, mut w: W) -> io::Result<()> {
-        write!(w, "{}", termion::Bg(bg)).map_err(Into::into)
+        write!(w, "{}", termion::Bg(bg))
     }
 }
