@@ -135,7 +135,7 @@ macro_rules! impl_number_prompt {
             type Output = $inner_ty;
 
             fn validate(&mut self) -> Result<Validation, Self::ValidateErr> {
-                if self.input.value().is_empty() && self.has_default() {
+                if self.input.value().is_empty() && self.number.default.is_some() {
                     return Ok(Validation::Finish);
                 }
                 let n = self.parse()?;
@@ -148,7 +148,7 @@ macro_rules! impl_number_prompt {
             }
 
             fn finish(self) -> Self::Output {
-                if self.input.value().is_empty() && self.has_default() {
+                if self.input.value().is_empty() && self.number.default.is_some() {
                     return self.number.default.unwrap();
                 }
 
@@ -157,13 +157,6 @@ macro_rules! impl_number_prompt {
                     Filter::Sync(filter) => filter(n, self.answers),
                     _ => n,
                 }
-            }
-
-            fn has_default(&self) -> bool {
-                self.number.default.is_some()
-            }
-            fn finish_default(self) -> Self::Output {
-                self.number.default.unwrap()
             }
         }
     };

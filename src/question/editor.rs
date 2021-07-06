@@ -125,10 +125,6 @@ impl ui::Prompt for EditorPrompt<'_, '_> {
             _ => self.ans,
         }
     }
-
-    fn has_default(&self) -> bool {
-        false
-    }
 }
 
 impl Editor<'_> {

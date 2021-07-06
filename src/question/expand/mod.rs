@@ -98,15 +98,6 @@ impl<F: Fn(char) -> Option<char>> Prompt for ExpandPrompt<'_, F> {
         let c = self.input.value().unwrap_or(self.select.list.default);
         self.finish_with(c)
     }
-
-    fn has_default(&self) -> bool {
-        self.select.list.default != 'h'
-    }
-
-    fn finish_default(self) -> Self::Output {
-        let c = self.select.list.default;
-        self.finish_with(c)
-    }
 }
 
 const ANSWER_PROMPT: &[u8] = b"  Answer: ";

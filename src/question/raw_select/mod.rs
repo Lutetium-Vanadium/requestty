@@ -59,15 +59,6 @@ impl Prompt for RawSelectPrompt<'_> {
         let index = self.select.get_at();
         self.finish_index(index)
     }
-
-    fn has_default(&self) -> bool {
-        self.select.list.choices.default().is_some()
-    }
-
-    fn finish_default(self) -> Self::Output {
-        let index = self.select.list.choices.default().unwrap();
-        self.finish_index(index)
-    }
 }
 
 const ANSWER_PROMPT: &[u8] = b"  Answer: ";

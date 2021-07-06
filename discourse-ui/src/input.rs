@@ -47,19 +47,6 @@ pub trait Prompt: Widget {
     /// The value to return from [`Input::run`]. This will only be called once validation returns
     /// [`Validation::Finish`]
     fn finish(self) -> Self::Output;
-
-    // FIXME: delete default
-    /// If the prompt has some default value that can be returned.
-    fn has_default(&self) -> bool;
-
-    /// The default value to be returned. It will only be called when has_default is true and the
-    /// user presses escape.
-    fn finish_default(self) -> Self::Output
-    where
-        Self: Sized,
-    {
-        unreachable!();
-    }
 }
 
 /// A ui runner which implements the [render cycle].
@@ -181,18 +168,6 @@ impl<P: Prompt, B: Backend> Input<P, B> {
         self.backend.reset()
     }
 
-    #[inline]
-    fn finish(mut self, pressed_enter: bool) -> error::Result<P::Output> {
-        self.clear()?;
-        self.backend.reset()?;
-
-        if pressed_enter {
-            Ok(self.prompt.finish())
-        } else {
-            Ok(self.prompt.finish_default())
-        }
-    }
-
     /// Display the prompt and process events until the user presses `Enter`.
     ///
     /// After the user presses `Enter`, [`validate`](Prompt::validate) will be called.
@@ -214,13 +189,12 @@ impl<P: Prompt, B: Backend> Input<P, B> {
                     self.exit()?;
                     return Err(error::ErrorKind::Eof);
                 }
-                KeyCode::Esc if self.prompt.has_default() => {
-                    return self.finish(false);
-                }
-
                 KeyCode::Enter => match self.prompt.validate() {
                     Ok(Validation::Finish) => {
-                        return self.finish(true);
+                        self.clear()?;
+                        self.backend.reset()?;
+
+                        return Ok(self.prompt.finish());
                     }
                     Ok(Validation::Continue) => true,
                     Err(e) => {
@@ -338,10 +312,6 @@ mod tests {
         type Output = ();
 
         fn finish(self) -> Self::Output {}
-
-        fn has_default(&self) -> bool {
-            false
-        }
     }
 
     #[test]

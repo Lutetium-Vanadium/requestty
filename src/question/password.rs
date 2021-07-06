@@ -39,10 +39,6 @@ impl ui::Prompt for PasswordPrompt<'_, '_> {
 
         ans
     }
-
-    fn has_default(&self) -> bool {
-        false
-    }
 }
 
 impl Widget for PasswordPrompt<'_, '_> {

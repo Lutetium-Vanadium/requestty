@@ -157,12 +157,8 @@ impl Prompt for InputPrompt<'_, '_> {
             return Ok(Validation::Continue);
         }
 
-        if !self.input.has_value() {
-            if self.has_default() {
-                return Ok(Validation::Finish);
-            } else {
-                return Err("Please enter a string".to_owned().into());
-            }
+        if !self.input.has_value() && self.prompt.hint().is_some() {
+            return Ok(Validation::Finish);
         }
 
         if let Validate::Sync(ref mut validate) = self.input_opts.validate {
@@ -170,14 +166,6 @@ impl Prompt for InputPrompt<'_, '_> {
         }
 
         Ok(Validation::Finish)
-    }
-
-    fn has_default(&self) -> bool {
-        self.prompt.hint().is_some()
-    }
-
-    fn finish_default(self) -> <Self as ui::Prompt>::Output {
-        self.prompt.into_hint().unwrap()
     }
 }
 

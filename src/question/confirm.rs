@@ -53,7 +53,7 @@ impl Prompt for ConfirmPrompt<'_> {
     type Output = bool;
 
     fn validate(&mut self) -> Result<Validation, Self::ValidateErr> {
-        if self.input.value().is_some() || self.has_default() {
+        if self.input.value().is_some() || self.confirm.default.is_some() {
             Ok(Validation::Finish)
         } else {
             Err("Please enter y or n")
@@ -66,13 +66,6 @@ impl Prompt for ConfirmPrompt<'_> {
             Some('n') | Some('N') => false,
             _ => self.confirm.default.unwrap(),
         }
-    }
-
-    fn has_default(&self) -> bool {
-        self.confirm.default.is_some()
-    }
-    fn finish_default(self) -> Self::Output {
-        self.confirm.default.unwrap()
     }
 }
 

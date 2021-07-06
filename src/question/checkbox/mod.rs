@@ -73,10 +73,6 @@ impl Prompt for CheckboxPrompt<'_, '_> {
 
         create_list_items(selected, choices)
     }
-
-    fn has_default(&self) -> bool {
-        false
-    }
 }
 
 impl Widget for CheckboxPrompt<'_, '_> {
