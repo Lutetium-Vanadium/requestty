@@ -1,6 +1,6 @@
 use std::io;
 
-use ui::{backend, error, style};
+use ui::{backend, style};
 
 pub struct SnapshotOnFlushBackend {
     backend: backend::TestBackend,
@@ -34,55 +34,55 @@ impl io::Write for SnapshotOnFlushBackend {
 }
 
 impl backend::Backend for SnapshotOnFlushBackend {
-    fn enable_raw_mode(&mut self) -> error::Result<()> {
+    fn enable_raw_mode(&mut self) -> io::Result<()> {
         self.backend.enable_raw_mode()
     }
 
-    fn disable_raw_mode(&mut self) -> error::Result<()> {
+    fn disable_raw_mode(&mut self) -> io::Result<()> {
         self.backend.disable_raw_mode()
     }
 
-    fn hide_cursor(&mut self) -> error::Result<()> {
+    fn hide_cursor(&mut self) -> io::Result<()> {
         self.backend.hide_cursor()
     }
 
-    fn show_cursor(&mut self) -> error::Result<()> {
+    fn show_cursor(&mut self) -> io::Result<()> {
         self.backend.show_cursor()
     }
 
-    fn get_cursor_pos(&mut self) -> error::Result<(u16, u16)> {
+    fn get_cursor_pos(&mut self) -> io::Result<(u16, u16)> {
         self.backend.get_cursor_pos()
     }
 
-    fn move_cursor_to(&mut self, x: u16, y: u16) -> error::Result<()> {
+    fn move_cursor_to(&mut self, x: u16, y: u16) -> io::Result<()> {
         self.backend.move_cursor_to(x, y)
     }
 
-    fn move_cursor(&mut self, direction: backend::MoveDirection) -> error::Result<()> {
+    fn move_cursor(&mut self, direction: backend::MoveDirection) -> io::Result<()> {
         self.backend.move_cursor(direction)
     }
 
-    fn scroll(&mut self, dist: i16) -> error::Result<()> {
+    fn scroll(&mut self, dist: i16) -> io::Result<()> {
         self.backend.scroll(dist)
     }
 
-    fn set_attributes(&mut self, attributes: style::Attributes) -> error::Result<()> {
+    fn set_attributes(&mut self, attributes: style::Attributes) -> io::Result<()> {
         self.backend.set_attributes(attributes)
     }
 
-    fn set_fg(&mut self, color: style::Color) -> error::Result<()> {
+    fn set_fg(&mut self, color: style::Color) -> io::Result<()> {
         self.backend.set_fg(color)
     }
 
-    fn set_bg(&mut self, color: style::Color) -> error::Result<()> {
+    fn set_bg(&mut self, color: style::Color) -> io::Result<()> {
         self.backend.set_bg(color)
     }
 
-    fn clear(&mut self, clear_type: backend::ClearType) -> error::Result<()> {
+    fn clear(&mut self, clear_type: backend::ClearType) -> io::Result<()> {
         self.backend.clear(clear_type)
     }
 
-    fn size(&self) -> error::Result<backend::Size> {
+    fn size(&self) -> io::Result<backend::Size> {
         self.backend.size()
     }
 }

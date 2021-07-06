@@ -28,7 +28,6 @@ fn test_validate() {
 
     let ans = discourse::prompt_one_with(prompt, &mut backend, &mut events).unwrap();
     assert_eq!(ans, Answer::String("str".into()));
-    assert!(events.next().is_none());
 }
 
 #[test]
@@ -47,7 +46,6 @@ fn test_filter() {
 
     let ans = discourse::prompt_one_with(prompt, &mut backend, &mut events).unwrap();
     assert_eq!(ans, Answer::String("str--suffix".into()));
-    assert!(events.next().is_none());
 }
 
 #[test]
@@ -70,7 +68,6 @@ fn test_transform() {
 
     let ans = discourse::prompt_one_with(prompt, &mut backend, &mut events).unwrap();
     assert_eq!(ans, Answer::String("str".into()));
-    assert!(events.next().is_none());
 }
 
 #[test]
@@ -88,7 +85,6 @@ fn test_default() {
 
     let ans = discourse::prompt_one_with(prompt, &mut backend, &mut events).unwrap();
     assert_eq!(ans, Answer::String("".into()));
-    assert!(events.next().is_none());
 
     let prompt = Question::input("name")
         .message("message")
@@ -99,7 +95,6 @@ fn test_default() {
 
     let ans = discourse::prompt_one_with(prompt, &mut backend, &mut events).unwrap();
     assert_eq!(ans, Answer::String("default".into()));
-    assert!(events.next().is_none());
 }
 
 #[test]
@@ -133,5 +128,4 @@ fn test_auto_complete() {
 
     let ans = discourse::prompt_one_with(prompt, &mut backend, &mut events).unwrap();
     assert_eq!(ans, Answer::String("string".into()));
-    assert!(events.next().is_none());
 }

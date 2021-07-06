@@ -1,12 +1,15 @@
 mod answer;
 pub mod question;
 
-use ui::{backend, events};
+use ui::{
+    backend,
+    events::{self, EventIterator},
+};
 
 pub use answer::{Answer, Answers, ExpandItem, ListItem};
 pub use macros::questions;
 pub use question::{Choice::Choice, Choice::DefaultSeparator, Choice::Separator, Question};
-pub use ui::error::{ErrorKind, Result};
+pub use ui::{ErrorKind, Result};
 
 #[macro_export]
 macro_rules! prompt_module {
@@ -17,7 +20,7 @@ macro_rules! prompt_module {
 
 pub mod plugin {
     pub use crate::{question::Plugin, Answer, Answers};
-    pub use ui::{self, backend::Backend, events::KeyEvent};
+    pub use ui::{self, backend::Backend, events::EventIterator};
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -52,7 +55,7 @@ where
     ) -> Result<Option<&mut Answer>>
     where
         B: backend::Backend,
-        E: Iterator<Item = Result<events::KeyEvent>>,
+        E: EventIterator,
     {
         while let Some(question) = self.questions.next() {
             if let Some((name, answer)) = question.ask(&self.answers, backend, events)? {
@@ -73,7 +76,7 @@ where
     pub fn prompt_all_with<B, E>(mut self, backend: &mut B, events: &mut E) -> Result<Answers>
     where
         B: backend::Backend,
-        E: Iterator<Item = Result<events::KeyEvent>>,
+        E: EventIterator,
     {
         self.answers.reserve(self.questions.size_hint().0);
 
@@ -111,7 +114,7 @@ pub fn prompt_with<'a, Q, B, E>(questions: Q, backend: &mut B, events: &mut E) -
 where
     Q: IntoIterator<Item = Question<'a>>,
     B: backend::Backend,
-    E: Iterator<Item = Result<events::KeyEvent>>,
+    E: EventIterator,
 {
     PromptModule::new(questions).prompt_all_with(backend, events)
 }
@@ -120,7 +123,7 @@ pub fn prompt_one_with<'a, Q, B, E>(question: Q, backend: &mut B, events: &mut E
 where
     Q: Into<Question<'a>>,
     B: backend::Backend,
-    E: Iterator<Item = Result<events::KeyEvent>>,
+    E: EventIterator,
 {
     let ans = prompt_with(std::iter::once(question.into()), backend, events)?;
     Ok(ans.into_iter().next().unwrap().1)

@@ -1,4 +1,11 @@
-use ui::{backend::Backend, error, events::KeyEvent, style::Stylize, widgets, Validation, Widget};
+use std::io;
+
+use ui::{
+    backend::Backend,
+    events::{EventIterator, KeyEvent},
+    style::Stylize,
+    widgets, Validation, Widget,
+};
 
 use super::{Filter, Options, Transform, Validate};
 use crate::{Answer, Answers};
@@ -42,11 +49,7 @@ impl ui::Prompt for PasswordPrompt<'_, '_> {
 }
 
 impl Widget for PasswordPrompt<'_, '_> {
-    fn render<B: Backend>(
-        &mut self,
-        layout: &mut ui::layout::Layout,
-        b: &mut B,
-    ) -> error::Result<()> {
+    fn render<B: Backend>(&mut self, layout: &mut ui::layout::Layout, b: &mut B) -> io::Result<()> {
         self.prompt.render(layout, b)?;
         self.input.render(layout, b)
     }
@@ -81,13 +84,13 @@ impl<'p> Password<'p> {
         }
     }
 
-    pub(crate) fn ask<B: Backend, E: Iterator<Item = error::Result<KeyEvent>>>(
+    pub(crate) fn ask<B: Backend, E: EventIterator>(
         mut self,
         message: String,
         answers: &Answers,
         b: &mut B,
         events: &mut E,
-    ) -> error::Result<Answer> {
+    ) -> ui::Result<Answer> {
         let transform = self.transform.take();
 
         let ans = ui::Input::new(self.into_prompt(&message, answers), b).run(events)?;

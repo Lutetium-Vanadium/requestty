@@ -1,7 +1,8 @@
+use std::io;
+
 use ui::{
     backend::Backend,
-    error,
-    events::KeyEvent,
+    events::{EventIterator, KeyEvent},
     style::{Color, Stylize},
     widgets::{self, List, Text},
     Prompt, Validation, Widget,
@@ -64,11 +65,7 @@ impl Prompt for RawSelectPrompt<'_> {
 const ANSWER_PROMPT: &[u8] = b"  Answer: ";
 
 impl Widget for RawSelectPrompt<'_> {
-    fn render<B: Backend>(
-        &mut self,
-        layout: &mut ui::layout::Layout,
-        b: &mut B,
-    ) -> error::Result<()> {
+    fn render<B: Backend>(&mut self, layout: &mut ui::layout::Layout, b: &mut B) -> io::Result<()> {
         self.prompt.render(layout, b)?;
         self.select.render(layout, b)?;
         b.write_all(ANSWER_PROMPT)?;
@@ -126,7 +123,7 @@ impl widgets::List for RawSelect<'_> {
         hovered: bool,
         mut layout: ui::layout::Layout,
         b: &mut B,
-    ) -> error::Result<()> {
+    ) -> io::Result<()> {
         match &mut self.choices[index] {
             &mut Choice::Choice((index, ref mut name)) => {
                 if hovered {
@@ -200,13 +197,13 @@ impl<'a> RawSelect<'a> {
         }
     }
 
-    pub(crate) fn ask<B: Backend, E: Iterator<Item = error::Result<KeyEvent>>>(
+    pub(crate) fn ask<B: Backend, E: EventIterator>(
         mut self,
         message: String,
         answers: &Answers,
         b: &mut B,
         events: &mut E,
-    ) -> error::Result<Answer> {
+    ) -> ui::Result<Answer> {
         let transform = self.transform.take();
 
         let ans = ui::Input::new(self.into_prompt(&message), b).run(events)?;

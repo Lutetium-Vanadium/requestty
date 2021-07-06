@@ -53,7 +53,6 @@ fn test_tranform() {
         .try_into_list_item()
         .unwrap();
 
-    assert!(events.next().is_none());
     assert_eq!(ans.index, 8);
 }
 
@@ -75,7 +74,6 @@ fn test_default() {
         .unwrap();
 
     assert_eq!(ans.index, 4);
-    assert!(events.next().is_none());
 }
 
 #[test]
@@ -105,5 +103,4 @@ fn test_validate() {
         .unwrap();
 
     assert_eq!(ans.index, 8);
-    assert!(events.next().is_none());
 }

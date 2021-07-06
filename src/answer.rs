@@ -1,6 +1,7 @@
 use std::{
     collections::hash_map::{Entry, HashMap, IntoIter},
     hash::Hash,
+    io,
     ops::{Deref, DerefMut},
 };
 
@@ -189,7 +190,7 @@ impl<S: ui::Widget> ui::Widget for ExpandItem<S> {
         &mut self,
         layout: &mut ui::layout::Layout,
         backend: &mut B,
-    ) -> ui::error::Result<()> {
+    ) -> io::Result<()> {
         self.name.render(layout, backend)
     }
 

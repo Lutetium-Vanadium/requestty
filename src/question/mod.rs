@@ -29,7 +29,7 @@ use choice::{get_sep_str, ChoiceList};
 use options::Options;
 pub use plugin::Plugin;
 use plugin::PluginInteral;
-use ui::{backend::Backend, error, events::KeyEvent};
+use ui::{backend::Backend, events::EventIterator};
 
 use std::fmt;
 
@@ -111,12 +111,12 @@ enum QuestionKind<'a> {
 }
 
 impl Question<'_> {
-    pub(crate) fn ask<B: Backend, I: Iterator<Item = error::Result<KeyEvent>>>(
+    pub(crate) fn ask<B: Backend, I: EventIterator>(
         mut self,
         answers: &Answers,
         b: &mut B,
         events: &mut I,
-    ) -> error::Result<Option<(String, Answer)>> {
+    ) -> ui::Result<Option<(String, Answer)>> {
         if (!self.opts.ask_if_answered && answers.contains_key(&self.opts.name))
             || !self.opts.when.get(answers)
         {
@@ -218,10 +218,10 @@ handler!(Filter, FnOnce(T, &Answers) -> T);
 handler!(AutoComplete, FnMut(T, &Answers) -> Completions<T>);
 handler!(Validate, ?Sized FnMut(&T, &Answers) -> Result<(), String>);
 handler!(ValidateByVal, FnMut(T, &Answers) -> Result<(), String>);
-handler!(Transform, ?Sized FnOnce(&T, &Answers, &mut dyn Backend) -> error::Result<()>);
+handler!(Transform, ?Sized FnOnce(&T, &Answers, &mut dyn Backend) -> std::io::Result<()>);
 handler!(
     TransformByVal,
-    FnOnce(T, &Answers, &mut dyn Backend) -> error::Result<()>
+    FnOnce(T, &Answers, &mut dyn Backend) -> std::io::Result<()>
 );
 
 #[doc(hidden)]
@@ -283,7 +283,7 @@ macro_rules! impl_transform_builder {
     ($t:ty; $inner:ident) => {
         pub fn transform<F>(mut self, transform: F) -> Self
         where
-            F: FnOnce(&$t, &crate::Answers, &mut dyn Backend) -> ui::error::Result<()> + 'a,
+            F: FnOnce(&$t, &crate::Answers, &mut dyn Backend) -> std::io::Result<()> + 'a,
         {
             self.$inner.transform = crate::question::Transform::Sync(Box::new(transform));
             self
@@ -293,7 +293,7 @@ macro_rules! impl_transform_builder {
     (by val $t:ty; $inner:ident) => {
         pub fn transform<F>(mut self, transform: F) -> Self
         where
-            F: FnOnce($t, &crate::Answers, &mut dyn Backend) -> ui::error::Result<()> + 'a,
+            F: FnOnce($t, &crate::Answers, &mut dyn Backend) -> std::io::Result<()> + 'a,
         {
             self.$inner.transform = crate::question::TransformByVal::Sync(Box::new(transform));
             self

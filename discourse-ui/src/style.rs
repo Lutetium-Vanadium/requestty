@@ -1,8 +1,6 @@
 //! A module to control the looks of text.
 
-use std::fmt::Display;
-
-use crate::error;
+use std::{fmt::Display, io};
 
 /// Some content with a particular style applied.
 ///
@@ -33,7 +31,7 @@ impl<T: Display + ?Sized> Styled<T> {
     pub(super) fn write<B: crate::backend::Backend + ?Sized>(
         &self,
         backend: &mut B,
-    ) -> error::Result<()> {
+    ) -> io::Result<()> {
         if let Some(fg) = self.fg {
             backend.set_fg(fg)?;
         }

@@ -47,7 +47,7 @@ impl<T: Widget> super::List for List<T> {
         hovered: bool,
         mut layout: Layout,
         backend: &mut B,
-    ) -> error::Result<()> {
+    ) -> io::Result<()> {
         if hovered {
             backend.set_fg(Color::Cyan)?;
         }

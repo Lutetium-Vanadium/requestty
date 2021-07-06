@@ -6,7 +6,6 @@ use std::{
 
 use super::{ClearType, MoveDirection, Size};
 use crate::{
-    error,
     layout::Layout,
     style::{Attributes, Color},
     symbols,
@@ -265,37 +264,37 @@ impl Write for TestBackend {
 }
 
 impl super::Backend for TestBackend {
-    fn enable_raw_mode(&mut self) -> error::Result<()> {
+    fn enable_raw_mode(&mut self) -> io::Result<()> {
         self.raw = true;
         Ok(())
     }
 
-    fn disable_raw_mode(&mut self) -> error::Result<()> {
+    fn disable_raw_mode(&mut self) -> io::Result<()> {
         self.raw = false;
         Ok(())
     }
 
-    fn hide_cursor(&mut self) -> error::Result<()> {
+    fn hide_cursor(&mut self) -> io::Result<()> {
         self.hidden_cursor = true;
         Ok(())
     }
 
-    fn show_cursor(&mut self) -> error::Result<()> {
+    fn show_cursor(&mut self) -> io::Result<()> {
         self.hidden_cursor = false;
         Ok(())
     }
 
-    fn get_cursor_pos(&mut self) -> error::Result<(u16, u16)> {
+    fn get_cursor_pos(&mut self) -> io::Result<(u16, u16)> {
         Ok(self.cursor.into())
     }
 
-    fn move_cursor_to(&mut self, x: u16, y: u16) -> error::Result<()> {
+    fn move_cursor_to(&mut self, x: u16, y: u16) -> io::Result<()> {
         self.move_x(x);
         self.move_y(y);
         Ok(())
     }
 
-    fn move_cursor(&mut self, direction: MoveDirection) -> error::Result<()> {
+    fn move_cursor(&mut self, direction: MoveDirection) -> io::Result<()> {
         match direction {
             MoveDirection::Up(n) => self.sub_y(n),
             MoveDirection::Down(n) => self.add_y(n),
@@ -314,7 +313,7 @@ impl super::Backend for TestBackend {
         Ok(())
     }
 
-    fn scroll(&mut self, dist: i16) -> error::Result<()> {
+    fn scroll(&mut self, dist: i16) -> io::Result<()> {
         if dist.is_positive() {
             self.viewport_start = self
                 .viewport_start
@@ -330,22 +329,22 @@ impl super::Backend for TestBackend {
         Ok(())
     }
 
-    fn set_attributes(&mut self, attributes: Attributes) -> error::Result<()> {
+    fn set_attributes(&mut self, attributes: Attributes) -> io::Result<()> {
         self.current_attributes = attributes;
         Ok(())
     }
 
-    fn set_fg(&mut self, color: Color) -> error::Result<()> {
+    fn set_fg(&mut self, color: Color) -> io::Result<()> {
         self.current_fg = color;
         Ok(())
     }
 
-    fn set_bg(&mut self, color: Color) -> error::Result<()> {
+    fn set_bg(&mut self, color: Color) -> io::Result<()> {
         self.current_bg = color;
         Ok(())
     }
 
-    fn clear(&mut self, clear_type: ClearType) -> error::Result<()> {
+    fn clear(&mut self, clear_type: ClearType) -> io::Result<()> {
         match clear_type {
             ClearType::All => self.clear_range(..),
             ClearType::FromCursorDown => self.clear_range(self.cell_i()..),
@@ -363,7 +362,7 @@ impl super::Backend for TestBackend {
         Ok(())
     }
 
-    fn size(&self) -> error::Result<Size> {
+    fn size(&self) -> io::Result<Size> {
         Ok(self.size)
     }
 }
@@ -403,7 +402,7 @@ impl TestBackend {
     /// ![](https://raw.githubusercontent.com/lutetium-vanadium/discourse/master/assets/test-backend-rendered.png)
     ///
     /// [`get_backend`]: crate::backend::get_backend
-    pub fn write_to_buf<W: Write>(&self, mut buf: W) -> error::Result<()> {
+    pub fn write_to_buf<W: Write>(&self, mut buf: W) -> io::Result<()> {
         let mut fg = Color::Reset;
         let mut bg = Color::Reset;
         let mut attributes = Attributes::empty();
@@ -481,39 +480,39 @@ impl TestBackend {
 
 #[cfg(feature = "crossterm")]
 mod display_ops {
-    use std::io::Write;
+    use std::io::{self, Write};
 
     use crossterm::{
         queue,
         style::{SetBackgroundColor, SetForegroundColor},
     };
 
-    use crate::{error, style::Color};
+    use crate::style::Color;
 
     pub(super) use crate::backend::crossterm::set_attributes;
 
-    pub(super) fn write_fg<W: Write>(fg: Color, mut w: W) -> error::Result<()> {
+    pub(super) fn write_fg<W: Write>(fg: Color, mut w: W) -> io::Result<()> {
         queue!(w, SetForegroundColor(fg.into())).map_err(Into::into)
     }
 
-    pub(super) fn write_bg<W: Write>(bg: Color, mut w: W) -> error::Result<()> {
+    pub(super) fn write_bg<W: Write>(bg: Color, mut w: W) -> io::Result<()> {
         queue!(w, SetBackgroundColor(bg.into())).map_err(Into::into)
     }
 }
 
 #[cfg(feature = "termion")]
 mod display_ops {
-    use std::io::Write;
+    use std::io::{self, Write};
 
-    use crate::{backend::termion, error, style::Color};
+    use crate::{backend::termion, style::Color};
 
     pub(super) use self::termion::set_attributes;
 
-    pub(super) fn write_fg<W: Write>(fg: Color, mut w: W) -> error::Result<()> {
+    pub(super) fn write_fg<W: Write>(fg: Color, mut w: W) -> io::Result<()> {
         write!(w, "{}", termion::Fg(fg)).map_err(Into::into)
     }
 
-    pub(super) fn write_bg<W: Write>(bg: Color, mut w: W) -> error::Result<()> {
+    pub(super) fn write_bg<W: Write>(bg: Color, mut w: W) -> io::Result<()> {
         write!(w, "{}", termion::Bg(bg)).map_err(Into::into)
     }
 }

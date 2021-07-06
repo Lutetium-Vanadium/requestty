@@ -2,8 +2,7 @@ use std::io;
 
 use ui::{
     backend::Backend,
-    error,
-    events::{KeyCode, KeyEvent},
+    events::{EventIterator, KeyCode, KeyEvent},
     style::Color,
     widgets::{self, Text},
     Prompt, Validation, Widget,
@@ -76,11 +75,7 @@ impl Prompt for CheckboxPrompt<'_, '_> {
 }
 
 impl Widget for CheckboxPrompt<'_, '_> {
-    fn render<B: Backend>(
-        &mut self,
-        layout: &mut ui::layout::Layout,
-        b: &mut B,
-    ) -> error::Result<()> {
+    fn render<B: Backend>(&mut self, layout: &mut ui::layout::Layout, b: &mut B) -> io::Result<()> {
         self.prompt.render(layout, b)?;
         self.select.render(layout, b)
     }
@@ -124,7 +119,7 @@ impl widgets::List for Checkbox<'_> {
         hovered: bool,
         mut layout: ui::layout::Layout,
         b: &mut B,
-    ) -> error::Result<()> {
+    ) -> io::Result<()> {
         if hovered {
             b.set_fg(Color::Cyan)?;
             write!(b, "{} ", ui::symbols::ARROW)?;
@@ -193,13 +188,13 @@ impl<'c> Checkbox<'c> {
         }
     }
 
-    pub(crate) fn ask<B: Backend, E: Iterator<Item = error::Result<KeyEvent>>>(
+    pub(crate) fn ask<B: Backend, E: EventIterator>(
         mut self,
         message: String,
         answers: &Answers,
         b: &mut B,
         events: &mut E,
-    ) -> error::Result<Answer> {
+    ) -> ui::Result<Answer> {
         let transform = self.transform.take();
 
         let ans = ui::Input::new(self.into_checkbox_prompt(&message, answers), b)

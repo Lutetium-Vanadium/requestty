@@ -25,7 +25,6 @@ fn test_validate() {
     .unwrap();
 
     assert_eq!(ans, Answer::Bool(true));
-    assert!(events.next().is_none());
 
     let mut backend = helpers::SnapshotOnFlushBackend::new(size);
     let mut events = TestEvents::new(vec![KeyCode::Char('n').into(), KeyCode::Enter.into()]);
@@ -41,7 +40,6 @@ fn test_validate() {
     .unwrap();
 
     assert_eq!(ans, Answer::Bool(false));
-    assert!(events.next().is_none());
 
     let mut backend = helpers::SnapshotOnFlushBackend::new(size);
     let mut events = TestEvents::new(Some(KeyCode::Enter.into()));
@@ -57,7 +55,6 @@ fn test_validate() {
     .unwrap();
 
     assert_eq!(ans, Answer::Bool(true));
-    assert!(events.next().is_none());
 
     let mut backend = helpers::SnapshotOnFlushBackend::new(size);
     let mut events = TestEvents::new(Some(KeyCode::Enter.into()));
@@ -73,7 +70,6 @@ fn test_validate() {
     .unwrap();
 
     assert_eq!(ans, Answer::Bool(false));
-    assert!(events.next().is_none());
 }
 
 #[test]
@@ -93,5 +89,4 @@ fn test_transform() {
     .unwrap();
 
     assert_eq!(ans, Answer::Bool(true));
-    assert!(events.next().is_none());
 }

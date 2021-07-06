@@ -1,8 +1,6 @@
 use crossterm::event;
 
-use crate::error;
-
-pub(super) fn next_event() -> error::Result<super::KeyEvent> {
+pub(super) fn next_event() -> std::io::Result<super::KeyEvent> {
     loop {
         if let event::Event::Key(k) = event::read()? {
             return Ok(k.into());

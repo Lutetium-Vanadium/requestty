@@ -13,7 +13,6 @@ use crossterm::{
 };
 
 use super::{Attributes, Backend, ClearType, Color, MoveDirection, Size};
-use crate::error;
 
 /// A backend that uses the `crossterm` library.
 #[derive(Debug, Clone)]
@@ -30,10 +29,6 @@ impl<W> CrosstermBackend<W> {
             attributes: Attributes::empty(),
         }
     }
-
-    pub(super) fn new_as_result(buffer: W) -> error::Result<CrosstermBackend<W>> {
-        Ok(Self::new(buffer))
-    }
 }
 
 impl<W: Write> Write for CrosstermBackend<W> {
@@ -47,31 +42,31 @@ impl<W: Write> Write for CrosstermBackend<W> {
 }
 
 impl<W: Write> Backend for CrosstermBackend<W> {
-    fn enable_raw_mode(&mut self) -> error::Result<()> {
-        terminal::enable_raw_mode().map_err(Into::into)
+    fn enable_raw_mode(&mut self) -> io::Result<()> {
+        terminal::enable_raw_mode()
     }
 
-    fn disable_raw_mode(&mut self) -> error::Result<()> {
-        terminal::disable_raw_mode().map_err(Into::into)
+    fn disable_raw_mode(&mut self) -> io::Result<()> {
+        terminal::disable_raw_mode()
     }
 
-    fn hide_cursor(&mut self) -> error::Result<()> {
-        queue!(self.buffer, cursor::Hide).map_err(Into::into)
+    fn hide_cursor(&mut self) -> io::Result<()> {
+        queue!(self.buffer, cursor::Hide)
     }
 
-    fn show_cursor(&mut self) -> error::Result<()> {
-        queue!(self.buffer, cursor::Show).map_err(Into::into)
+    fn show_cursor(&mut self) -> io::Result<()> {
+        queue!(self.buffer, cursor::Show)
     }
 
-    fn get_cursor_pos(&mut self) -> error::Result<(u16, u16)> {
-        cursor::position().map_err(Into::into)
+    fn get_cursor_pos(&mut self) -> io::Result<(u16, u16)> {
+        cursor::position()
     }
 
-    fn move_cursor_to(&mut self, x: u16, y: u16) -> error::Result<()> {
-        queue!(self.buffer, cursor::MoveTo(x, y)).map_err(Into::into)
+    fn move_cursor_to(&mut self, x: u16, y: u16) -> io::Result<()> {
+        queue!(self.buffer, cursor::MoveTo(x, y))
     }
 
-    fn move_cursor(&mut self, direction: MoveDirection) -> error::Result<()> {
+    fn move_cursor(&mut self, direction: MoveDirection) -> io::Result<()> {
         match direction {
             MoveDirection::Up(n) => queue!(self.buffer, cursor::MoveUp(n)),
             MoveDirection::Down(n) => queue!(self.buffer, cursor::MoveDown(n)),
@@ -85,10 +80,9 @@ impl<W: Write> Backend for CrosstermBackend<W> {
                 queue!(self.buffer, cursor::MoveToPreviousLine(n))
             }
         }
-        .map_err(Into::into)
     }
 
-    fn scroll(&mut self, dist: i16) -> error::Result<()> {
+    fn scroll(&mut self, dist: i16) -> io::Result<()> {
         match dist.cmp(&0) {
             Ordering::Greater => {
                 queue!(self.buffer, terminal::ScrollDown(dist as u16))
@@ -98,29 +92,28 @@ impl<W: Write> Backend for CrosstermBackend<W> {
             }
             Ordering::Equal => Ok(()),
         }
-        .map_err(Into::into)
     }
 
-    fn set_attributes(&mut self, attributes: Attributes) -> error::Result<()> {
+    fn set_attributes(&mut self, attributes: Attributes) -> io::Result<()> {
         set_attributes(self.attributes, attributes, &mut self.buffer)?;
         self.attributes = attributes;
         Ok(())
     }
 
-    fn set_fg(&mut self, color: Color) -> error::Result<()> {
-        queue!(self.buffer, SetForegroundColor(color.into())).map_err(Into::into)
+    fn set_fg(&mut self, color: Color) -> io::Result<()> {
+        queue!(self.buffer, SetForegroundColor(color.into()))
     }
 
-    fn set_bg(&mut self, color: Color) -> error::Result<()> {
-        queue!(self.buffer, SetBackgroundColor(color.into())).map_err(Into::into)
+    fn set_bg(&mut self, color: Color) -> io::Result<()> {
+        queue!(self.buffer, SetBackgroundColor(color.into()))
     }
 
-    fn clear(&mut self, clear_type: ClearType) -> error::Result<()> {
-        queue!(self.buffer, terminal::Clear(clear_type.into())).map_err(Into::into)
+    fn clear(&mut self, clear_type: ClearType) -> io::Result<()> {
+        queue!(self.buffer, terminal::Clear(clear_type.into()))
     }
 
-    fn size(&self) -> error::Result<Size> {
-        terminal::size().map(Into::into).map_err(Into::into)
+    fn size(&self) -> io::Result<Size> {
+        terminal::size().map(Into::into)
     }
 }
 
@@ -166,7 +159,7 @@ pub(super) fn set_attributes<W: Write>(
     from: Attributes,
     to: Attributes,
     mut w: W,
-) -> error::Result<()> {
+) -> io::Result<()> {
     let diff = from.diff(to);
     if diff.to_remove.contains(Attributes::REVERSED) {
         queue!(w, SetAttribute(CAttribute::NoReverse))?;

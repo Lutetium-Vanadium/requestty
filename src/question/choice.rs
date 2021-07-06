@@ -1,4 +1,7 @@
-use std::ops::{Index, IndexMut};
+use std::{
+    io,
+    ops::{Index, IndexMut},
+};
 
 use ui::{style::Color, widgets::List, Widget};
 
@@ -97,7 +100,7 @@ impl<T: Widget> List for ChoiceList<T> {
         hovered: bool,
         mut layout: ui::layout::Layout,
         b: &mut B,
-    ) -> ui::error::Result<()> {
+    ) -> io::Result<()> {
         if hovered {
             b.set_fg(Color::Cyan)?;
             write!(b, "{} ", ui::symbols::ARROW)?;
@@ -196,7 +199,7 @@ impl<T: ui::Widget> ui::Widget for Choice<T> {
         &mut self,
         layout: &mut ui::layout::Layout,
         backend: &mut B,
-    ) -> ui::error::Result<()> {
+    ) -> io::Result<()> {
         match self {
             Choice::Choice(c) => c.render(layout, backend),
             sep => get_sep_str(sep).render(layout, backend),

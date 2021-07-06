@@ -1,8 +1,10 @@
-use std::ops::{Index, IndexMut};
+use std::{
+    io,
+    ops::{Index, IndexMut},
+};
 
 use crate::{
     backend::Backend,
-    error,
     events::{KeyEvent, Movement},
     layout::{Layout, RenderRegion},
     style::Stylize,
@@ -34,7 +36,7 @@ pub trait List {
         hovered: bool,
         layout: Layout,
         backend: &mut B,
-    ) -> error::Result<()>;
+    ) -> io::Result<()>;
 
     /// Whether the element at a particular index is selectable. Those that are not selectable are
     /// skipped during navigation.
@@ -409,7 +411,7 @@ impl<L: List> Select<L> {
         iter: I,
         old_layout: &mut Layout,
         b: &mut B,
-    ) -> error::Result<()> {
+    ) -> io::Result<()> {
         let heights = &self.heights.as_ref().unwrap().heights[..];
 
         // Create a new local copy of the layout to operate on to avoid changes in max_height and
@@ -574,7 +576,7 @@ impl<L: List> super::Widget for Select<L> {
         true
     }
 
-    fn render<B: Backend>(&mut self, layout: &mut Layout, b: &mut B) -> error::Result<()> {
+    fn render<B: Backend>(&mut self, layout: &mut Layout, b: &mut B) -> io::Result<()> {
         self.maybe_update_heights(*layout);
 
         // this is the first render, so we need to set page_end

@@ -31,7 +31,6 @@ fn test_validate() {
 
     let ans = discourse::prompt_one_with(prompt, &mut backend, &mut events).unwrap();
     assert_eq!(ans, Answer::Int(32));
-    assert!(events.next().is_none());
 }
 
 #[test]
@@ -49,7 +48,6 @@ fn test_filter() {
 
     let ans = discourse::prompt_one_with(prompt, &mut backend, &mut events).unwrap();
     assert_eq!(ans, Answer::Int(32));
-    assert!(events.next().is_none());
 }
 
 #[test]
@@ -67,7 +65,6 @@ fn test_transform() {
 
     let ans = discourse::prompt_one_with(prompt, &mut backend, &mut events).unwrap();
     assert_eq!(ans, Answer::Int(32));
-    assert!(events.next().is_none());
 }
 
 #[test]
@@ -83,7 +80,6 @@ fn test_default() {
 
     let ans = discourse::prompt_one_with(prompt, &mut backend, &mut events).unwrap();
     assert_eq!(ans, Answer::Int(32));
-    assert!(events.next().is_none());
 
     let prompt = Question::int("name").message("message").default(32);
 
@@ -92,5 +88,4 @@ fn test_default() {
 
     let ans = discourse::prompt_one_with(prompt, &mut backend, &mut events).unwrap();
     assert_eq!(ans, Answer::Int(32));
-    assert!(events.next().is_none());
 }

@@ -1,10 +1,13 @@
-use std::ops::{Deref, DerefMut};
+use std::{
+    io,
+    ops::{Deref, DerefMut},
+};
 
 use super::Widget;
 use crate::{
     backend::{Backend, ClearType, MoveDirection, Size},
     error,
-    events::{KeyCode, KeyEvent, KeyModifiers},
+    events::{EventIterator, KeyCode, KeyModifiers},
     layout::Layout,
     style::Stylize,
 };
@@ -91,13 +94,13 @@ impl<P: Prompt, B: Backend> Input<P, B> {
         Layout::new(0, self.size).with_offset(0, self.base_row)
     }
 
-    fn init(&mut self) -> error::Result<()> {
+    fn init(&mut self) -> io::Result<()> {
         self.backend.init()?;
         self.base_row = self.backend.get_cursor_pos()?.1;
         self.render()
     }
 
-    fn adjust_scrollback(&mut self, height: u16) -> error::Result<u16> {
+    fn adjust_scrollback(&mut self, height: u16) -> io::Result<u16> {
         let th = self.size.height;
 
         let mut base_row = self.base_row;
@@ -112,7 +115,7 @@ impl<P: Prompt, B: Backend> Input<P, B> {
         Ok(base_row)
     }
 
-    fn flush(&mut self) -> error::Result<()> {
+    fn flush(&mut self) -> io::Result<()> {
         if !self.backend.hide_cursor {
             let (dcw, dch) = self.prompt.cursor_pos(self.layout());
             self.backend.move_cursor_to(dcw, self.base_row + dch)?;
@@ -120,7 +123,7 @@ impl<P: Prompt, B: Backend> Input<P, B> {
         self.backend.flush().map_err(Into::into)
     }
 
-    fn render(&mut self) -> error::Result<()> {
+    fn render(&mut self) -> io::Result<()> {
         self.size = self.backend.size()?;
         let height = self.prompt.height(&mut self.layout());
         self.base_row = self.adjust_scrollback(height)?;
@@ -128,20 +131,20 @@ impl<P: Prompt, B: Backend> Input<P, B> {
 
         self.prompt.render(&mut self.layout(), &mut *self.backend)?;
 
-        self.flush()
+        self.flush().map_err(Into::into)
     }
 
-    fn clear(&mut self) -> error::Result<()> {
+    fn clear(&mut self) -> io::Result<()> {
         self.backend.move_cursor_to(0, self.base_row)?;
         self.backend.clear(ClearType::FromCursorDown)
     }
 
-    fn goto_last_line(&mut self, height: u16) -> error::Result<()> {
+    fn goto_last_line(&mut self, height: u16) -> io::Result<()> {
         self.base_row = self.adjust_scrollback(height + 1)?;
         self.backend.move_cursor_to(0, self.base_row + height)
     }
 
-    fn print_error(&mut self, mut e: P::ValidateErr) -> error::Result<()> {
+    fn print_error(&mut self, mut e: P::ValidateErr) -> io::Result<()> {
         self.size = self.backend.size()?;
         let height = self.prompt.height(&mut self.layout());
         self.base_row = self.adjust_scrollback(height + 1)?;
@@ -158,10 +161,10 @@ impl<P: Prompt, B: Backend> Input<P, B> {
         self.adjust_scrollback(height + e.height(&mut layout.clone()))?;
         e.render(&mut layout, &mut *self.backend)?;
 
-        self.flush()
+        self.flush().map_err(Into::into)
     }
 
-    fn exit(&mut self) -> error::Result<()> {
+    fn exit(&mut self) -> io::Result<()> {
         self.size = self.backend.size()?;
         let height = self.prompt.height(&mut self.layout());
         self.goto_last_line(height)?;
@@ -173,12 +176,12 @@ impl<P: Prompt, B: Backend> Input<P, B> {
     /// After the user presses `Enter`, [`validate`](Prompt::validate) will be called.
     pub fn run<E>(mut self, events: &mut E) -> error::Result<P::Output>
     where
-        E: Iterator<Item = error::Result<KeyEvent>>,
+        E: EventIterator,
     {
         self.init()?;
 
         loop {
-            let e = events.next().unwrap()?;
+            let e = events.next_event()?;
 
             let key_handled = match e.code {
                 KeyCode::Char('c') if e.modifiers.contains(KeyModifiers::CONTROL) => {
@@ -229,7 +232,7 @@ impl<B: Backend> TerminalState<B> {
         }
     }
 
-    fn init(&mut self) -> error::Result<()> {
+    fn init(&mut self) -> io::Result<()> {
         self.enabled = true;
         if self.hide_cursor {
             self.backend.hide_cursor()?;
@@ -237,7 +240,7 @@ impl<B: Backend> TerminalState<B> {
         self.backend.enable_raw_mode()
     }
 
-    fn reset(&mut self) -> error::Result<()> {
+    fn reset(&mut self) -> io::Result<()> {
         self.enabled = false;
         if self.hide_cursor {
             self.backend.show_cursor()?;
@@ -279,11 +282,7 @@ mod tests {
     }
 
     impl Widget for TestPrompt {
-        fn render<B: Backend>(
-            &mut self,
-            layout: &mut Layout,
-            backend: &mut B,
-        ) -> error::Result<()> {
+        fn render<B: Backend>(&mut self, layout: &mut Layout, backend: &mut B) -> io::Result<()> {
             for i in 0..self.height(layout) {
                 // Not the most efficient but this is a test, and it makes assertions easier
                 backend.write_all(format!("Line {}", i).as_bytes())?;

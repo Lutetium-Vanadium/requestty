@@ -12,7 +12,7 @@ impl Plugin for Validate<'_> {
         message: String,
         _: &Answers,
         _: &mut dyn Backend,
-        _: &mut dyn Iterator<Item = discourse::Result<ui::events::KeyEvent>>,
+        _: &mut dyn EventIterator,
     ) -> discourse::Result<Answer> {
         assert_eq!(message, self.message);
         *self.prompted = true;
@@ -29,7 +29,7 @@ fn prompt_all<'a>(questions: impl IntoIterator<Item = Question<'a>>) {
     discourse::prompt_with(
         questions,
         &mut ui::backend::TestBackend::new((1, 1).into()),
-        &mut None.into_iter(),
+        &mut ui::events::TestEvents::empty(),
     )
     .unwrap();
 }

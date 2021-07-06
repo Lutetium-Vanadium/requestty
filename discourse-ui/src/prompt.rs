@@ -1,8 +1,8 @@
-use std::convert::TryFrom;
+use std::{convert::TryFrom, io};
 
 use crate::{
     backend::Backend,
-    error, events,
+    events,
     layout::Layout,
     style::{Color, Stylize},
     Widget,
@@ -155,19 +155,18 @@ impl<M: AsRef<str>, H: AsRef<str>> Prompt<M, H> {
 
 impl<M: AsRef<str>> Prompt<M, &'static str> {
     /// The end prompt to be printed once the question is answered.
-    pub fn write_finished_message<B: Backend>(message: &M, backend: &mut B) -> error::Result<()> {
+    pub fn write_finished_message<B: Backend>(message: &M, backend: &mut B) -> io::Result<()> {
         backend.write_styled(&crate::symbols::TICK.light_green())?;
         backend.write_all(b" ")?;
         backend.write_styled(&message.as_ref().bold())?;
         backend.write_all(b" ")?;
         backend.write_styled(&crate::symbols::MIDDLE_DOT.dark_grey())?;
-        backend.write_all(b" ")?;
-        Ok(())
+        backend.write_all(b" ")
     }
 }
 
 impl<M: AsRef<str>, H: AsRef<str>> Widget for Prompt<M, H> {
-    fn render<B: Backend>(&mut self, layout: &mut Layout, b: &mut B) -> error::Result<()> {
+    fn render<B: Backend>(&mut self, layout: &mut Layout, b: &mut B) -> io::Result<()> {
         b.write_styled(&"? ".light_green())?;
         b.write_styled(&self.message.as_ref().bold())?;
         b.write_all(b" ")?;

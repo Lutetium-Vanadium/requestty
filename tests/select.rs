@@ -49,5 +49,4 @@ fn test_transform() {
         .unwrap();
 
     assert_eq!(ans.index, 8);
-    assert!(events.next().is_none());
 }

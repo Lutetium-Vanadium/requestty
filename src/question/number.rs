@@ -1,9 +1,8 @@
-use std::fmt::Write;
+use std::{fmt::Write, io};
 
 use ui::{
     backend::Backend,
-    error,
-    events::{KeyCode, KeyEvent},
+    events::{EventIterator, KeyCode, KeyEvent},
     style::Color,
     widgets, Prompt, Validation, Widget,
 };
@@ -28,7 +27,7 @@ pub struct Int<'a> {
 }
 
 impl Int<'_> {
-    fn write<B: Backend>(i: i64, b: &mut B) -> error::Result<()> {
+    fn write<B: Backend>(i: i64, b: &mut B) -> io::Result<()> {
         b.set_fg(Color::Cyan)?;
         write!(b, "{}", i)?;
         b.set_fg(Color::Reset)
@@ -48,7 +47,7 @@ impl Int<'_> {
 }
 
 impl Float<'_> {
-    fn write<B: Backend>(f: f64, b: &mut B) -> error::Result<()> {
+    fn write<B: Backend>(f: f64, b: &mut B) -> io::Result<()> {
         b.set_fg(Color::Cyan)?;
         if f.log10().abs() > 19.0 {
             write!(b, "{:e}", f)?;
@@ -94,7 +93,7 @@ macro_rules! impl_number_prompt {
                 &mut self,
                 layout: &mut ui::layout::Layout,
                 b: &mut B,
-            ) -> error::Result<()> {
+            ) -> io::Result<()> {
                 self.prompt.render(layout, b)?;
                 self.input.render(layout, b)
             }
@@ -182,13 +181,13 @@ macro_rules! impl_ask {
                 }
             }
 
-            pub(crate) fn ask<B: Backend, E: Iterator<Item = error::Result<KeyEvent>>>(
+            pub(crate) fn ask<B: Backend, E: EventIterator>(
                 mut self,
                 message: String,
                 answers: &Answers,
                 b: &mut B,
                 events: &mut E,
-            ) -> error::Result<Answer> {
+            ) -> ui::Result<Answer> {
                 let transform = self.transform.take();
 
                 let ans = ui::Input::new(self.into_prompt(&message, answers), b).run(events)?;

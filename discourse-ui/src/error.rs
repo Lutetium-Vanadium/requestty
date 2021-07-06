@@ -1,5 +1,3 @@
-//! Error definitions for `discourse`
-
 use std::{fmt, io};
 
 /// The `discourse` result type.

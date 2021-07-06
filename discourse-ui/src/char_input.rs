@@ -1,6 +1,5 @@
 use crate::{
     backend::Backend,
-    error,
     events::{KeyCode, KeyEvent},
     layout::Layout,
 };
@@ -80,7 +79,7 @@ where
         }
     }
 
-    fn render<B: Backend>(&mut self, layout: &mut Layout, backend: &mut B) -> error::Result<()> {
+    fn render<B: Backend>(&mut self, layout: &mut Layout, backend: &mut B) -> std::io::Result<()> {
         if let Some(value) = self.value {
             layout.line_offset += 1;
 

@@ -28,6 +28,7 @@
 )]
 #![warn(rust_2018_idioms)]
 
+pub use error::{ErrorKind, Result};
 pub use input::{Input, Prompt, Validation};
 pub use widget::Widget;
 
@@ -51,7 +52,7 @@ pub mod widgets {
 
 pub mod backend;
 mod char_input;
-pub mod error;
+mod error;
 pub mod events;
 mod input;
 pub mod layout;

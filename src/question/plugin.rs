@@ -1,4 +1,4 @@
-use ui::{backend::Backend, error, events};
+use ui::{backend::Backend, events::EventIterator};
 
 use super::{Options, Question, QuestionKind};
 use crate::{Answer, Answers};
@@ -9,8 +9,8 @@ pub trait Plugin: std::fmt::Debug {
         message: String,
         answers: &Answers,
         stdout: &mut dyn Backend,
-        events: &mut dyn Iterator<Item = error::Result<events::KeyEvent>>,
-    ) -> error::Result<Answer>;
+        events: &mut dyn EventIterator,
+    ) -> ui::Result<Answer>;
 }
 
 /// The same trait as `Plugin`, except it take `&mut self` instead of `self`.
@@ -26,8 +26,8 @@ pub(super) trait PluginInteral: std::fmt::Debug {
         message: String,
         answers: &Answers,
         stdout: &mut dyn Backend,
-        events: &mut dyn Iterator<Item = error::Result<events::KeyEvent>>,
-    ) -> error::Result<Answer>;
+        events: &mut dyn EventIterator,
+    ) -> ui::Result<Answer>;
 }
 
 impl<T: Plugin> PluginInteral for Option<T> {
@@ -36,8 +36,8 @@ impl<T: Plugin> PluginInteral for Option<T> {
         message: String,
         answers: &Answers,
         stdout: &mut dyn Backend,
-        events: &mut dyn Iterator<Item = error::Result<events::KeyEvent>>,
-    ) -> error::Result<Answer> {
+        events: &mut dyn EventIterator,
+    ) -> ui::Result<Answer> {
         self.take()
             .expect("Plugin::ask called twice")
             .ask(message, answers, stdout, events)

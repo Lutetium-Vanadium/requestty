@@ -1,9 +1,8 @@
-use std::collections::HashSet;
+use std::{collections::HashSet, io};
 
 use ui::{
     backend::{Backend, MoveDirection},
-    error,
-    events::KeyEvent,
+    events::{EventIterator, KeyEvent},
     style::{Color, Stylize},
     widgets::{self, Text},
     Prompt, Validation, Widget,
@@ -103,11 +102,7 @@ impl<F: Fn(char) -> Option<char>> Prompt for ExpandPrompt<'_, F> {
 const ANSWER_PROMPT: &[u8] = b"  Answer: ";
 
 impl<F: Fn(char) -> Option<char>> ui::Widget for ExpandPrompt<'_, F> {
-    fn render<B: Backend>(
-        &mut self,
-        layout: &mut ui::layout::Layout,
-        b: &mut B,
-    ) -> error::Result<()> {
+    fn render<B: Backend>(&mut self, layout: &mut ui::layout::Layout, b: &mut B) -> io::Result<()> {
         self.prompt.render(layout, b)?;
         if self.expanded {
             self.select.render(layout, b)?;
@@ -204,7 +199,7 @@ impl widgets::List for Expand<'_> {
         _: bool,
         layout: ui::layout::Layout,
         b: &mut B,
-    ) -> error::Result<()> {
+    ) -> io::Result<()> {
         if index == self.choices.len() {
             return self.render_choice(None, layout, b);
         }
@@ -260,7 +255,7 @@ impl Expand<'_> {
         index: Option<usize>,
         mut layout: ui::layout::Layout,
         b: &mut B,
-    ) -> error::Result<()> {
+    ) -> io::Result<()> {
         let key = match index {
             Some(index) => self.choices[index].as_ref().unwrap_choice().key,
             None => 'h',
@@ -291,13 +286,13 @@ impl Expand<'_> {
         Ok(())
     }
 
-    pub(crate) fn ask<B: Backend, E: Iterator<Item = error::Result<KeyEvent>>>(
+    pub(crate) fn ask<B: Backend, E: EventIterator>(
         mut self,
         message: String,
         answers: &Answers,
         b: &mut B,
         events: &mut E,
-    ) -> error::Result<Answer> {
+    ) -> ui::Result<Answer> {
         let help_key = if self.default == 'h' { 'H' } else { 'h' };
 
         let hint: String = self

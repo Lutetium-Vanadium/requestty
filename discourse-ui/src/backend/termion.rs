@@ -11,7 +11,6 @@ use termion::{
 };
 
 use super::{Attributes, Backend, ClearType, Color, MoveDirection, Size};
-use crate::error;
 
 /// A backend that uses the `termion` library.
 #[allow(missing_debug_implementations)]
@@ -22,7 +21,7 @@ pub struct TermionBackend<W: Write> {
 
 impl<W: Write> TermionBackend<W> {
     /// Creates a new [`TermionBackend`]
-    pub fn new(buffer: W) -> error::Result<TermionBackend<W>> {
+    pub fn new(buffer: W) -> io::Result<TermionBackend<W>> {
         let buffer = buffer.into_raw_mode()?;
         buffer.suspend_raw_mode()?;
         Ok(TermionBackend {
@@ -31,7 +30,7 @@ impl<W: Write> TermionBackend<W> {
         })
     }
 
-    pub(super) fn new_as_result(buffer: W) -> error::Result<TermionBackend<W>> {
+    pub(super) fn new_as_result(buffer: W) -> io::Result<TermionBackend<W>> {
         Self::new(buffer)
     }
 }
@@ -47,34 +46,34 @@ impl<W: Write> Write for TermionBackend<W> {
 }
 
 impl<W: Write> Backend for TermionBackend<W> {
-    fn enable_raw_mode(&mut self) -> error::Result<()> {
+    fn enable_raw_mode(&mut self) -> io::Result<()> {
         self.buffer.activate_raw_mode().map_err(Into::into)
     }
 
-    fn disable_raw_mode(&mut self) -> error::Result<()> {
+    fn disable_raw_mode(&mut self) -> io::Result<()> {
         self.buffer.suspend_raw_mode().map_err(Into::into)
     }
 
-    fn hide_cursor(&mut self) -> error::Result<()> {
+    fn hide_cursor(&mut self) -> io::Result<()> {
         write!(self.buffer, "{}", cursor::Hide).map_err(Into::into)
     }
 
-    fn show_cursor(&mut self) -> error::Result<()> {
+    fn show_cursor(&mut self) -> io::Result<()> {
         write!(self.buffer, "{}", cursor::Show).map_err(Into::into)
     }
 
-    fn get_cursor_pos(&mut self) -> error::Result<(u16, u16)> {
+    fn get_cursor_pos(&mut self) -> io::Result<(u16, u16)> {
         cursor::DetectCursorPos::cursor_pos(&mut self.buffer)
             // 0 index the position
             .map(|(x, y)| (x - 1, y - 1))
             .map_err(Into::into)
     }
 
-    fn move_cursor_to(&mut self, x: u16, y: u16) -> error::Result<()> {
+    fn move_cursor_to(&mut self, x: u16, y: u16) -> io::Result<()> {
         write!(self.buffer, "{}", cursor::Goto(x + 1, y + 1)).map_err(Into::into)
     }
 
-    fn move_cursor(&mut self, direction: MoveDirection) -> error::Result<()> {
+    fn move_cursor(&mut self, direction: MoveDirection) -> io::Result<()> {
         match direction {
             MoveDirection::Up(n) => write!(self.buffer, "{}", cursor::Up(n))?,
             MoveDirection::Down(n) => write!(self.buffer, "{}", cursor::Down(n))?,
@@ -86,7 +85,7 @@ impl<W: Write> Backend for TermionBackend<W> {
         Ok(())
     }
 
-    fn scroll(&mut self, dist: i16) -> error::Result<()> {
+    fn scroll(&mut self, dist: i16) -> io::Result<()> {
         match dist.cmp(&0) {
             Ordering::Greater => {
                 write!(self.buffer, "{}", scroll::Down(dist as u16))
@@ -99,21 +98,21 @@ impl<W: Write> Backend for TermionBackend<W> {
         .map_err(Into::into)
     }
 
-    fn set_attributes(&mut self, attributes: Attributes) -> error::Result<()> {
+    fn set_attributes(&mut self, attributes: Attributes) -> io::Result<()> {
         set_attributes(self.attributes, attributes, &mut self.buffer)?;
         self.attributes = attributes;
         Ok(())
     }
 
-    fn set_fg(&mut self, color: Color) -> error::Result<()> {
+    fn set_fg(&mut self, color: Color) -> io::Result<()> {
         write!(self.buffer, "{}", Fg(color)).map_err(Into::into)
     }
 
-    fn set_bg(&mut self, color: Color) -> error::Result<()> {
+    fn set_bg(&mut self, color: Color) -> io::Result<()> {
         write!(self.buffer, "{}", Bg(color)).map_err(Into::into)
     }
 
-    fn clear(&mut self, clear_type: ClearType) -> error::Result<()> {
+    fn clear(&mut self, clear_type: ClearType) -> io::Result<()> {
         match clear_type {
             ClearType::All => write!(self.buffer, "{}", clear::All),
             ClearType::FromCursorDown => {
@@ -130,7 +129,7 @@ impl<W: Write> Backend for TermionBackend<W> {
         .map_err(Into::into)
     }
 
-    fn size(&self) -> error::Result<Size> {
+    fn size(&self) -> io::Result<Size> {
         termion::terminal_size().map(Into::into).map_err(Into::into)
     }
 }
@@ -196,7 +195,7 @@ pub(super) fn set_attributes<W: Write>(
     from: Attributes,
     to: Attributes,
     mut w: W,
-) -> error::Result<()> {
+) -> io::Result<()> {
     let diff = from.diff(to);
 
     if diff.to_remove.contains(Attributes::REVERSED) {

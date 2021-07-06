@@ -1,7 +1,8 @@
+use std::io;
+
 use ui::{
     backend::Backend,
-    error,
-    events::KeyEvent,
+    events::{EventIterator, KeyEvent},
     style::Stylize,
     widgets::{self, Text},
     Prompt, Widget,
@@ -48,11 +49,7 @@ impl Prompt for SelectPrompt<'_> {
 }
 
 impl Widget for SelectPrompt<'_> {
-    fn render<B: Backend>(
-        &mut self,
-        layout: &mut ui::layout::Layout,
-        b: &mut B,
-    ) -> error::Result<()> {
+    fn render<B: Backend>(&mut self, layout: &mut ui::layout::Layout, b: &mut B) -> io::Result<()> {
         self.prompt.render(layout, b)?;
         self.select.render(layout, b)
     }
@@ -77,7 +74,7 @@ impl widgets::List for Select<'_> {
         hovered: bool,
         layout: ui::layout::Layout,
         backend: &mut B,
-    ) -> error::Result<()> {
+    ) -> io::Result<()> {
         self.choices.render_item(index, hovered, layout, backend)
     }
 
@@ -115,13 +112,13 @@ impl<'a> Select<'a> {
         }
     }
 
-    pub(crate) fn ask<B: Backend, E: Iterator<Item = error::Result<KeyEvent>>>(
+    pub(crate) fn ask<B: Backend, E: EventIterator>(
         mut self,
         message: String,
         answers: &Answers,
         b: &mut B,
         events: &mut E,
-    ) -> error::Result<Answer> {
+    ) -> ui::Result<Answer> {
         let transform = self.transform.take();
         let ans = ui::Input::new(self.into_prompt(&message), b)
             .hide_cursor()

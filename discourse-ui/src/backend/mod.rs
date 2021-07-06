@@ -1,18 +1,14 @@
 //! A module to represent a terminal and operations on it.
 
-use std::fmt::Display;
-
-use crate::error;
+use std::{fmt::Display, io};
 
 /// Gets the default backend based on the features enabled.
-pub fn get_backend<W: std::io::Write>(buf: W) -> error::Result<impl Backend> {
+pub fn get_backend<W: io::Write>(buf: W) -> io::Result<impl Backend> {
     #[cfg(feature = "crossterm")]
-    type Backend<W> = CrosstermBackend<W>;
+    return Ok(CrosstermBackend::new(buf));
 
     #[cfg(feature = "termion")]
-    type Backend<W> = TermionBackend<W>;
-
-    Backend::new_as_result(buf)
+    return TermionBackend::new(buf);
 }
 
 mod test_backend;
@@ -86,55 +82,55 @@ pub enum MoveDirection {
 }
 
 /// A trait to represent a terminal that can be rendered to.
-pub trait Backend: std::io::Write {
+pub trait Backend: io::Write {
     /// Enables raw mode.
-    fn enable_raw_mode(&mut self) -> error::Result<()>;
+    fn enable_raw_mode(&mut self) -> io::Result<()>;
     /// Disables raw mode.
-    fn disable_raw_mode(&mut self) -> error::Result<()>;
+    fn disable_raw_mode(&mut self) -> io::Result<()>;
     /// Hides the cursor.
-    fn hide_cursor(&mut self) -> error::Result<()>;
+    fn hide_cursor(&mut self) -> io::Result<()>;
     /// Shows the cursor.
-    fn show_cursor(&mut self) -> error::Result<()>;
+    fn show_cursor(&mut self) -> io::Result<()>;
 
     /// Gets the cursor position as (col, row). The top-left cell is (0, 0).
-    fn get_cursor_pos(&mut self) -> error::Result<(u16, u16)>;
+    fn get_cursor_pos(&mut self) -> io::Result<(u16, u16)>;
     /// Moves the cursor to given position. The top-left cell is (0, 0).
-    fn move_cursor_to(&mut self, x: u16, y: u16) -> error::Result<()>;
+    fn move_cursor_to(&mut self, x: u16, y: u16) -> io::Result<()>;
     /// Moves the cursor relative to the current position as per the `direction`.
-    fn move_cursor(&mut self, direction: MoveDirection) -> error::Result<()> {
+    fn move_cursor(&mut self, direction: MoveDirection) -> io::Result<()> {
         default_move_cursor(self, direction)
     }
     /// Scrolls the terminal the given number of rows.
     ///
     /// A negative number means the terminal scrolls upwards, while a positive number means the
     /// terminal scrolls downwards.
-    fn scroll(&mut self, dist: i16) -> error::Result<()>;
+    fn scroll(&mut self, dist: i16) -> io::Result<()>;
 
     /// Sets the given `attributes` removing ones which were previous applied.
-    fn set_attributes(&mut self, attributes: Attributes) -> error::Result<()>;
+    fn set_attributes(&mut self, attributes: Attributes) -> io::Result<()>;
     /// Sets the foreground color.
-    fn set_fg(&mut self, color: Color) -> error::Result<()>;
+    fn set_fg(&mut self, color: Color) -> io::Result<()>;
     /// Sets the background color.
-    fn set_bg(&mut self, color: Color) -> error::Result<()>;
+    fn set_bg(&mut self, color: Color) -> io::Result<()>;
     /// Write a styled object to the backend.
     ///
     /// See also [`Styled`] and [`Stylize`].
     ///
     /// [`Stylize`]: crate::style::Stylize
-    fn write_styled(&mut self, styled: &Styled<dyn Display + '_>) -> error::Result<()> {
+    fn write_styled(&mut self, styled: &Styled<dyn Display + '_>) -> io::Result<()> {
         styled.write(self)
     }
 
     /// Clears the cells given by clear_type
-    fn clear(&mut self, clear_type: ClearType) -> error::Result<()>;
+    fn clear(&mut self, clear_type: ClearType) -> io::Result<()>;
     /// Gets the size of the terminal in rows and columns.
-    fn size(&self) -> error::Result<Size>;
+    fn size(&self) -> io::Result<Size>;
 }
 
 fn default_move_cursor<B: Backend + ?Sized>(
     backend: &mut B,
     direction: MoveDirection,
-) -> error::Result<()> {
+) -> io::Result<()> {
     let (mut x, mut y) = backend.get_cursor_pos()?;
 
     match direction {
@@ -157,46 +153,46 @@ fn default_move_cursor<B: Backend + ?Sized>(
 }
 
 impl<'a, B: Backend> Backend for &'a mut B {
-    fn enable_raw_mode(&mut self) -> error::Result<()> {
+    fn enable_raw_mode(&mut self) -> io::Result<()> {
         (**self).enable_raw_mode()
     }
-    fn disable_raw_mode(&mut self) -> error::Result<()> {
+    fn disable_raw_mode(&mut self) -> io::Result<()> {
         (**self).disable_raw_mode()
     }
-    fn hide_cursor(&mut self) -> error::Result<()> {
+    fn hide_cursor(&mut self) -> io::Result<()> {
         (**self).hide_cursor()
     }
-    fn show_cursor(&mut self) -> error::Result<()> {
+    fn show_cursor(&mut self) -> io::Result<()> {
         (**self).show_cursor()
     }
-    fn get_cursor_pos(&mut self) -> error::Result<(u16, u16)> {
+    fn get_cursor_pos(&mut self) -> io::Result<(u16, u16)> {
         (**self).get_cursor_pos()
     }
-    fn move_cursor_to(&mut self, x: u16, y: u16) -> error::Result<()> {
+    fn move_cursor_to(&mut self, x: u16, y: u16) -> io::Result<()> {
         (**self).move_cursor_to(x, y)
     }
-    fn move_cursor(&mut self, direction: MoveDirection) -> error::Result<()> {
+    fn move_cursor(&mut self, direction: MoveDirection) -> io::Result<()> {
         (**self).move_cursor(direction)
     }
-    fn scroll(&mut self, dist: i16) -> error::Result<()> {
+    fn scroll(&mut self, dist: i16) -> io::Result<()> {
         (**self).scroll(dist)
     }
-    fn set_attributes(&mut self, attributes: Attributes) -> error::Result<()> {
+    fn set_attributes(&mut self, attributes: Attributes) -> io::Result<()> {
         (**self).set_attributes(attributes)
     }
-    fn set_fg(&mut self, color: Color) -> error::Result<()> {
+    fn set_fg(&mut self, color: Color) -> io::Result<()> {
         (**self).set_fg(color)
     }
-    fn set_bg(&mut self, color: Color) -> error::Result<()> {
+    fn set_bg(&mut self, color: Color) -> io::Result<()> {
         (**self).set_bg(color)
     }
-    fn write_styled(&mut self, styled: &Styled<dyn Display + '_>) -> error::Result<()> {
+    fn write_styled(&mut self, styled: &Styled<dyn Display + '_>) -> io::Result<()> {
         (**self).write_styled(styled)
     }
-    fn clear(&mut self, clear_type: ClearType) -> error::Result<()> {
+    fn clear(&mut self, clear_type: ClearType) -> io::Result<()> {
         (**self).clear(clear_type)
     }
-    fn size(&self) -> error::Result<Size> {
+    fn size(&self) -> io::Result<Size> {
         (**self).size()
     }
 }

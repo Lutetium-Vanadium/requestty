@@ -8,7 +8,7 @@ use std::{
 
 use tempfile::TempPath;
 
-use ui::{backend::Backend, error, events::KeyEvent, style::Stylize, widgets, Validation, Widget};
+use ui::{backend::Backend, events::EventIterator, style::Stylize, widgets, Validation, Widget};
 
 use super::{Filter, Options, Transform, Validate};
 use crate::{Answer, Answers};
@@ -62,7 +62,7 @@ impl Widget for EditorPrompt<'_, '_> {
         &mut self,
         layout: &mut ui::layout::Layout,
         backend: &mut B,
-    ) -> error::Result<()> {
+    ) -> io::Result<()> {
         self.prompt.render(layout, backend)
     }
 
@@ -100,11 +100,10 @@ impl ui::Prompt for EditorPrompt<'_, '_> {
             .map_err(map_err)?
             .success()
         {
-            return Err(
-                io::Error::new(io::ErrorKind::Other, "Could not open editor")
-                    .to_string()
-                    .into(),
-            );
+            return Err(map_err(io::Error::new(
+                io::ErrorKind::Other,
+                "Could not open editor",
+            )));
         }
 
         self.ans.clear();
@@ -128,13 +127,13 @@ impl ui::Prompt for EditorPrompt<'_, '_> {
 }
 
 impl Editor<'_> {
-    pub(crate) fn ask<B: Backend, E: Iterator<Item = error::Result<KeyEvent>>>(
+    pub(crate) fn ask<B: Backend, E: EventIterator>(
         mut self,
         message: String,
         answers: &Answers,
         b: &mut B,
         events: &mut E,
-    ) -> error::Result<Answer> {
+    ) -> ui::Result<Answer> {
         let mut builder = tempfile::Builder::new();
 
         if let Some(ref extension) = self.extension {

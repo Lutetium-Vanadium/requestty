@@ -7,15 +7,15 @@ use termion::{event, input};
 
 use crate::error;
 
-pub(super) fn next_event(events: &mut input::Keys<Stdin>) -> error::Result<super::KeyEvent> {
+pub(super) fn next_event(events: &mut input::Keys<Stdin>) -> io::Result<super::KeyEvent> {
     let e = events.next().unwrap()?;
     e.try_into()
 }
 
 impl TryFrom<event::Key> for super::KeyEvent {
-    type Error = error::ErrorKind;
+    type Error = io::ErrorKind;
 
-    fn try_from(key: event::Key) -> error::Result<super::KeyEvent> {
+    fn try_from(key: event::Key) -> io::Result<super::KeyEvent> {
         let key = match key {
             event::Key::Backspace => super::KeyCode::Backspace.into(),
             event::Key::Left => super::KeyCode::Left.into(),
@@ -44,7 +44,7 @@ impl TryFrom<event::Key> for super::KeyEvent {
     }
 }
 
-fn parse_char(mut c: char, mut modifiers: super::KeyModifiers) -> error::Result<super::KeyEvent> {
+fn parse_char(mut c: char, mut modifiers: super::KeyModifiers) -> io::Result<super::KeyEvent> {
     let code = loop {
         if c as u32 >= 256 {
             break super::KeyCode::Char(c);
@@ -55,9 +55,10 @@ fn parse_char(mut c: char, mut modifiers: super::KeyModifiers) -> error::Result<
             _ => match char::try_from(c as u32) {
                 Ok(c) => break super::KeyCode::Char(c),
                 Err(_) => {
-                    return Err(
-                        io::Error::new(io::ErrorKind::Other, "Could not parse an event").into(),
-                    )
+                    return Err(io::Error::new(
+                        io::ErrorKind::Other,
+                        "Could not parse an event",
+                    ))
                 }
             },
         };

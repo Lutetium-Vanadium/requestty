@@ -1,4 +1,4 @@
-use crate::{backend, error, layout::Layout, Widget};
+use crate::{backend, layout::Layout, Widget};
 
 /// A string that can render over multiple lines.
 ///
@@ -69,7 +69,7 @@ impl<S: AsRef<str>> Widget for Text<S> {
         &mut self,
         layout: &mut Layout,
         backend: &mut B,
-    ) -> error::Result<()> {
+    ) -> std::io::Result<()> {
         // Update just in case the layout is out of date
         let height = self.max_height(*layout);
 

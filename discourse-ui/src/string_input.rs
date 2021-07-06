@@ -7,7 +7,6 @@ use unicode_segmentation::UnicodeSegmentation;
 
 use crate::{
     backend::Backend,
-    error,
     events::{KeyCode, KeyEvent, KeyModifiers, Movement},
     layout::Layout,
 };
@@ -319,7 +318,7 @@ where
     /// This widget ignores [`layout.offset_x`] and wraps around in the terminal.
     ///
     /// [`layout.offset_x`]: Layout.offset_x
-    fn render<B: Backend>(&mut self, layout: &mut Layout, backend: &mut B) -> error::Result<()> {
+    fn render<B: Backend>(&mut self, layout: &mut Layout, backend: &mut B) -> io::Result<()> {
         if self.hide_output {
             return Ok(());
         }

@@ -9,7 +9,7 @@ impl Plugin for TestPlugin {
         _message: String,
         _answers: &Answers,
         _stdout: &mut dyn Backend,
-        _events: &mut dyn Iterator<Item = discourse::Result<KeyEvent>>,
+        _events: &mut dyn EventIterator,
     ) -> discourse::Result<Answer> {
         Ok(Answer::Int(0))
     }

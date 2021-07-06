@@ -60,7 +60,6 @@ fn test_validate() {
         .map(|item| item.index)
         .collect();
 
-    assert!(events.next().is_none());
     assert_eq!(ans, [3, 9]);
 }
 
@@ -92,7 +91,6 @@ fn test_filter() {
         .map(|item| item.index)
         .collect();
 
-    assert!(events.next().is_none());
     assert_eq!(ans, [0, 4, 6, 7, 8]);
 }
 
@@ -130,6 +128,5 @@ fn test_transform() {
         .map(|item| item.index)
         .collect();
 
-    assert!(events.next().is_none());
     assert_eq!(ans, [3, 9]);
 }

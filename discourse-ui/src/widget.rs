@@ -1,6 +1,8 @@
+use std::io;
+
 use textwrap::{core::Fragment, word_separators::WordSeparator};
 
-use crate::{backend::Backend, error, events::KeyEvent, layout::Layout};
+use crate::{backend::Backend, events::KeyEvent, layout::Layout};
 
 /// A trait to represent renderable objects.
 ///
@@ -27,7 +29,7 @@ pub trait Widget {
     /// Render to a given backend.
     ///
     /// The widget is responsible for updating the layout to reflect the space that it has used.
-    fn render<B: Backend>(&mut self, layout: &mut Layout, backend: &mut B) -> error::Result<()>;
+    fn render<B: Backend>(&mut self, layout: &mut Layout, backend: &mut B) -> io::Result<()>;
 
     /// The number of rows of the terminal the widget will take when rendered.
     ///
@@ -47,7 +49,7 @@ impl<T: std::ops::Deref<Target = str>> Widget for T {
     /// cuts it short and adds '...' to the end.
     ///
     /// If a multi-line string is required, use the [`Text`](crate::widgets::Text) widget.
-    fn render<B: Backend>(&mut self, layout: &mut Layout, backend: &mut B) -> error::Result<()> {
+    fn render<B: Backend>(&mut self, layout: &mut Layout, backend: &mut B) -> io::Result<()> {
         let max_width = layout.line_width() as usize;
 
         layout.offset_y += 1;
@@ -82,7 +84,9 @@ impl<T: std::ops::Deref<Target = str>> Widget for T {
             backend.write_all(self.as_bytes())?;
         }
 
-        backend.move_cursor_to(layout.offset_x, layout.offset_y)
+        backend
+            .move_cursor_to(layout.offset_x, layout.offset_y)
+            .map_err(Into::into)
     }
 
     /// Does not allow multi-line strings.

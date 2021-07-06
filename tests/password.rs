@@ -31,7 +31,6 @@ fn test_validate() {
 
     let ans = discourse::prompt_one_with(prompt, &mut backend, &mut events).unwrap();
     assert_eq!(ans, Answer::String("str".into()));
-    assert!(events.next().is_none());
 }
 
 #[test]
@@ -51,7 +50,6 @@ fn test_filter() {
 
     let ans = discourse::prompt_one_with(prompt, &mut backend, &mut events).unwrap();
     assert_eq!(ans, Answer::String("str--suffix".into()));
-    assert!(events.next().is_none());
 }
 
 #[test]
@@ -75,7 +73,6 @@ fn test_transform() {
 
     let ans = discourse::prompt_one_with(prompt, &mut backend, &mut events).unwrap();
     assert_eq!(ans, Answer::String("str".into()));
-    assert!(events.next().is_none());
 }
 
 #[test]
@@ -97,5 +94,4 @@ fn test_hidden() {
 
     let ans = discourse::prompt_one_with(prompt, &mut backend, &mut events).unwrap();
     assert_eq!(ans, Answer::String("password".into()));
-    assert!(events.next().is_none());
 }
