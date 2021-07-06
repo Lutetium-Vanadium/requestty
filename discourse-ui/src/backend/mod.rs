@@ -106,7 +106,6 @@ pub trait Backend: std::io::Write {
     }
     /// Scrolls the terminal the given number of rows.
     ///
-    // FIXME: this should probably be the other way around
     /// A negative number means the terminal scrolls upwards, while a positive number means the
     /// terminal scrolls downwards.
     fn scroll(&mut self, dist: i16) -> error::Result<()>;

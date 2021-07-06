@@ -316,16 +316,16 @@ impl super::Backend for TestBackend {
 
     fn scroll(&mut self, dist: i16) -> error::Result<()> {
         if dist.is_positive() {
-            self.viewport_start += (dist as usize) * self.size.width as usize;
+            self.viewport_start = self
+                .viewport_start
+                .saturating_sub(dist as usize * self.size.width as usize);
+        } else {
+            self.viewport_start += (-dist as usize) * self.size.width as usize;
             let new_len = self.viewport_start + self.size.area() as usize;
 
             if new_len > self.cells.len() {
                 self.cells.resize_with(new_len, Cell::default)
             };
-        } else {
-            self.viewport_start = self
-                .viewport_start
-                .saturating_sub((-dist) as usize * self.size.width as usize);
         }
         Ok(())
     }
