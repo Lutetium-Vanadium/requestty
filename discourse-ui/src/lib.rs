@@ -30,25 +30,7 @@
 
 pub use error::{ErrorKind, Result};
 pub use input::{Input, Prompt, Validation};
-pub use widget::Widget;
-
-/// A module containing the in-built widgets and types required by them
-pub mod widgets {
-    pub use crate::char_input::CharInput;
-    pub use crate::prompt::{Delimiter, Prompt};
-    pub use crate::select::{List, Select};
-    pub use crate::string_input::StringInput;
-    pub use crate::text::Text;
-    pub use crate::widget::Widget;
-
-    /// The default type for `filter_map` in [`StringInput`] and [`CharInput`]
-    pub type FilterMapChar = fn(char) -> Option<char>;
-
-    /// Character filter that lets every character through
-    pub(crate) fn no_filter(c: char) -> Option<char> {
-        Some(c)
-    }
-}
+pub use widgets::Widget;
 
 pub mod backend;
 mod char_input;
@@ -61,7 +43,7 @@ mod select;
 mod string_input;
 pub mod style;
 mod text;
-mod widget;
+pub mod widgets;
 
 /// Some characters used in the `discourse` crate.
 #[allow(missing_docs)]

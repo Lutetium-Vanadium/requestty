@@ -34,7 +34,7 @@ pub trait Prompt: Widget {
     /// The error type returned by validate. It can be any widget and the [render cycle] is guaranteed
     /// to be called only once.
     ///
-    /// [render cycle]: trait.Widget.html#render-cycle
+    /// [render cycle]: widgets/trait.Widget.html#render-cycle
     type ValidateErr: Widget;
 
     /// The output type returned by [`Input::run`]
@@ -58,7 +58,7 @@ pub trait Prompt: Widget {
 ///
 /// See [`run`](Input::run) for more information
 ///
-/// [render cycle]: trait.Widget.html#render-cycle
+/// [render cycle]: widgets/trait.Widget.html#render-cycle
 #[derive(Debug)]
 pub struct Input<P, B: Backend> {
     prompt: P,

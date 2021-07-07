@@ -1,8 +1,24 @@
+//! A module containing the in-built widgets and types required by them
+
 use std::io;
 
 use textwrap::{core::Fragment, word_separators::WordSeparator};
 
 use crate::{backend::Backend, events::KeyEvent, layout::Layout};
+
+pub use crate::char_input::CharInput;
+pub use crate::prompt::{Delimiter, Prompt};
+pub use crate::select::{List, Select};
+pub use crate::string_input::StringInput;
+pub use crate::text::Text;
+
+/// The default type for `filter_map` in [`StringInput`] and [`CharInput`]
+pub type FilterMapChar = fn(char) -> Option<char>;
+
+/// Character filter that lets every character through
+pub(crate) fn no_filter(c: char) -> Option<char> {
+    Some(c)
+}
 
 /// A trait to represent renderable objects.
 ///
