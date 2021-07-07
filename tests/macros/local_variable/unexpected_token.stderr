@@ -1,0 +1,5 @@
+error: expected `,` or `:`
+ --> $DIR/unexpected_token.rs:4:39
+  |
+4 |     discourse::questions![Input { name; }];
+  |                                       ^

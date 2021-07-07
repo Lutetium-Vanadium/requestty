@@ -16,7 +16,7 @@ pub(crate) fn parse_optional_comma(
     Ok(Some(input.parse::<Token![,]>()?))
 }
 
-pub(crate) fn insert_non_dup<T: Parse>(
+pub(crate) fn insert_non_dup<T: Parse + From<syn::ExprPath>>(
     ident: syn::Ident,
     item: &mut Option<T>,
     input: syn::parse::ParseStream,
@@ -24,21 +24,51 @@ pub(crate) fn insert_non_dup<T: Parse>(
     insert_non_dup_parse(ident, item, input, T::parse)
 }
 
-pub(crate) fn insert_non_dup_parse<T>(
+pub(crate) fn insert_non_dup_parse<T: From<syn::ExprPath>>(
     ident: syn::Ident,
     item: &mut Option<T>,
     input: syn::parse::ParseStream,
     parser: fn(syn::parse::ParseStream) -> syn::Result<T>,
 ) -> syn::Result<()> {
+    check_non_dup(&ident, item)?;
+
+    let lookahead = input.lookahead1();
+    let value = if input.is_empty() || lookahead.peek(Token![,]) {
+        let mut path_segments = syn::punctuated::Punctuated::new();
+
+        path_segments.push_value(syn::PathSegment {
+            ident,
+            arguments: syn::PathArguments::None,
+        });
+
+        syn::ExprPath {
+            attrs: Vec::new(),
+            qself: None,
+            path: syn::Path {
+                leading_colon: None,
+                segments: path_segments,
+            },
+        }
+        .into()
+    } else if lookahead.peek(Token![:]) {
+        input.parse::<Token![:]>()?;
+        parser(input)?
+    } else {
+        return Err(lookahead.error());
+    };
+
+    *item = Some(value);
+
+    Ok(())
+}
+
+pub(crate) fn check_non_dup<T>(ident: &syn::Ident, item: &Option<T>) -> syn::Result<()> {
     match item {
         Some(_) => Err(syn::Error::new(
             ident.span(),
             format!("duplicate option `{}`", ident),
         )),
-        None => {
-            *item = Some(parser(input)?);
-            Ok(())
-        }
+        None => Ok(()),
     }
 }
 
@@ -69,6 +99,12 @@ impl Choices {
 
     pub(crate) fn parse_multi_select_choice(input: syn::parse::ParseStream) -> syn::Result<Self> {
         Choices::parse_impl(input, parse_multi_select_choice)
+    }
+}
+
+impl From<syn::ExprPath> for Choices {
+    fn from(path: syn::ExprPath) -> Self {
+        Self::Expr(path.into())
     }
 }
 
@@ -131,21 +167,51 @@ impl ToTokens for Choice {
         tokens.extend(quote_spanned! {
             elem.span() => ::discourse::#ident(
                 #[allow(clippy::useless_conversion)]
-                #elem.into()
+                ::std::convert::From::from(#elem)
             )
         })
     }
 }
 
 fn make_into(expr: syn::Expr) -> syn::Expr {
-    syn::ExprMethodCall {
+    let mut from_path_segments = syn::punctuated::Punctuated::new();
+
+    from_path_segments.push(syn::PathSegment {
+        ident: syn::Ident::new("std", expr.span()),
+        arguments: syn::PathArguments::None,
+    });
+    from_path_segments.push(syn::PathSegment {
+        ident: syn::Ident::new("convert", expr.span()),
+        arguments: syn::PathArguments::None,
+    });
+    from_path_segments.push(syn::PathSegment {
+        ident: syn::Ident::new("From", expr.span()),
+        arguments: syn::PathArguments::None,
+    });
+    from_path_segments.push(syn::PathSegment {
+        ident: syn::Ident::new("from", expr.span()),
+        arguments: syn::PathArguments::None,
+    });
+
+    syn::ExprCall {
         attrs: Vec::new(),
-        dot_token: syn::token::Dot(expr.span()),
-        method: syn::Ident::new("into", expr.span()),
+        func: Box::new(
+            syn::ExprPath {
+                attrs: Vec::new(),
+                qself: None,
+                path: syn::Path {
+                    leading_colon: Some(syn::token::Colon2(expr.span())),
+                    segments: from_path_segments,
+                },
+            }
+            .into(),
+        ),
         paren_token: syn::token::Paren(expr.span()),
-        turbofish: None,
-        args: syn::punctuated::Punctuated::new(),
-        receiver: Box::new(expr),
+        args: {
+            let mut args = syn::punctuated::Punctuated::new();
+            args.push(expr);
+            args
+        },
     }
     .into()
 }

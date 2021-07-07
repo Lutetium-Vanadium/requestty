@@ -2,7 +2,7 @@ use std::fmt;
 
 use proc_macro2::TokenStream;
 use quote::{quote, quote_spanned};
-use syn::{parse::Parse, spanned::Spanned, Token};
+use syn::{parse::Parse, spanned::Spanned};
 
 use crate::helpers::*;
 
@@ -174,49 +174,42 @@ impl Default for QuestionOpts {
     }
 }
 
-/// Checks if a _valid_ ident is disallowed
-fn check_disallowed(
-    ident: &syn::Ident,
-    kind: QuestionKind,
-    allowed: BuilderMethods,
-) -> syn::Result<()> {
-    #[rustfmt::skip]
-    fn disallowed(ident: &syn::Ident, allowed: BuilderMethods) -> bool {
-         (ident == "default" &&
-          !allowed.contains(BuilderMethods::DEFAULT)) ||
-
-        ((ident == "transform") &&
-          !allowed.contains(BuilderMethods::TRANSFORM)) ||
-
-        ((ident == "validate" ||
-          ident == "filter") &&
-          !allowed.contains(BuilderMethods::VAL_FIL)) ||
-
-        ((ident == "auto_complete") &&
-          !allowed.contains(BuilderMethods::AUTO_COMPLETE)) ||
-
-        ((ident == "choices" ||
-          ident == "page_size" ||
-          ident == "should_loop") &&
-          !allowed.contains(BuilderMethods::LIST)) ||
-
-         (ident == "mask" &&
-          !allowed.contains(BuilderMethods::MASK)) ||
-
-         (ident == "extension" &&
-          !allowed.contains(BuilderMethods::EXTENSION)) ||
-
-         (ident == "plugin" &&
-          !allowed.contains(BuilderMethods::PLUGIN))
+fn check_allowed(ident: &syn::Ident, kind: QuestionKind) -> syn::Result<()> {
+    // default options which are always there
+    if ident == "name" || ident == "message" || ident == "when" || ident == "ask_if_answered" {
+        return Ok(());
     }
 
-    if disallowed(ident, allowed) {
+    let builder_method = if ident == "default" {
+        BuilderMethods::DEFAULT
+    } else if ident == "transform" {
+        BuilderMethods::TRANSFORM
+    } else if ident == "validate" || ident == "filter" {
+        BuilderMethods::VAL_FIL
+    } else if ident == "auto_complete" {
+        BuilderMethods::AUTO_COMPLETE
+    } else if ident == "choices" || ident == "page_size" || ident == "should_loop" {
+        BuilderMethods::LIST
+    } else if ident == "mask" {
+        BuilderMethods::MASK
+    } else if ident == "extension" {
+        BuilderMethods::EXTENSION
+    } else if ident == "plugin" {
+        BuilderMethods::PLUGIN
+    } else {
+        return Err(syn::Error::new(
+            ident.span(),
+            format!("unknown question option `{}`", ident),
+        ));
+    };
+
+    if kind.get_builder_methods().contains(builder_method) {
+        Ok(())
+    } else {
         Err(syn::Error::new(
             ident.span(),
             format!("option `{}` does not exist for kind `{}`", ident, kind),
         ))
-    } else {
-        Ok(())
     }
 }
 
@@ -235,18 +228,11 @@ impl Parse for Question {
         let mut opts = QuestionOpts::default();
         let mut name = None;
 
-        let allowed_methods = kind.get_builder_methods();
-
         while !content.is_empty() {
             let ident = content.parse::<syn::Ident>()?;
 
-            content.parse::<Token![:]>()?;
+            check_allowed(&ident, kind)?;
 
-            // it is not an issue if ident doesn't correspond to valid option
-            // since check_allowed only checks if valid idents are disallowed
-            check_disallowed(&ident, kind, allowed_methods)?;
-
-            // default options which are always there
             if ident == "name" {
                 insert_non_dup(ident, &mut name, &content)?;
             } else if ident == "message" {
@@ -255,45 +241,35 @@ impl Parse for Question {
                 insert_non_dup(ident, &mut opts.when, &content)?;
             } else if ident == "ask_if_answered" {
                 insert_non_dup(ident, &mut opts.ask_if_answered, &content)?;
+            } else if ident == "default" {
+                insert_non_dup(ident, &mut opts.default, &content)?;
+            } else if ident == "validate" {
+                insert_non_dup(ident, &mut opts.validate, &content)?;
+            } else if ident == "filter" {
+                insert_non_dup(ident, &mut opts.filter, &content)?;
+            } else if ident == "transform" {
+                insert_non_dup(ident, &mut opts.transform, &content)?;
+            } else if ident == "auto_complete" {
+                insert_non_dup(ident, &mut opts.auto_complete, &content)?;
+            } else if ident == "choices" {
+                let parser = match kind {
+                    QuestionKind::MultiSelect => Choices::parse_multi_select_choice,
+                    _ => Choices::parse_choice,
+                };
+
+                insert_non_dup_parse(ident, &mut opts.choices, &content, parser)?;
+            } else if ident == "page_size" {
+                insert_non_dup(ident, &mut opts.page_size, &content)?;
+            } else if ident == "should_loop" {
+                insert_non_dup(ident, &mut opts.should_loop, &content)?;
+            } else if ident == "mask" {
+                insert_non_dup(ident, &mut opts.mask, &content)?;
+            } else if ident == "extension" {
+                insert_non_dup(ident, &mut opts.extension, &content)?;
+            } else if ident == "plugin" {
+                insert_non_dup(ident, &mut opts.plugin, &content)?;
             } else {
-                // the rest may or may not be there, so must be checked
-                // it is not an issue if ident doesn't correspond to valid option
-                // since check_allowed only checks if valid idents are disallowed
-                check_disallowed(&ident, kind, allowed_methods)?;
-
-                if ident == "default" {
-                    insert_non_dup(ident, &mut opts.default, &content)?;
-                } else if ident == "validate" {
-                    insert_non_dup(ident, &mut opts.validate, &content)?;
-                } else if ident == "filter" {
-                    insert_non_dup(ident, &mut opts.filter, &content)?;
-                } else if ident == "transform" {
-                    insert_non_dup(ident, &mut opts.transform, &content)?;
-                } else if ident == "auto_complete" {
-                    insert_non_dup(ident, &mut opts.auto_complete, &content)?;
-                } else if ident == "choices" {
-                    let parser = match kind {
-                        QuestionKind::MultiSelect => Choices::parse_multi_select_choice,
-                        _ => Choices::parse_choice,
-                    };
-
-                    insert_non_dup_parse(ident, &mut opts.choices, &content, parser)?;
-                } else if ident == "page_size" {
-                    insert_non_dup(ident, &mut opts.page_size, &content)?;
-                } else if ident == "should_loop" {
-                    insert_non_dup(ident, &mut opts.should_loop, &content)?;
-                } else if ident == "mask" {
-                    insert_non_dup(ident, &mut opts.mask, &content)?;
-                } else if ident == "extension" {
-                    insert_non_dup(ident, &mut opts.extension, &content)?;
-                } else if ident == "plugin" {
-                    insert_non_dup(ident, &mut opts.plugin, &content)?;
-                } else {
-                    return Err(syn::Error::new(
-                        ident.span(),
-                        format!("unknown question option `{}`", ident),
-                    ));
-                }
+                unreachable!("check_allowed should have taken care of this case.");
             }
 
             if parse_optional_comma(&content)?.is_none() {

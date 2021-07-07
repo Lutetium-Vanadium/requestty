@@ -23,7 +23,7 @@ impl Runner {
 }
 
 #[test]
-#[ignore]
+#[ignore = "proc-macro test"]
 fn test_duplicate() {
     let t = Runner::new("duplicate");
     t.compile_fail("name");
@@ -44,7 +44,7 @@ fn test_duplicate() {
 }
 
 #[test]
-#[ignore]
+#[ignore = "proc-macro test"]
 fn test_unknown() {
     let t = Runner::new("unknown");
     t.compile_fail("kind");
@@ -52,7 +52,7 @@ fn test_unknown() {
 }
 
 #[test]
-#[ignore]
+#[ignore = "proc-macro test"]
 fn test_missing() {
     let t = Runner::new("missing");
     t.compile_fail("name");
@@ -60,7 +60,16 @@ fn test_missing() {
 }
 
 #[test]
-#[ignore]
+#[ignore = "proc-macro test"]
+fn test_from_local_variable() {
+    let t = Runner::new("local_variable");
+    t.pass("valid");
+    t.compile_fail("not_found");
+    t.compile_fail("unexpected_token");
+}
+
+#[test]
+#[ignore = "proc-macro test"]
 fn test_multi_select() {
     let t = Runner::new("multi_select");
 
@@ -74,7 +83,7 @@ fn test_multi_select() {
 }
 
 #[test]
-#[ignore]
+#[ignore = "proc-macro test"]
 fn test_confirm() {
     let t = Runner::new("confirm");
 
@@ -91,7 +100,7 @@ fn test_confirm() {
 }
 
 #[test]
-#[ignore]
+#[ignore = "proc-macro test"]
 fn test_editor() {
     let t = Runner::new("editor");
 
@@ -105,7 +114,7 @@ fn test_editor() {
 }
 
 #[test]
-#[ignore]
+#[ignore = "proc-macro test"]
 fn test_expand() {
     let t = Runner::new("expand");
 
@@ -119,7 +128,7 @@ fn test_expand() {
 }
 
 #[test]
-#[ignore]
+#[ignore = "proc-macro test"]
 fn test_float() {
     let t = Runner::new("float");
 
@@ -134,7 +143,7 @@ fn test_float() {
 }
 
 #[test]
-#[ignore]
+#[ignore = "proc-macro test"]
 fn test_input() {
     let t = Runner::new("input");
 
@@ -148,7 +157,7 @@ fn test_input() {
 }
 
 #[test]
-#[ignore]
+#[ignore = "proc-macro test"]
 fn test_int() {
     let t = Runner::new("int");
 
@@ -163,7 +172,7 @@ fn test_int() {
 }
 
 #[test]
-#[ignore]
+#[ignore = "proc-macro test"]
 fn test_select() {
     let t = Runner::new("select");
 
@@ -177,7 +186,7 @@ fn test_select() {
 }
 
 #[test]
-#[ignore]
+#[ignore = "proc-macro test"]
 fn test_password() {
     let t = Runner::new("password");
 
@@ -192,7 +201,7 @@ fn test_password() {
 }
 
 #[test]
-#[ignore]
+#[ignore = "proc-macro test"]
 fn test_plugin() {
     let t = Runner::new("plugin");
 
@@ -210,7 +219,7 @@ fn test_plugin() {
 }
 
 #[test]
-#[ignore]
+#[ignore = "proc-macro test"]
 fn test_raw_select() {
     let t = Runner::new("raw_select");
 

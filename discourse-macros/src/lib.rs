@@ -1,3 +1,9 @@
+//! This crate is the declaration of the [`questions!`] macro. It should not be used directly. Use
+//! [`discourse`] instead.
+//!
+//! [`discourse`]: https://github.com/lutetium-vanadium/discourse
+// TODO: [`discourse`]: https://crates.io/crates/discourse
+
 extern crate proc_macro;
 use proc_macro::TokenStream;
 
