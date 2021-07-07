@@ -1,9 +1,9 @@
-mod checkbox;
 mod choice;
 mod confirm;
 mod editor;
 mod expand;
 mod input;
+mod multi_select;
 mod number;
 mod select;
 #[macro_use]
@@ -12,11 +12,11 @@ mod password;
 mod plugin;
 mod raw_select;
 
-pub use checkbox::CheckboxBuilder;
 pub use confirm::ConfirmBuilder;
 pub use editor::EditorBuilder;
 pub use expand::ExpandBuilder;
 pub use input::InputBuilder;
+pub use multi_select::MultiSelectBuilder;
 pub use number::{FloatBuilder, IntBuilder};
 pub use password::PasswordBuilder;
 pub use plugin::PluginBuilder;
@@ -74,8 +74,8 @@ impl Question<'static> {
         ExpandBuilder::new(name.into())
     }
 
-    pub fn checkbox<N: Into<String>>(name: N) -> CheckboxBuilder<'static> {
-        CheckboxBuilder::new(name.into())
+    pub fn multi_select<N: Into<String>>(name: N) -> MultiSelectBuilder<'static> {
+        MultiSelectBuilder::new(name.into())
     }
 
     pub fn password<N: Into<String>>(name: N) -> PasswordBuilder<'static> {
@@ -104,7 +104,7 @@ enum QuestionKind<'a> {
     Select(select::Select<'a>),
     RawSelect(raw_select::RawSelect<'a>),
     Expand(expand::Expand<'a>),
-    Checkbox(checkbox::Checkbox<'a>),
+    MultiSelect(multi_select::MultiSelect<'a>),
     Password(password::Password<'a>),
     Editor(editor::Editor<'a>),
     Plugin(Box<dyn PluginInteral + 'a>),
@@ -138,7 +138,7 @@ impl Question<'_> {
             QuestionKind::Select(l) => l.ask(message, answers, b, events)?,
             QuestionKind::RawSelect(r) => r.ask(message, answers, b, events)?,
             QuestionKind::Expand(e) => e.ask(message, answers, b, events)?,
-            QuestionKind::Checkbox(c) => c.ask(message, answers, b, events)?,
+            QuestionKind::MultiSelect(c) => c.ask(message, answers, b, events)?,
             QuestionKind::Password(p) => p.ask(message, answers, b, events)?,
             QuestionKind::Editor(e) => e.ask(message, answers, b, events)?,
             QuestionKind::Plugin(ref mut o) => o.ask(message, answers, b, events)?,

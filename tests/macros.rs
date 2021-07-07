@@ -61,8 +61,8 @@ fn test_missing() {
 
 #[test]
 #[ignore]
-fn test_checkbox() {
-    let t = Runner::new("checkbox");
+fn test_multi_select() {
+    let t = Runner::new("multi_select");
 
     t.pass("valid");
     t.compile_fail("default");

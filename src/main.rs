@@ -86,8 +86,8 @@ fn main() {
         ],
 
         Some("c") => vec![
-            Question::checkbox("a")
-                .message("checkbox 1")
+            Question::multi_select("a")
+                .message("multi select 1")
                 .choice_with_default("0", true)
                 .default_separator()
                 .choices_with_default(vec![
@@ -97,8 +97,8 @@ fn main() {
                 ])
                 .separator("== Hello separator")
                 .into(),
-            Question::checkbox("b")
-                .message("checkbox 2")
+            Question::multi_select("b")
+                .message("multi select 2")
                 .choices(vec![
                     Separator("=== TITLE BOI ===".into()),
                     "hello worldssssss 1\nMulti-line description about it".into(),

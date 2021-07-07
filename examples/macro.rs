@@ -56,7 +56,7 @@ fn main() {
                 ('w', "Hawaiian"),
             ],
         },
-        Checkbox {
+        MultiSelect {
             name: "toppings",
             message: "Select toppings",
             when: |answers: &discourse::Answers| {
@@ -72,7 +72,7 @@ fn main() {
                 "Ground Meat",
                 "Bacon",
                 separator " = The Cheeses = ",
-                // Use `<choice> default <value>` to give default value (only for Checkbox)
+                // Use `<choice> default <value>` to give default value (only for MultiSelect)
                 "Mozzarella" default true,
                 "Cheddar",
                 "Parmesan",

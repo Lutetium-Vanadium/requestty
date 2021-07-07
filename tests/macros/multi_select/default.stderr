@@ -1,0 +1,5 @@
+error: option `default` does not exist for kind `multi_select`
+ --> $DIR/default.rs:2:41
+  |
+2 |     discourse::questions![MultiSelect { default: todo!() }];
+  |                                         ^^^^^^^

@@ -67,8 +67,8 @@ impl Choices {
         Choices::parse_impl(input, Choice::parse)
     }
 
-    pub(crate) fn parse_checkbox_choice(input: syn::parse::ParseStream) -> syn::Result<Self> {
-        Choices::parse_impl(input, parse_checkbox_choice)
+    pub(crate) fn parse_multi_select_choice(input: syn::parse::ParseStream) -> syn::Result<Self> {
+        Choices::parse_impl(input, parse_multi_select_choice)
     }
 }
 
@@ -150,13 +150,13 @@ fn make_into(expr: syn::Expr) -> syn::Expr {
     .into()
 }
 
-// For checkbox, defaults can be given for each option, this method, takes option
+// For multi_select, defaults can be given for each option, this method, takes option
 // (`choice`), and the default value to put (`default`), and produces the following as
 // an `Expr`:
 // ```
 // (choice.into(), default.into())`
 // ```
-fn make_checkbox_tuple(choice: syn::Expr, default: syn::Expr) -> syn::Expr {
+fn make_multi_select_tuple(choice: syn::Expr, default: syn::Expr) -> syn::Expr {
     let paren_token = syn::token::Paren(
         choice
             .span()
@@ -176,17 +176,17 @@ fn make_checkbox_tuple(choice: syn::Expr, default: syn::Expr) -> syn::Expr {
     .into()
 }
 
-fn parse_checkbox_choice(input: syn::parse::ParseStream) -> syn::Result<Choice> {
+fn parse_multi_select_choice(input: syn::parse::ParseStream) -> syn::Result<Choice> {
     let choice = input.parse()?;
 
     let choice = match choice {
         Choice::Choice(choice) if input.peek(Token![default]) => {
             input.parse::<Token![default]>()?;
-            Choice::Choice(make_checkbox_tuple(choice, input.parse()?))
+            Choice::Choice(make_multi_select_tuple(choice, input.parse()?))
         }
         Choice::Choice(choice) => {
             let span = choice.span();
-            Choice::Choice(make_checkbox_tuple(
+            Choice::Choice(make_multi_select_tuple(
                 choice,
                 syn::ExprLit {
                     lit: syn::LitBool { value: false, span }.into(),

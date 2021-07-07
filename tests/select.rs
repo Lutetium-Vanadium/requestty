@@ -26,13 +26,13 @@ fn choices(len: usize) -> impl Iterator<Item = Choice<String>> {
 
 #[test]
 fn test_transform() {
-    let checkbox = discourse::Question::select("name")
+    let select = discourse::Question::select("name")
         .transform(|item, _, b| {
             b.set_fg(ui::style::Color::Magenta)?;
             write!(b, "{}: {}", item.index, item.name)?;
             b.set_fg(ui::style::Color::Reset)
         })
-        .message("checkbox")
+        .message("select")
         .choices(choices(10));
 
     let size = (50, 20).into();
@@ -43,7 +43,7 @@ fn test_transform() {
         KeyCode::Enter.into(),
     ]);
 
-    let ans = discourse::prompt_one_with(checkbox, &mut backend, &mut events)
+    let ans = discourse::prompt_one_with(select, &mut backend, &mut events)
         .unwrap()
         .try_into_list_item()
         .unwrap();

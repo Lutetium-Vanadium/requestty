@@ -1,5 +1,0 @@
-error: option `extension` does not exist for kind `checkbox`
- --> $DIR/extension.rs:2:46
-  |
-2 |     let q = discourse::questions![Checkbox { extension: todo!() }];
-  |                                              ^^^^^^^^^

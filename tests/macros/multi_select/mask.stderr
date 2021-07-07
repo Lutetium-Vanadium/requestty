@@ -1,0 +1,5 @@
+error: option `mask` does not exist for kind `multi_select`
+ --> $DIR/mask.rs:2:49
+  |
+2 |     let q = discourse::questions![MultiSelect { mask: todo!() }];
+  |                                                 ^^^^

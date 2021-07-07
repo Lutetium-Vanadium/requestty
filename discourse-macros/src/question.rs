@@ -28,7 +28,7 @@ pub(crate) enum QuestionKind {
     Select,
     RawSelect,
     Expand,
-    Checkbox,
+    MultiSelect,
     Password,
     Editor,
     Plugin,
@@ -44,7 +44,7 @@ impl QuestionKind {
             QuestionKind::Select => "select",
             QuestionKind::RawSelect => "raw_select",
             QuestionKind::Expand => "expand",
-            QuestionKind::Checkbox => "checkbox",
+            QuestionKind::MultiSelect => "multi_select",
             QuestionKind::Password => "password",
             QuestionKind::Editor => "editor",
             QuestionKind::Plugin => "plugin",
@@ -66,7 +66,7 @@ impl QuestionKind {
             QuestionKind::Select | QuestionKind::RawSelect | QuestionKind::Expand => {
                 BuilderMethods::DEFAULT | BuilderMethods::TRANSFORM | BuilderMethods::LIST
             }
-            QuestionKind::Checkbox => {
+            QuestionKind::MultiSelect => {
                 BuilderMethods::TRANSFORM | BuilderMethods::VAL_FIL | BuilderMethods::LIST
             }
             QuestionKind::Password => {
@@ -101,8 +101,8 @@ impl Parse for QuestionKind {
             QuestionKind::RawSelect
         } else if ident == "Expand" {
             QuestionKind::Expand
-        } else if ident == "Checkbox" {
-            QuestionKind::Checkbox
+        } else if ident == "MultiSelect" {
+            QuestionKind::MultiSelect
         } else if ident == "Password" {
             QuestionKind::Password
         } else if ident == "Editor" {
@@ -273,7 +273,7 @@ impl Parse for Question {
                     insert_non_dup(ident, &mut opts.auto_complete, &content)?;
                 } else if ident == "choices" {
                     let parser = match kind {
-                        QuestionKind::Checkbox => Choices::parse_checkbox_choice,
+                        QuestionKind::MultiSelect => Choices::parse_multi_select_choice,
                         _ => Choices::parse_choice,
                     };
 
@@ -381,7 +381,7 @@ impl quote::ToTokens for Question {
         }
         if let Some(ref choices) = self.opts.choices {
             tokens.extend(match self.kind {
-                QuestionKind::Checkbox => {
+                QuestionKind::MultiSelect => {
                     quote_spanned! { choices.span() => .choices_with_default(#choices) }
                 }
                 _ => quote_spanned! { choices.span() => .choices(#choices) },

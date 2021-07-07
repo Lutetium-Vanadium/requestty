@@ -1,5 +1,0 @@
-error: option `default` does not exist for kind `checkbox`
- --> $DIR/default.rs:2:38
-  |
-2 |     discourse::questions![Checkbox { default: todo!() }];
-  |                                      ^^^^^^^

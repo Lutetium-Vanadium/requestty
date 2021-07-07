@@ -51,7 +51,7 @@ fn main() -> discourse::Result<()> {
             .choice('a', "All dressed")
             .choice('w', "Hawaiian")
             .build(),
-        Question::checkbox("toppings")
+        Question::multi_select("toppings")
             .message("Select toppings")
             .when(|answers: &discourse::Answers| answers["custom_toppings"].as_bool().unwrap())
             .separator(" = The Meats = ")
