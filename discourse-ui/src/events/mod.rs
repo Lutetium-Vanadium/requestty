@@ -2,13 +2,16 @@
 
 use std::io;
 
-#[cfg(feature = "termion")]
-use std::io::{stdin, Stdin};
-
 #[cfg(feature = "crossterm")]
 mod crossterm;
 #[cfg(feature = "termion")]
 mod termion;
+
+#[cfg(feature = "crossterm")]
+pub use self::crossterm::CrosstermEvents;
+
+#[cfg(feature = "termion")]
+pub use self::termion::TermionEvents;
 
 mod keys;
 mod movement;
@@ -16,60 +19,23 @@ mod movement;
 pub use keys::{KeyCode, KeyEvent, KeyModifiers};
 pub use movement::Movement;
 
-/// An iterator over the input keys
-#[allow(missing_debug_implementations)]
-pub struct Events {
-    #[cfg(feature = "termion")]
-    events: ::termion::input::Keys<Stdin>,
-}
+/// Gets the default [`EventIterator`] based on the features enabled.
+pub fn get_events() -> impl EventIterator {
+    #[cfg(feature = "crossterm")]
+    return CrosstermEvents::new();
 
-impl Events {
-    #[cfg(feature = "termion")]
-    /// Creates a new [`Events`] using stdin
-    pub fn new() -> Self {
-        #[rustfmt::skip]
-        use ::termion::input::TermRead;
-
-        Self {
-            events: stdin().keys(),
-        }
-    }
-
-    #[cfg(not(feature = "termion"))]
-    /// Creates a new [`Events`]
-    pub fn new() -> Self {
-        Self {}
-    }
+    // XXX: Only works when crossterm and termion are the only two available backends
+    //
+    // Instead of directly checking for termion, we check for not crossterm so that compiling
+    // (documentation) with both features enabled will not error
+    #[cfg(not(feature = "crossterm"))]
+    return TermionEvents::new();
 }
 
 /// A trait to represent a source of [`KeyEvent`]s.
 pub trait EventIterator {
     /// Get the next event
     fn next_event(&mut self) -> io::Result<KeyEvent>;
-}
-
-impl Default for Events {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-impl EventIterator for Events {
-    #[cfg(feature = "crossterm")]
-    fn next_event(&mut self) -> io::Result<KeyEvent> {
-        self::crossterm::next_event()
-    }
-
-    #[cfg(feature = "termion")]
-    fn next_event(&mut self) -> io::Result<KeyEvent> {
-        self::termion::next_event(&mut self.events)
-    }
-
-    // `cargo doc` fails if this doesn't exist
-    #[cfg(all(not(feature = "crossterm"), not(feature = "termion")))]
-    fn next_event(&mut self) -> io::Result<KeyEvent> {
-        unimplemented!()
-    }
 }
 
 /// A simple wrapper around a [`KeyEvent`] iterator that can be used in tests.

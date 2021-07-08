@@ -2,12 +2,16 @@
 
 use std::{fmt::Display, io};
 
-/// Gets the default backend based on the features enabled.
+/// Gets the default [`Backend`] based on the features enabled.
 pub fn get_backend<W: io::Write>(buf: W) -> io::Result<impl Backend> {
     #[cfg(feature = "crossterm")]
     return Ok(CrosstermBackend::new(buf));
 
-    #[cfg(feature = "termion")]
+    // XXX: Only works when crossterm and termion are the only two available backends
+    //
+    // Instead of directly checking for termion, we check for not crossterm so that compiling
+    // (documentation) with both features enabled will not error
+    #[cfg(not(feature = "crossterm"))]
     return TermionBackend::new(buf);
 }
 

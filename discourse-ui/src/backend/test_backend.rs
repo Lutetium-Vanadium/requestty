@@ -500,7 +500,11 @@ mod display_ops {
     }
 }
 
-#[cfg(feature = "termion")]
+// XXX: Only works when crossterm and termion are the only two available backends
+//
+// Instead of directly checking for termion, we check for not crossterm so that compiling
+// (documentation) with both features enabled will not error
+#[cfg(not(feature = "crossterm"))]
 mod display_ops {
     use std::io::{self, Write};
 

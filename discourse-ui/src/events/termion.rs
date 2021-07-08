@@ -1,13 +1,57 @@
 use std::{
     convert::{TryFrom, TryInto},
-    io::{self, Stdin},
+    fmt,
+    io::{self, stdin, Stdin},
 };
 
-use termion::{event, input};
+use termion::{
+    event,
+    input::{self, TermRead},
+};
 
-pub(super) fn next_event(events: &mut input::Keys<Stdin>) -> io::Result<super::KeyEvent> {
-    let e = events.next().unwrap()?;
-    e.try_into()
+use super::EventIterator;
+
+/// An iterator over the input keys using the `termion` crate
+pub struct TermionEvents {
+    events: input::Keys<Stdin>,
+}
+
+struct Dash;
+
+impl fmt::Debug for Dash {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str("_")
+    }
+}
+
+impl fmt::Debug for TermionEvents {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("TermionEvents")
+            .field("events", &Dash)
+            .finish()
+    }
+}
+
+impl TermionEvents {
+    /// Creates a new `TermionEvents` using stdin
+    pub fn new() -> Self {
+        Self {
+            events: stdin().keys(),
+        }
+    }
+}
+
+impl Default for TermionEvents {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl EventIterator for TermionEvents {
+    fn next_event(&mut self) -> io::Result<super::KeyEvent> {
+        let e = self.events.next().unwrap()?;
+        e.try_into()
+    }
 }
 
 impl TryFrom<event::Key> for super::KeyEvent {

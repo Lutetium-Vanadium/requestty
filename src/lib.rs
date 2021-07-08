@@ -189,7 +189,7 @@ where
         let stdout = std::io::stdout();
         let mut stdout = backend::get_backend(stdout.lock())?;
 
-        self.prompt_with(&mut stdout, &mut events::Events::new())
+        self.prompt_with(&mut stdout, &mut events::get_events())
     }
 
     pub fn prompt_all_with<B, E>(mut self, backend: &mut B, events: &mut E) -> Result<Answers>
@@ -207,7 +207,7 @@ where
     pub fn prompt_all(self) -> Result<Answers> {
         let stdout = std::io::stdout();
         let mut stdout = backend::get_backend(stdout.lock())?;
-        let mut events = events::Events::new();
+        let mut events = events::get_events();
 
         self.prompt_all_with(&mut stdout, &mut events)
     }

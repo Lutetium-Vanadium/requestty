@@ -1,9 +1,24 @@
 use crossterm::event;
 
-pub(super) fn next_event() -> std::io::Result<super::KeyEvent> {
-    loop {
-        if let event::Event::Key(k) = event::read()? {
-            return Ok(k.into());
+use super::EventIterator;
+
+/// An iterator over the input keys using the `crossterm` crate
+#[derive(Debug, Default)]
+pub struct CrosstermEvents {}
+
+impl CrosstermEvents {
+    /// Creates a new `CrosstermEvents`
+    pub fn new() -> Self {
+        Self {}
+    }
+}
+
+impl EventIterator for CrosstermEvents {
+    fn next_event(&mut self) -> std::io::Result<super::KeyEvent> {
+        loop {
+            if let event::Event::Key(k) = event::read()? {
+                return Ok(k.into());
+            }
         }
     }
 }

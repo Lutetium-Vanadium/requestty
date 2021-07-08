@@ -77,7 +77,11 @@ pub mod features {
     #[cfg(feature = "crossterm")]
     pub const SNAPSHOT_PATH: &str = "crossterm-snapshots";
 
-    #[cfg(feature = "termion")]
+    // XXX: Only works when crossterm and termion are the only two available backends
+    //
+    // Instead of directly checking for termion, we check for not crossterm so that compiling
+    // (documentation) with both features enabled will not error
+    #[cfg(not(feature = "crossterm"))]
     pub const SNAPSHOT_PATH: &str = "termion-snapshots";
 }
 
