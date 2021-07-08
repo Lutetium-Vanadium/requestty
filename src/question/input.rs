@@ -139,7 +139,7 @@ impl Prompt for InputPrompt<'_, '_> {
         let mut ans = self
             .input
             .finish()
-            .unwrap_or_else(|| prompt.into_hint().unwrap());
+            .unwrap_or_else(|| prompt.into_hint().unwrap_or_else(String::new));
 
         if let Filter::Sync(filter) = self.input_opts.filter {
             ans = filter(ans, self.answers);

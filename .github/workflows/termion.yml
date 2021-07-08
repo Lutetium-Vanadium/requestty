@@ -39,17 +39,6 @@ jobs:
             os: macOS-latest
             rust: stable
 
-          # latest rust stable :: windows + gnu
-          - build: win-gnu
-            os: windows-latest
-            rust: stable-x86_64-gnu
-
-          # latest rust stable :: windows + msvc
-          - build: win-msvc
-            os: windows-latest
-            rust: stable
-
-
     steps:
       # checkout
       - name: checkout_repository

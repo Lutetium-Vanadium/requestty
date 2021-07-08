@@ -234,7 +234,10 @@ impl<'a> MultiSelectBuilder<'a> {
     }
 
     pub fn default_separator(mut self) -> Self {
-        self.multi_select.choices.choices.push(Choice::DefaultSeparator);
+        self.multi_select
+            .choices
+            .choices
+            .push(Choice::DefaultSeparator);
         self.multi_select.selected.push(false);
         self
     }
@@ -295,7 +298,10 @@ impl<'a> MultiSelectBuilder<'a> {
                     self.multi_select.selected.push(false);
                 }
                 Choice::DefaultSeparator => {
-                    self.multi_select.choices.choices.push(Choice::DefaultSeparator);
+                    self.multi_select
+                        .choices
+                        .choices
+                        .push(Choice::DefaultSeparator);
                     self.multi_select.selected.push(false);
                 }
             }
@@ -319,7 +325,10 @@ impl<'a> MultiSelectBuilder<'a> {
     crate::impl_transform_builder!([ListItem]; multi_select);
 
     pub fn build(self) -> super::Question<'a> {
-        super::Question::new(self.opts, super::QuestionKind::MultiSelect(self.multi_select))
+        super::Question::new(
+            self.opts,
+            super::QuestionKind::MultiSelect(self.multi_select),
+        )
     }
 }
 
