@@ -6,13 +6,86 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  build:
+  test:
+    name: test
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        build: [msrv, stable, beta, nightly, macos, win-gnu, win-msvc]
+        include:
+          # pinned (MSRV) rust version :: ubuntu
+          - build: msrv
+            os: ubuntu-18.04
+            rust: 1.47.0
 
-    runs-on: ubuntu-latest
+          # latest rust stable :: ubuntu
+          - build: stable
+            os: ubuntu-latest
+            rust: stable
+
+          # latest rust beta :: ubuntu
+          - build: beta
+            os: ubuntu-latest
+            rust: beta
+
+          # latest rust nightly :: ubuntu
+          - build: nightly
+            os: ubuntu-latest
+            rust: nightly
+
+          # latest rust stable :: mac_os
+          - build: macos
+            os: macOS-latest
+            rust: stable
+
+          # latest rust stable :: windows + gnu
+          - build: win-gnu
+            os: windows-latest
+            rust: stable-x86_64-gnu
+
+          # latest rust stable :: windows + msvc
+          - build: win-msvc
+            os: windows-latest
+            rust: stable
+
 
     steps:
-    - uses: actions/checkout@v2
-    - name: Run clippy
-      run: cargo clippy --verbose --no-default-features --features=crossterm --bins --examples
-    - name: Run tests
-      run: cargo test --workspace --verbose --no-default-features --features=crossterm -- --include-ignored
+      # checkout
+      - name: checkout_repository
+        uses: actions/checkout@v1
+        with:
+          fetch-depth: 1
+
+      # install: rust
+      - name: install_rust
+        uses: hecrj/setup-rust-action@v1
+        with:
+          rust-version: ${{ matrix.rust }}
+
+      # build / doc / test
+      - name: build_all
+        run: cargo build --verbose --workspace --no-default-features --features=crossterm
+
+      - name: test_all
+        run: cargo test --workspace --verbose --no-default-features --features=crossterm -- --include-ignored
+
+  clippy:
+    name: clippy
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - name: checkout_repo
+        uses: actions/checkout@v2
+      - name: install_rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          override: true
+          profile: minimal
+          components: clippy
+      - name: check_clippy
+        uses: actions-rs/clippy-check@v1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          args: --no-default-features --features=crossterm --workspace --bins --examples
