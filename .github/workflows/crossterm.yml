@@ -67,8 +67,12 @@ jobs:
       - name: build_all
         run: cargo build --verbose --workspace --no-default-features --features=crossterm
 
-      - name: test_all
-        run: cargo test --workspace --verbose --no-default-features --features=crossterm -- --include-ignored
+      # doesn't use --include-ignored as it was unstable in 1.47
+      - name: test_regular
+        run: cargo test --workspace --verbose --no-default-features --features=crossterm
+
+      - name: test_ignored
+        run: cargo test --workspace --verbose --no-default-features --features=crossterm -- --ignored
 
   clippy:
     name: clippy

@@ -12,7 +12,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        build: [msrv, stable, beta, nightly, macos, win-gnu, win-msvc]
+        build: [msrv, stable, beta, nightly, macos]
         include:
           # pinned (MSRV) rust version :: ubuntu
           - build: msrv
@@ -56,8 +56,12 @@ jobs:
       - name: build_all
         run: cargo build --verbose --workspace --no-default-features --features=termion
 
-      - name: test_all
-        run: cargo test --workspace --verbose --no-default-features --features=termion -- --include-ignored
+      # doesn't use --include-ignored as it was unstable in 1.47
+      - name: test_regular
+        run: cargo test --workspace --verbose --no-default-features --features=termion
+
+      - name: test_ignored
+        run: cargo test --workspace --verbose --no-default-features --features=termion -- --ignored
 
   clippy:
     name: clippy
