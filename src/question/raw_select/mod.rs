@@ -16,7 +16,7 @@ mod tests;
 
 // Kind of a bad name
 #[derive(Debug, Default)]
-pub struct RawSelect<'a> {
+pub(super) struct RawSelect<'a> {
     choices: super::ChoiceList<(usize, Text<String>)>,
     transform: Transform<'a, ListItem>,
 }
@@ -214,16 +214,46 @@ impl<'a> RawSelect<'a> {
             &ans,
             answers,
             b,
-            b.write_styled(&ans.name.lines().next().unwrap().cyan())?
+            b.write_styled(
+                &ans.name
+                    .lines()
+                    .next()
+                    .expect("There must be at least one line in a `str`")
+                    .cyan()
+            )?
         );
 
         Ok(Answer::ListItem(ans))
     }
 }
 
+/// The builder for a [`raw_select`] prompt.
+///
+/// See the various methods for more details on each available option.
+///
+/// # Examples
+///
+/// ```
+/// use discourse::{Question, DefaultSeparator};
+///
+/// let raw_select = Question::raw_select("theme")
+///     .message("What do you want to do?")
+///     .choices(vec![
+///         "Order a pizza".into(),
+///         "Make a reservation".into(),
+///         DefaultSeparator,
+///         "Ask for opening hours".into(),
+///         "Contact support".into(),
+///         "Talk to the receptionist".into(),
+///     ])
+///     .build();
+/// ```
+///
+/// [`raw_select`]: crate::question::Question::raw_select
+#[derive(Debug)]
 pub struct RawSelectBuilder<'a> {
     opts: Options<'a>,
-    list: RawSelect<'a>,
+    raw_select: RawSelect<'a>,
     choice_count: usize,
 }
 
@@ -231,32 +261,149 @@ impl<'a> RawSelectBuilder<'a> {
     pub(crate) fn new(name: String) -> Self {
         RawSelectBuilder {
             opts: Options::new(name),
-            list: Default::default(),
+            raw_select: Default::default(),
             // It is one indexed for the user
             choice_count: 1,
         }
     }
 
+    crate::impl_options_builder! {
+    message
+    /// # Examples
+    ///
+    /// ```
+    /// use discourse::Question;
+    ///
+    /// let raw_select = Question::raw_select("theme")
+    ///     .message("What do you want to do?")
+    ///     .build();
+    /// ```
+
+    when
+    /// # Examples
+    ///
+    /// ```
+    /// use discourse::{Question, Answers};
+    ///
+    /// let raw_select = Question::raw_select("theme")
+    ///     .when(|previous_answers: &Answers| match previous_answers.get("use-default-theme") {
+    ///         Some(ans) => ans.as_bool().unwrap(),
+    ///         None => true,
+    ///     })
+    ///     .build();
+    /// ```
+
+    ask_if_answered
+    /// # Examples
+    ///
+    /// ```
+    /// use discourse::{Question, Answers};
+    ///
+    /// let raw_select = Question::raw_select("theme")
+    ///     .ask_if_answered(true)
+    ///     .build();
+    /// ```
+    }
+
+    /// Set a default index for the select
+    ///
+    /// The given index will be hovered in the beginning.
+    ///
+    /// If `default` is unspecified, the first [`Choice`] will be hovered.
+    ///
+    /// # Panics
+    ///
+    /// If the default given is not a [`Choice`], it will cause a panic on [`build`]
+    ///
+    /// [`Choice`]: super::Choice
+    /// [`build`]: Self::build
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use discourse::{Question, DefaultSeparator};
+    ///
+    /// let raw_select = Question::raw_select("theme")
+    ///     .choices(vec![
+    ///         "Order a pizza".into(),
+    ///         "Make a reservation".into(),
+    ///         DefaultSeparator,
+    ///         "Ask for opening hours".into(),
+    ///         "Contact support".into(),
+    ///         "Talk to the receptionist".into(),
+    ///     ])
+    ///     .default(1)
+    ///     .build();
+    /// ```
     pub fn default(mut self, default: usize) -> Self {
-        self.list.choices.set_default(default);
+        self.raw_select.choices.set_default(default);
         self
     }
 
-    pub fn separator<I: Into<String>>(mut self, text: I) -> Self {
-        self.list
-            .choices
-            .choices
-            .push(Choice::Separator(text.into()));
+    /// The maximum height that can be taken by the list
+    ///
+    /// If the total height exceeds the page size, the list will be scrollable.
+    ///
+    /// The `page_size` must be a minimum of 5. If `page_size` is not set, it will default to 15.
+    ///
+    /// # Panics
+    ///
+    /// It will panic if the `page_size` is less than 5.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use discourse::Question;
+    ///
+    /// let raw_select = Question::raw_select("theme")
+    ///     .page_size(10)
+    ///     .build();
+    /// ```
+    pub fn page_size(mut self, page_size: usize) -> Self {
+        assert!(page_size >= 5, "page size can be a minimum of 5");
+
+        self.raw_select.choices.set_page_size(page_size);
         self
     }
 
-    pub fn default_separator(mut self) -> Self {
-        self.list.choices.choices.push(Choice::DefaultSeparator);
+    /// Whether to wrap around when user gets to the last element.
+    ///
+    /// This only applies when the list is scrollable, i.e. page size > total height.
+    ///
+    /// If `should_loop` is not set, it will default to `true`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use discourse::Question;
+    ///
+    /// let raw_select = Question::raw_select("theme")
+    ///     .should_loop(false)
+    ///     .build();
+    /// ```
+    pub fn should_loop(mut self, should_loop: bool) -> Self {
+        self.raw_select.choices.set_should_loop(should_loop);
         self
     }
 
+    /// Inserts a [`Choice`].
+    ///
+    /// See [`raw_select`] for more information.
+    ///
+    /// [`Choice`]: super::Choice::Choice
+    /// [`raw_select`]: super::Question::raw_select
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use discourse::Question;
+    ///
+    /// let raw_select = Question::raw_select("theme")
+    ///     .choice("Order a Pizza")
+    ///     .build();
+    /// ```
     pub fn choice<I: Into<String>>(mut self, choice: I) -> Self {
-        self.list.choices.choices.push(Choice::Choice((
+        self.raw_select.choices.choices.push(Choice::Choice((
             self.choice_count,
             Text::new(choice.into()),
         )));
@@ -264,13 +411,84 @@ impl<'a> RawSelectBuilder<'a> {
         self
     }
 
+    /// Inserts a [`Separator`] with the given text
+    ///
+    /// See [`raw_select`] for more information.
+    ///
+    /// [`Separator`]: super::Choice::Separator
+    /// [`raw_select`]: super::Question::raw_select
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use discourse::Question;
+    ///
+    /// let raw_select = Question::raw_select("theme")
+    ///     .separator("-- custom separator text --")
+    ///     .build();
+    /// ```
+    pub fn separator<I: Into<String>>(mut self, text: I) -> Self {
+        self.raw_select
+            .choices
+            .choices
+            .push(Choice::Separator(text.into()));
+        self
+    }
+
+    /// Inserts a [`DefaultSeparator`]
+    ///
+    /// See [`raw_select`] for more information.
+    ///
+    /// [`DefaultSeparator`]: super::Choice::DefaultSeparator
+    /// [`raw_select`]: super::Question::raw_select
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use discourse::Question;
+    ///
+    /// let raw_select = Question::raw_select("theme")
+    ///     .default_separator()
+    ///     .build();
+    /// ```
+    pub fn default_separator(mut self) -> Self {
+        self.raw_select
+            .choices
+            .choices
+            .push(Choice::DefaultSeparator);
+        self
+    }
+
+    /// Extends the given iterator of [`Choice`]s
+    ///
+    /// See [`raw_select`] for more information.
+    ///
+    /// [`Choice`]: super::Choice
+    /// [`raw_select`]: super::Question::raw_select
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use discourse::{Question, DefaultSeparator};
+    ///
+    /// let raw_select = Question::raw_select("theme")
+    ///     .choices(vec![
+    ///         "Order a pizza".into(),
+    ///         "Make a reservation".into(),
+    ///         DefaultSeparator,
+    ///         "Ask for opening hours".into(),
+    ///         "Contact support".into(),
+    ///         "Talk to the receptionist".into(),
+    ///     ])
+    ///     .build();
+    /// ```
     pub fn choices<I, T>(mut self, choices: I) -> Self
     where
         T: Into<Choice<String>>,
         I: IntoIterator<Item = T>,
     {
         let choice_count = &mut self.choice_count;
-        self.list
+        self.raw_select
             .choices
             .choices
             .extend(choices.into_iter().map(|choice| {
@@ -283,25 +501,33 @@ impl<'a> RawSelectBuilder<'a> {
         self
     }
 
-    pub fn page_size(mut self, page_size: usize) -> Self {
-        self.list.choices.set_page_size(page_size);
-        self
+    crate::impl_transform_builder! {
+    /// # Examples
+    ///
+    /// ```
+    /// use discourse::Question;
+    ///
+    /// let raw_select = Question::raw_select("theme")
+    ///     .transform(|choice, previous_answers, backend| {
+    ///         write!(backend, "({}) {}", choice.index, choice.name)
+    ///     })
+    ///     .build();
+    /// ```
+    ListItem; raw_select
     }
 
-    pub fn should_loop(mut self, should_loop: bool) -> Self {
-        self.list.choices.set_should_loop(should_loop);
-        self
-    }
-
-    crate::impl_options_builder!();
-    crate::impl_transform_builder!(ListItem; list);
-
+    /// Consumes the builder returning a [`Question`]
+    ///
+    /// [`Question`]: crate::question::Question
     pub fn build(self) -> super::Question<'a> {
-        super::Question::new(self.opts, super::QuestionKind::RawSelect(self.list))
+        super::Question::new(self.opts, super::QuestionKind::RawSelect(self.raw_select))
     }
 }
 
 impl<'a> From<RawSelectBuilder<'a>> for super::Question<'a> {
+    /// Consumes the builder returning a [`Question`]
+    ///
+    /// [`Question`]: crate::question::Question
     fn from(builder: RawSelectBuilder<'a>) -> Self {
         builder.build()
     }

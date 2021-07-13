@@ -14,7 +14,7 @@ use super::{Filter, Options, Transform, Validate};
 use crate::{Answer, Answers};
 
 #[derive(Debug)]
-pub struct Editor<'a> {
+pub(super) struct Editor<'a> {
     extension: Option<String>,
     default: Option<String>,
     editor: OsString,
@@ -180,6 +180,27 @@ impl Editor<'_> {
     }
 }
 
+/// The builder for the [`editor`] prompt.
+///
+/// Once the user exits their editor, the contents of the temporary file are read in as the
+/// result. The editor to use is determined by the `$VISUAL` or `$EDITOR` environment variables.
+/// If neither of those are present, `vim` (for unix) or `notepad` (for windows) is used.
+///
+/// See the various methods for more details on each available option.
+///
+/// # Examples
+///
+/// ```
+/// use discourse::Question;
+///
+/// let editor = Question::editor("description")
+///     .message("Please enter a short description about yourself")
+///     .extension(".md")
+///     .build();
+/// ```
+///
+/// [`editor`]: crate::question::Question::editor
+#[derive(Debug)]
 pub struct EditorBuilder<'a> {
     opts: Options<'a>,
     editor: Editor<'a>,
@@ -193,28 +214,144 @@ impl<'a> EditorBuilder<'a> {
         }
     }
 
+    crate::impl_options_builder! {
+    message
+    /// # Examples
+    ///
+    /// ```
+    /// use discourse::Question;
+    ///
+    /// let editor = Question::editor("description")
+    ///     .message("Please enter a short description about yourself")
+    ///     .build();
+    /// ```
+
+    when
+    /// # Examples
+    ///
+    /// ```
+    /// use discourse::{Question, Answers};
+    ///
+    /// let editor = Question::editor("description")
+    ///     .when(|previous_answers: &Answers| match previous_answers.get("anonymous") {
+    ///         Some(ans) => !ans.as_bool().unwrap(),
+    ///         None => true,
+    ///     })
+    ///     .build();
+    /// ```
+
+    ask_if_answered
+    /// # Examples
+    ///
+    /// ```
+    /// use discourse::{Question, Answers};
+    ///
+    /// let editor = Question::editor("description")
+    ///     .ask_if_answered(true)
+    ///     .build();
+    /// ```
+    }
+
+    /// Set a default value for the file
+    ///
+    /// If set, when the user first opens the file, it will contain the `default` value. Subsequent
+    /// times will contain what was last written.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use discourse::Question;
+    ///
+    /// let editor = Question::editor("description")
+    ///     .default("My name is ")
+    ///     .build();
+    /// ```
     pub fn default<I: Into<String>>(mut self, default: I) -> Self {
         self.editor.default = Some(default.into());
         self
     }
 
+    /// Set an extension on the temporary file
+    ///
+    /// If set, the extension will be concatenated with the randomly generated filename. This is a
+    /// useful way to signify accepted styles of input, and provide syntax highlighting on supported
+    /// editors.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use discourse::Question;
+    ///
+    /// let editor = Question::editor("description")
+    ///     .extension(".md")
+    ///     .build();
+    /// ```
     pub fn extension<I: Into<String>>(mut self, extension: I) -> Self {
         self.editor.extension = Some(extension.into());
         self
     }
 
-    crate::impl_options_builder!();
-    crate::impl_filter_builder!(String; editor);
-    crate::impl_validate_builder!(str; editor);
-    crate::impl_transform_builder!(str; editor);
+    crate::impl_filter_builder! {
+    /// # Examples
+    ///
+    /// ```
+    /// # fn parse_markdown(s: String) -> String { s }
+    /// use discourse::Question;
+    ///
+    /// let editor = Question::editor("description")
+    ///     .filter(|description, previous_answers| parse_markdown(description))
+    ///     .build();
+    /// ```
+    String; editor
+    }
 
+    crate::impl_validate_builder! {
+    /// # Examples
+    ///
+    /// ```
+    /// use discourse::Question;
+    ///
+    /// let editor = Question::editor("description")
+    ///     .validate(|description, previous_answers| if description.lines().count() >= 2 {
+    ///         Ok(())
+    ///     } else {
+    ///         Err("Please enter a few lines".to_owned())
+    ///     })
+    ///     .build();
+    /// ```
+    str; editor
+    }
+
+    crate::impl_transform_builder! {
+    /// # Examples
+    ///
+    /// ```
+    /// use discourse::Question;
+    ///
+    /// let editor = Question::editor("description")
+    ///     .transform(|description, previous_answers, backend| {
+    ///         write!(backend, "\n{}", description)
+    ///     })
+    ///     .build();
+    /// ```
+    str; editor
+    }
+
+    /// Consumes the builder returning a [`Question`]
+    ///
+    /// [`Question`]: crate::question::Question
     pub fn build(self) -> super::Question<'a> {
         super::Question::new(self.opts, super::QuestionKind::Editor(self.editor))
     }
 }
 
 impl<'a> From<EditorBuilder<'a>> for super::Question<'a> {
+    /// Consumes the builder returning a [`Question`]
+    ///
+    /// [`Question`]: crate::question::Question
     fn from(builder: EditorBuilder<'a>) -> Self {
         builder.build()
     }
 }
+
+// TODO: figure out a way to write tests for this

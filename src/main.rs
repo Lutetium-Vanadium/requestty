@@ -90,11 +90,7 @@ fn main() {
                 .message("multi select 1")
                 .choice_with_default("0", true)
                 .default_separator()
-                .choices_with_default(vec![
-                    ("1".into(), false),
-                    ("2".into(), true),
-                    ("3".into(), false),
-                ])
+                .choices_with_default(vec![("1", false), ("2", true), ("3", false)])
                 .separator("== Hello separator")
                 .into(),
             Question::multi_select("b")

@@ -1,4 +1,5 @@
 {
+  "rust-analyzer.cargo.allFeatures": true,
   "rust-analyzer.diagnostics.disabled": [
     "incorrect-ident-case",
     "inactive-code"

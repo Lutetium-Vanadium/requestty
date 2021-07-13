@@ -32,7 +32,7 @@ fn unwrap_select<'a>(question: impl Into<Question<'a>>) -> RawSelect<'a> {
     }
 }
 
-fn raw_select(message: &str) -> RawSelectPrompt {
+fn raw_select(message: &str) -> RawSelectPrompt<'_> {
     unwrap_select(RawSelectBuilder::new("name".into()).choices(choices(10))).into_prompt(message)
 }
 

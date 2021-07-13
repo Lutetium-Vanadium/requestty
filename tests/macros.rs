@@ -135,8 +135,6 @@ fn test_float() {
     t.pass("valid");
     t.compile_fail("auto_complete");
     t.compile_fail("choices");
-    t.compile_fail("should_loop");
-    t.compile_fail("page_size");
     t.compile_fail("mask");
     t.compile_fail("extension");
     t.compile_fail("plugin");
@@ -149,8 +147,6 @@ fn test_input() {
 
     t.pass("valid");
     t.compile_fail("choices");
-    t.compile_fail("should_loop");
-    t.compile_fail("page_size");
     t.compile_fail("mask");
     t.compile_fail("extension");
     t.compile_fail("plugin");

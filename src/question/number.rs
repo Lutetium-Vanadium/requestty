@@ -11,7 +11,7 @@ use super::{Filter, Options, TransformByVal as Transform, ValidateByVal as Valid
 use crate::{Answer, Answers};
 
 #[derive(Debug, Default)]
-pub struct Float<'a> {
+pub(super) struct Float<'a> {
     default: Option<f64>,
     filter: Filter<'a, f64>,
     validate: Validate<'a, f64>,
@@ -19,7 +19,7 @@ pub struct Float<'a> {
 }
 
 #[derive(Debug, Default)]
-pub struct Int<'a> {
+pub(super) struct Int<'a> {
     default: Option<i64>,
     filter: Filter<'a, i64>,
     validate: Validate<'a, i64>,
@@ -62,7 +62,7 @@ impl Float<'_> {
     }
 
     fn filter_map(c: char) -> Option<char> {
-        if Int::filter_map(c).is_some() || c == '.' || c == 'e' || c == 'E' {
+        if Int::filter_map(c).is_some() || ['.', 'e', 'E', 'i', 'n', 'f'].contains(&c) {
             Some(c)
         } else {
             None
@@ -117,7 +117,7 @@ macro_rules! impl_number_prompt {
 
                 self.input.replace_with(|mut s| {
                     s.clear();
-                    write!(s, "{}", n).unwrap();
+                    write!(s, "{}", n).expect("Failed to write number to the string");
                     s
                 });
                 true
@@ -147,11 +147,13 @@ macro_rules! impl_number_prompt {
             }
 
             fn finish(self) -> Self::Output {
-                if self.input.value().is_empty() && self.number.default.is_some() {
-                    return self.number.default.unwrap();
-                }
+                let n = match self.number.default {
+                    Some(default) if self.input.value().is_empty() => default,
+                    _ => self
+                        .parse()
+                        .expect("Validation would fail if number cannot be parsed"),
+                };
 
-                let n = self.parse().unwrap();
                 match self.number.filter {
                     Filter::Sync(filter) => filter(n, self.answers),
                     _ => n,
@@ -204,7 +206,14 @@ impl_ask!(Int, IntPrompt);
 impl_ask!(Float, FloatPrompt);
 
 macro_rules! builder {
-    ($builder_name:ident, $type:ident, $inner_ty:ty, $kind:expr) => {
+    ($(#[$meta:meta])* struct $builder_name:ident : $type:ident -> $inner_ty:ty, $litral:expr;
+     declare = $declare:expr;
+     default = $default:expr;
+     filter = $filter:expr;
+     validate = $validate:expr;
+     ) => {
+        $(#[$meta])*
+        #[derive(Debug)]
         pub struct $builder_name<'a> {
             opts: Options<'a>,
             inner: $type<'a>,
@@ -218,22 +227,123 @@ macro_rules! builder {
                 }
             }
 
+            crate::impl_options_builder! {
+            message
+            /// # Examples
+            ///
+            /// ```
+            /// use discourse::Question;
+            ///
+            #[doc = $declare]
+            ///     .message("Please enter a number")
+            ///     .build();
+            /// ```
+
+            when
+            /// # Examples
+            ///
+            /// ```
+            /// use discourse::{Question, Answers};
+            ///
+            #[doc = $declare]
+            ///     .when(|previous_answers: &Answers| match previous_answers.get("ask_number") {
+            ///         Some(ans) => ans.as_bool().unwrap(),
+            ///         None => true,
+            ///     })
+            ///     .build();
+            /// ```
+
+            ask_if_answered
+            /// # Examples
+            ///
+            /// ```
+            /// use discourse::{Question, Answers};
+            ///
+            #[doc = $declare]
+            ///     .ask_if_answered(true)
+            ///     .build();
+            /// ```
+            }
+
+            /// Set a default value
+            ///
+            /// If the input text is empty, the `default` is taken as the answer.
+            ///
+            /// If `default` is used, validation is skipped, but `filter` is still called.
+            ///
+            /// # Examples
+            ///
+            /// ```
+            /// use discourse::Question;
+            ///
+            #[doc = $declare]
+            #[doc = $default]
+            ///     .build();
+            /// ```
             pub fn default(mut self, default: $inner_ty) -> Self {
                 self.inner.default = Some(default);
                 self
             }
 
-            crate::impl_options_builder!();
-            crate::impl_filter_builder!($inner_ty; inner);
-            crate::impl_validate_builder!(by val $inner_ty; inner);
-            crate::impl_transform_builder!(by val $inner_ty; inner);
+            crate::impl_filter_builder! {
+            /// # Examples
+            ///
+            /// ```
+            /// use discourse::Question;
+            ///
+            #[doc = $declare]
+            #[doc = $filter]
+            ///     .build();
+            /// ```
+            $inner_ty; inner
+            }
 
+            crate::impl_validate_builder! {
+            /// # Examples
+            ///
+            /// ```
+            /// use discourse::Question;
+            ///
+            #[doc = $declare]
+            ///     .validate(|n, previous_answers| {
+            #[doc = $validate]
+            ///             Ok(())
+            ///         } else {
+            ///             Err("Please enter a positive number".to_owned())
+            ///         }
+            ///     })
+            ///     .build();
+            /// ```
+            by val $inner_ty; inner
+            }
+
+            crate::impl_transform_builder! {
+            /// # Examples
+            ///
+            /// ```
+            /// use discourse::Question;
+            ///
+            #[doc = $declare]
+            ///     .transform(|n, previous_answers, backend| {
+            ///         write!(backend, "{:e}", n)
+            ///     })
+            ///     .build();
+            /// ```
+            by val $inner_ty; inner
+            }
+
+            /// Consumes the builder returning a [`Question`]
+            ///
+            /// [`Question`]: crate::question::Question
             pub fn build(self) -> super::Question<'a> {
-                super::Question::new(self.opts, $kind(self.inner))
+                super::Question::new(self.opts, super::QuestionKind::$type(self.inner))
             }
         }
 
         impl<'a> From<$builder_name<'a>> for super::Question<'a> {
+            /// Consumes the builder returning a [`Question`]
+            ///
+            /// [`Question`]: crate::question::Question
             fn from(builder: $builder_name<'a>) -> Self {
                 builder.build()
             }
@@ -241,8 +351,71 @@ macro_rules! builder {
     };
 }
 
-builder!(IntBuilder, Int, i64, super::QuestionKind::Int);
-builder!(FloatBuilder, Float, f64, super::QuestionKind::Float);
+builder! {
+/// The builder for an [`int`] prompt.
+///
+/// The number is parsed using [`from_str`].
+///
+/// See the various methods for more details on each available option.
+///
+/// # Examples
+///
+/// ```
+/// use discourse::Question;
+///
+/// let int = Question::int("age")
+///     .message("What is your age?")
+///     .validate(|age, previous_answers| {
+///         if age > 0 && age < 130 {
+///             Ok(())
+///         } else {
+///             Err(format!("You cannot be {} years old!", age))
+///         }
+///     })
+///     .build();
+/// ```
+///
+/// [`from_str`]: https://doc.rust-lang.org/std/primitive.i64.html#method.from_str
+/// [`int`]: crate::question::Question::int
+struct IntBuilder: Int -> i64, 10;
+declare  = r#"let question = Question::int("int")"#;
+default  = "    .default(10)";
+filter   = "    .filter(|n, previous_answers| n + 10)";
+validate = "        if n.is_positive() {";
+}
+
+builder! {
+/// The builder for a [`float`] prompt.
+///
+/// The number is parsed using [`from_str`], but cannot be `NaN`.
+///
+/// See the various methods for more details on each available option.
+///
+/// # Examples
+///
+/// ```
+/// use discourse::Question;
+///
+/// let float = Question::float("number")
+///     .message("What is your favourite number?")
+///     .validate(|num, previous_answers| {
+///         if num.is_finite() {
+///             Ok(())
+///         } else {
+///             Err("Please enter a finite number".to_owned())
+///         }
+///     })
+///     .build();
+/// ```
+///
+/// [`float`]: crate::question::Question::float
+/// [`from_str`]: https://doc.rust-lang.org/std/primitive.f64.html#method.from_str
+struct FloatBuilder: Float -> f64, 10.0;
+declare  = r#"let question = Question::float("float")"#;
+default  = "    .default(10.0)";
+filter   = "    .filter(|n, previous_answers| (n * 10000.0).round() / 10000.0)";
+validate = "        if n.is_sign_positive() {";
+}
 
 macro_rules! test_numbers {
     (mod $mod_name:ident { $prompt_name:ident, $default:expr }) => {

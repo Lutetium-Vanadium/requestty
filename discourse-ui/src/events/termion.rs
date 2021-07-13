@@ -49,7 +49,10 @@ impl Default for TermionEvents {
 
 impl EventIterator for TermionEvents {
     fn next_event(&mut self) -> io::Result<super::KeyEvent> {
-        let e = self.events.next().unwrap()?;
+        let e = self
+            .events
+            .next()
+            .expect("TermionEvents ran out of user input!?")?;
         e.try_into()
     }
 }

@@ -3,12 +3,24 @@ use ui::{backend::Backend, events::EventIterator};
 use super::{Options, Question, QuestionKind};
 use crate::{Answer, Answers};
 
+/// Plugins are a way to write custom [`Question`]s.
+///
+/// The plugin is given a `message`, the previous [`Answers`] and a [`Backend`] and
+/// [`EventIterator`]. Using these, it is responsible for doing everything from rendering to user
+/// interaction. While no particular look is enforced, it is recommended to keep a similar look to
+/// the rest of the in-built questions.
+///
+/// You can use the `discourse-ui` crate to build the prompts. You can see the implementations of
+/// the in-built questions for examples on how to use it.
+///
+/// See also [`Question::plugin`]
 pub trait Plugin: std::fmt::Debug {
+    /// Prompt the user with the given message, [`Answers`], [`Backend`] and [`EventIterator`]
     fn ask(
         self,
         message: String,
         answers: &Answers,
-        stdout: &mut dyn Backend,
+        backend: &mut dyn Backend,
         events: &mut dyn EventIterator,
     ) -> ui::Result<Answer>;
 }
@@ -25,7 +37,7 @@ pub(super) trait PluginInteral: std::fmt::Debug {
         &mut self,
         message: String,
         answers: &Answers,
-        stdout: &mut dyn Backend,
+        backend: &mut dyn Backend,
         events: &mut dyn EventIterator,
     ) -> ui::Result<Answer>;
 }
@@ -35,15 +47,51 @@ impl<T: Plugin> PluginInteral for Option<T> {
         &mut self,
         message: String,
         answers: &Answers,
-        stdout: &mut dyn Backend,
+        backend: &mut dyn Backend,
         events: &mut dyn EventIterator,
     ) -> ui::Result<Answer> {
         self.take()
             .expect("Plugin::ask called twice")
-            .ask(message, answers, stdout, events)
+            .ask(message, answers, backend, events)
     }
 }
 
+/// The builder for custom questions.
+///
+/// See [`Plugin`] for more information on writing custom prompts.
+///
+/// # Examples
+///
+/// ```
+/// use discourse::{plugin, Question};
+///
+/// #[derive(Debug)]
+/// struct MyPlugin { /* ... */ }
+///
+/// # impl MyPlugin {
+/// #     fn new() -> MyPlugin {
+/// #         MyPlugin {}
+/// #     }
+/// # }
+///
+/// impl plugin::Plugin for MyPlugin {
+///     fn ask(
+///         self,
+///         message: String,
+///         answers: &plugin::Answers,
+///         backend: &mut dyn plugin::Backend,
+///         events: &mut dyn plugin::EventIterator,
+///     ) -> discourse::Result<plugin::Answer> {
+///         // ...
+/// #         todo!()
+///     }
+/// }
+///
+/// let plugin = Question::plugin("my-plugin", MyPlugin::new())
+///     .message("Hello from MyPlugin!")
+///     .build();
+/// ```
+#[derive(Debug)]
 pub struct PluginBuilder<'a> {
     opts: Options<'a>,
     plugin: Box<dyn PluginInteral + 'a>,
@@ -63,14 +111,118 @@ impl<'a> PluginBuilder<'a> {
         }
     }
 
-    crate::impl_options_builder!();
+    crate::impl_options_builder! {
+    message
+    /// # Examples
+    ///
+    /// ```
+    /// use discourse::{plugin, Question};
+    ///
+    /// #[derive(Debug)]
+    /// struct MyPlugin { /* ... */ }
+    ///
+    /// # impl MyPlugin {
+    /// #     fn new() -> MyPlugin {
+    /// #         MyPlugin {}
+    /// #     }
+    /// # }
+    ///
+    /// impl plugin::Plugin for MyPlugin {
+    ///     fn ask(
+    ///         self,
+    ///         message: String,
+    ///         answers: &plugin::Answers,
+    ///         backend: &mut dyn plugin::Backend,
+    ///         events: &mut dyn plugin::EventIterator,
+    ///     ) -> discourse::Result<plugin::Answer> {
+    ///         // ...
+    /// #         todo!()
+    ///     }
+    /// }
+    ///
+    /// let plugin = Question::plugin("my-plugin", MyPlugin::new())
+    ///     .message("Hello from MyPlugin!")
+    ///     .build();
+    /// ```
 
+    when
+    /// # Examples
+    ///
+    /// ```
+    /// use discourse::{plugin, Question, Answers};
+    ///
+    /// #[derive(Debug)]
+    /// struct MyPlugin { /* ... */ }
+    ///
+    /// # impl MyPlugin {
+    /// #     fn new() -> MyPlugin {
+    /// #         MyPlugin {}
+    /// #     }
+    /// # }
+    ///
+    /// impl plugin::Plugin for MyPlugin {
+    ///     fn ask(
+    ///         self,
+    ///         message: String,
+    ///         answers: &plugin::Answers,
+    ///         backend: &mut dyn plugin::Backend,
+    ///         events: &mut dyn plugin::EventIterator,
+    ///     ) -> discourse::Result<plugin::Answer> {
+    ///         // ...
+    /// #         todo!()
+    ///     }
+    /// }
+    ///
+    /// let plugin = Question::plugin("my-plugin", MyPlugin::new())
+    ///     .when(|previous_answers: &Answers| match previous_answers.get("use-custom-prompt") {
+    ///         Some(ans) => !ans.as_bool().unwrap(),
+    ///         None => true,
+    ///     })
+    ///     .build();
+    /// ```
+
+    ask_if_answered
+    /// # Examples
+    ///
+    /// ```
+    /// use discourse::{plugin, Question};
+    ///
+    /// #[derive(Debug)]
+    /// struct MyPlugin { /* ... */ }
+    ///
+    /// # impl MyPlugin {
+    /// #     fn new() -> MyPlugin {
+    /// #         MyPlugin {}
+    /// #     }
+    /// # }
+    ///
+    /// impl plugin::Plugin for MyPlugin {
+    ///     fn ask(
+    ///         self,
+    ///         message: String,
+    ///         answers: &plugin::Answers,
+    ///         backend: &mut dyn plugin::Backend,
+    ///         events: &mut dyn plugin::EventIterator,
+    ///     ) -> discourse::Result<plugin::Answer> {
+    ///         // ...
+    /// #         todo!()
+    ///     }
+    /// }
+    ///
+    /// let plugin = Question::plugin("my-plugin", MyPlugin::new())
+    ///     .ask_if_answered(true)
+    ///     .build();
+    /// ```
+    }
+
+    /// Consumes the builder returning a [`Question`]
     pub fn build(self) -> Question<'a> {
         Question::new(self.opts, QuestionKind::Plugin(self.plugin))
     }
 }
 
 impl<'a> From<PluginBuilder<'a>> for Question<'a> {
+    /// Consumes the builder returning a [`Question`]
     fn from(builder: PluginBuilder<'a>) -> Self {
         builder.build()
     }

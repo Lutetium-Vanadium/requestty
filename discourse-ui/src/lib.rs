@@ -11,12 +11,8 @@
 //! # Backends
 //!
 //! This crate currently supports 2 backends:
-//! - [`crossterm`](https://crates.io/crates/crossterm) (default)
+//! - [`crossterm`](https://crates.io/crates/crossterm)
 //! - [`termion`](https://crates.io/crates/termion)
-//!
-//! The default backend is `crossterm` for the following reasons:
-//! - Wider terminal support
-//! - Better event processing (in my experience)
 //!
 //! The different backends can be enabled using the features of the same name.
 // TODO: [`discourse`]: https://crates.io/crates/discourse

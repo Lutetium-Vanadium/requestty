@@ -15,12 +15,18 @@ use crate::{Answer, Answers, ListItem};
 mod tests;
 
 #[derive(Debug, Default)]
-pub struct MultiSelect<'a> {
+pub(super) struct MultiSelect<'a> {
     choices: super::ChoiceList<Text<String>>,
     selected: Vec<bool>,
     filter: Filter<'a, Vec<bool>>,
     validate: Validate<'a, [bool]>,
     transform: Transform<'a, [ListItem]>,
+}
+
+fn set_seperators_false(selected: &mut [bool], choices: &[Choice<Text<String>>]) {
+    for (i, choice) in choices.iter().enumerate() {
+        selected[i] &= !choice.is_separator();
+    }
 }
 
 struct MultiSelectPrompt<'a, 'c> {
@@ -53,6 +59,10 @@ impl Prompt for MultiSelectPrompt<'_, '_> {
 
     fn validate(&mut self) -> Result<Validation, Self::ValidateErr> {
         if let Validate::Sync(ref mut validate) = self.select.list.validate {
+            set_seperators_false(
+                &mut self.select.list.selected,
+                &self.select.list.choices.choices,
+            );
             validate(&self.select.list.selected, self.answers)?;
         }
         Ok(Validation::Finish)
@@ -67,6 +77,8 @@ impl Prompt for MultiSelectPrompt<'_, '_> {
         } = self.select.into_inner();
 
         if let Filter::Sync(filter) = filter {
+            set_seperators_false(&mut selected, &choices.choices);
+
             selected = filter(selected, self.answers);
         }
 
@@ -203,7 +215,15 @@ impl<'c> MultiSelect<'c> {
 
         crate::write_final!(transform, message, &ans, answers, b, {
             b.set_fg(Color::Cyan)?;
-            print_comma_separated(ans.iter().map(|item| item.name.lines().next().unwrap()), b)?;
+            print_comma_separated(
+                ans.iter().map(|item| {
+                    item.name
+                        .lines()
+                        .next()
+                        .expect("There must be at least one line in a `str`")
+                }),
+                b,
+            )?;
             b.set_fg(Color::Reset)?;
         });
 
@@ -211,6 +231,29 @@ impl<'c> MultiSelect<'c> {
     }
 }
 
+/// The builder for a [`multi_select`] prompt.
+///
+/// Unlike the other list based prompts, this has a per choice boolean default.
+///
+/// See the various methods for more details on each available option.
+///
+/// # Examples
+///
+/// ```
+/// use discourse::{Question, DefaultSeparator};
+///
+/// let multi_select = Question::multi_select("cheese")
+///     .message("What cheese do you want?")
+///     .choice_with_default("Mozzarella", true)
+///     .choices(vec![
+///         "Cheddar",
+///         "Parmesan",
+///     ])
+///     .build();
+/// ```
+///
+/// [`multi_select`]: crate::question::Question::multi_select
+#[derive(Debug)]
 pub struct MultiSelectBuilder<'a> {
     opts: Options<'a>,
     multi_select: MultiSelect<'a>,
@@ -224,28 +267,129 @@ impl<'a> MultiSelectBuilder<'a> {
         }
     }
 
-    pub fn separator<I: Into<String>>(mut self, text: I) -> Self {
-        self.multi_select
-            .choices
-            .choices
-            .push(Choice::Separator(text.into()));
-        self.multi_select.selected.push(false);
+    crate::impl_options_builder! {
+    message
+    /// # Examples
+    ///
+    /// ```
+    /// use discourse::Question;
+    ///
+    /// let multi_select = Question::multi_select("cheese")
+    ///     .message("What cheese do you want?")
+    ///     .build();
+    /// ```
+
+    when
+    /// # Examples
+    ///
+    /// ```
+    /// use discourse::{Answers, Question};
+    ///
+    /// let multi_select = Question::multi_select("cheese")
+    ///     .when(|previous_answers: &Answers| match previous_answers.get("vegan") {
+    ///         Some(ans) => ans.as_bool().unwrap(),
+    ///         None => true,
+    ///     })
+    ///     .build();
+    /// ```
+
+    ask_if_answered
+    /// # Examples
+    ///
+    /// ```
+    /// use discourse::{Answers, Question};
+    ///
+    /// let multi_select = Question::multi_select("cheese")
+    ///     .ask_if_answered(true)
+    ///     .build();
+    /// ```
+    }
+
+    /// The maximum height that can be taken by the list
+    ///
+    /// If the total height exceeds the page size, the list will be scrollable.
+    ///
+    /// The `page_size` must be a minimum of 5. If `page_size` is not set, it will default to 15.
+    ///
+    /// # Panics
+    ///
+    /// It will panic if the `page_size` is less than 5.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use discourse::Question;
+    ///
+    /// let multi_select = Question::multi_select("cheese")
+    ///     .page_size(10)
+    ///     .build();
+    /// ```
+    pub fn page_size(mut self, page_size: usize) -> Self {
+        assert!(page_size >= 5, "page size can be a minimum of 5");
+
+        self.multi_select.choices.set_page_size(page_size);
         self
     }
 
-    pub fn default_separator(mut self) -> Self {
-        self.multi_select
-            .choices
-            .choices
-            .push(Choice::DefaultSeparator);
-        self.multi_select.selected.push(false);
+    /// Whether to wrap around when user gets to the last element.
+    ///
+    /// This only applies when the list is scrollable, i.e. page size > total height.
+    ///
+    /// If `should_loop` is not set, it will default to `true`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use discourse::Question;
+    ///
+    /// let multi_select = Question::multi_select("cheese")
+    ///     .should_loop(false)
+    ///     .build();
+    /// ```
+    pub fn should_loop(mut self, should_loop: bool) -> Self {
+        self.multi_select.choices.set_should_loop(should_loop);
         self
     }
 
+    /// Inserts a [`Choice`] with its default checked state as `false`.
+    ///
+    /// If you want to set the default checked state, use [`choice_with_default`].
+    ///
+    /// See [`multi_select`] for more information.
+    ///
+    /// [`Choice`]: super::Choice::Choice
+    /// [`choice_with_default`]: Self::choice_with_default
+    /// [`multi_select`]: super::Question::multi_select
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use discourse::Question;
+    ///
+    /// let multi_select = Question::multi_select("cheese")
+    ///     .choice("Cheddar")
+    ///     .build();
+    /// ```
     pub fn choice<I: Into<String>>(self, choice: I) -> Self {
-        self.choice_with_default(choice, false)
+        self.choice_with_default(choice.into(), false)
     }
 
+    /// Inserts a [`Choice`] with a given default checked state.
+    ///
+    /// See [`multi_select`] for more information.
+    ///
+    /// [`Choice`]: super::Choice::Choice
+    /// [`multi_select`]: super::Question::multi_select
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use discourse::Question;
+    ///
+    /// let multi_select = Question::multi_select("cheese")
+    ///     .choice_with_default("Mozzarella", true)
+    ///     .build();
+    /// ```
     pub fn choice_with_default<I: Into<String>>(mut self, choice: I, default: bool) -> Self {
         self.multi_select
             .choices
@@ -255,6 +399,80 @@ impl<'a> MultiSelectBuilder<'a> {
         self
     }
 
+    /// Inserts a [`Separator`] with the given text
+    ///
+    /// See [`multi_select`] for more information.
+    ///
+    /// [`Separator`]: super::Choice::Separator
+    /// [`multi_select`]: super::Question::multi_select
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use discourse::Question;
+    ///
+    /// let multi_select = Question::multi_select("cheese")
+    ///     .separator("-- custom separator text --")
+    ///     .build();
+    /// ```
+    pub fn separator<I: Into<String>>(mut self, text: I) -> Self {
+        self.multi_select
+            .choices
+            .choices
+            .push(Choice::Separator(text.into()));
+        self.multi_select.selected.push(false);
+        self
+    }
+
+    /// Inserts a [`DefaultSeparator`]
+    ///
+    /// See [`multi_select`] for more information.
+    ///
+    /// [`DefaultSeparator`]: super::Choice::DefaultSeparator
+    /// [`multi_select`]: super::Question::multi_select
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use discourse::Question;
+    ///
+    /// let multi_select = Question::multi_select("cheese")
+    ///     .default_separator()
+    ///     .build();
+    /// ```
+    pub fn default_separator(mut self) -> Self {
+        self.multi_select
+            .choices
+            .choices
+            .push(Choice::DefaultSeparator);
+        self.multi_select.selected.push(false);
+        self
+    }
+
+    /// Extends the given iterator of [`Choice`]s
+    ///
+    /// Every [`Choice::Choice`] within will have a default checked value of `false`. If you want to
+    /// set the default checked value, use [`choices_with_default`].
+    ///
+    /// See [`multi_select`] for more information.
+    ///
+    /// [`Choice`]: super::Choice
+    /// [`choices_with_default`]: Self::choices_with_default
+    /// [`multi_select`]: super::Question::multi_select
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use discourse::Question;
+    ///
+    /// let multi_select = Question::multi_select("cheese")
+    ///     .choices(vec![
+    ///         "Mozzarella",
+    ///         "Cheddar",
+    ///         "Parmesan",
+    ///     ])
+    ///     .build();
+    /// ```
     pub fn choices<I, T>(mut self, choices: I) -> Self
     where
         T: Into<Choice<String>>,
@@ -270,6 +488,26 @@ impl<'a> MultiSelectBuilder<'a> {
         self
     }
 
+    /// Extends the given iterator of [`Choice`]s with the given default checked value.
+    ///
+    /// See [`multi_select`] for more information.
+    ///
+    /// [`Choice`]: super::Choice
+    /// [`multi_select`]: super::Question::multi_select
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use discourse::Question;
+    ///
+    /// let multi_select = Question::multi_select("cheese")
+    ///     .choices_with_default(vec![
+    ///         ("Mozzarella", true),
+    ///         ("Cheddar", false),
+    ///         ("Parmesan", false),
+    ///     ])
+    ///     .build();
+    /// ```
     pub fn choices_with_default<I, T>(mut self, choices: I) -> Self
     where
         T: Into<Choice<(String, bool)>>,
@@ -309,21 +547,67 @@ impl<'a> MultiSelectBuilder<'a> {
         self
     }
 
-    pub fn page_size(mut self, page_size: usize) -> Self {
-        self.multi_select.choices.set_page_size(page_size);
-        self
+    crate::impl_filter_builder! {
+    /// NOTE: The boolean [`Vec`] contains a boolean value for each index even if it is a separator.
+    /// However it is guaranteed that all the separator indices will be false.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use discourse::Question;
+    ///
+    /// let multi_select = Question::multi_select("evil-cheese")
+    ///     .filter(|mut cheeses, previous_answers| {
+    ///         cheeses.iter_mut().for_each(|checked| *checked = !*checked);
+    ///         cheeses
+    ///     })
+    ///     .build();
+    /// ```
+    Vec<bool>; multi_select
+    }
+    crate::impl_validate_builder! {
+    /// NOTE: The boolean [`slice`] contains a boolean value for each index even if it is a
+    /// separator. However it is guaranteed that all the separator indices will be false.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use discourse::Question;
+    ///
+    /// let multi_select = Question::multi_select("cheese")
+    ///     .validate(|cheeses, previous_answers| {
+    ///         if cheeses.iter().filter(|&&a| a).count() < 1 {
+    ///             Err("You must choose at least one cheese.".into())
+    ///         } else {
+    ///             Ok(())
+    ///         }
+    ///     })
+    ///     .build();
+    /// ```
+    [bool]; multi_select
     }
 
-    pub fn should_loop(mut self, should_loop: bool) -> Self {
-        self.multi_select.choices.set_should_loop(should_loop);
-        self
+    crate::impl_transform_builder! {
+    /// # Examples
+    ///
+    /// ```
+    /// use discourse::Question;
+    ///
+    /// let multi_select = Question::multi_select("cheese")
+    ///     .transform(|cheeses, previous_answers, backend| {
+    ///         for cheese in cheeses {
+    ///             write!(backend, "({}) {}, ", cheese.index, cheese.name)?;
+    ///         }
+    ///         Ok(())
+    ///     })
+    ///     .build();
+    /// ```
+    [ListItem]; multi_select
     }
 
-    crate::impl_options_builder!();
-    crate::impl_filter_builder!(Vec<bool>; multi_select);
-    crate::impl_validate_builder!([bool]; multi_select);
-    crate::impl_transform_builder!([ListItem]; multi_select);
-
+    /// Consumes the builder returning a [`Question`]
+    ///
+    /// [`Question`]: crate::question::Question
     pub fn build(self) -> super::Question<'a> {
         super::Question::new(
             self.opts,
@@ -333,6 +617,9 @@ impl<'a> MultiSelectBuilder<'a> {
 }
 
 impl<'a> From<MultiSelectBuilder<'a>> for super::Question<'a> {
+    /// Consumes the builder returning a [`Question`]
+    ///
+    /// [`Question`]: crate::question::Question
     fn from(builder: MultiSelectBuilder<'a>) -> Self {
         builder.build()
     }

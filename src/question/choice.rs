@@ -141,14 +141,23 @@ impl<T: Widget> List for ChoiceList<T> {
     }
 }
 
+/// A possible choice in a list.
 #[derive(Debug, Clone)]
 pub enum Choice<T> {
+    /// The main variant which represents a choice the user can pick from.
     Choice(T),
+    /// A separator is a _single line_ of text that can be used to annotate other lines. It is not
+    /// selectable and is skipped over when users navigate.
+    ///
+    /// If the line more than one line, it will be cut-off.
     Separator(String),
+    /// A separator which prints a line: "──────────────"
     DefaultSeparator,
 }
 
 impl<T> Choice<T> {
+    /// Maps an Choice<T> to Choice<U> by applying a function to the contained [`Choice::Choice`] if
+    /// any.
     pub fn map<U, F: FnOnce(T) -> U>(self, f: F) -> Choice<U> {
         match self {
             Choice::Choice(c) => Choice::Choice(f(c)),
@@ -157,10 +166,14 @@ impl<T> Choice<T> {
         }
     }
 
+    /// Returns `true` if the choice is a separator.
     pub fn is_separator(&self) -> bool {
         matches!(self, Choice::Separator(_) | Choice::DefaultSeparator)
     }
 
+    /// Converts `&Choice<T>` to `Choice<&T>`.
+    ///
+    /// This will clone the [`Choice::Separator`] if any.
     pub fn as_ref(&self) -> Choice<&T> {
         match self {
             Choice::Choice(t) => Choice::Choice(t),
@@ -169,6 +182,9 @@ impl<T> Choice<T> {
         }
     }
 
+    /// Converts `&mut Choice<T>` to `Choice<&mut T>`.
+    ///
+    /// This will clone the [`Choice::Separator`] if any.
     pub fn as_mut(&mut self) -> Choice<&mut T> {
         match self {
             Choice::Choice(t) => Choice::Choice(t),
@@ -177,6 +193,11 @@ impl<T> Choice<T> {
         }
     }
 
+    /// Returns the contained [`Choice::Choice`] value, consuming `self`.
+    ///
+    /// # Panics
+    ///
+    /// This will panic if `self` is not a [`Choice::Choice`].
     pub fn unwrap_choice(self) -> T {
         match self {
             Choice::Choice(c) => c,
@@ -220,19 +241,14 @@ impl<T: ui::Widget> ui::Widget for Choice<T> {
         }
     }
 
+    /// This will panic if called
     fn cursor_pos(&mut self, _: ui::layout::Layout) -> (u16, u16) {
         unimplemented!("This should not be called")
     }
 }
 
-impl<T> From<T> for Choice<T> {
-    fn from(t: T) -> Self {
-        Choice::Choice(t)
-    }
-}
-
-impl From<&'_ str> for Choice<String> {
-    fn from(s: &str) -> Self {
+impl<I: Into<String>> From<I> for Choice<String> {
+    fn from(s: I) -> Self {
         Choice::Choice(s.into())
     }
 }
@@ -243,5 +259,11 @@ impl<I: Into<String>> From<(char, I)> for Choice<ExpandItem<String>> {
             key,
             name: name.into(),
         })
+    }
+}
+
+impl<I: Into<String>> From<(I, bool)> for Choice<(String, bool)> {
+    fn from((name, checked): (I, bool)) -> Self {
+        Choice::Choice((name.into(), checked))
     }
 }

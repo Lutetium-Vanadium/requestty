@@ -11,14 +11,17 @@ fn ask() -> discourse::Result<Vec<String>> {
                 discourse::Question::input("tv_show").message("What's your favourite TV show?"),
             )?
             .try_into_string()
-            .unwrap(),
+            .expect("Question::input returns a string"),
         );
 
         let ask_again = discourse::Question::confirm("ask_again")
             .message("Want to enter another TV show favorite (just hit enter for YES)?")
             .default(true);
 
-        if !discourse::prompt_one(ask_again)?.try_into_bool().unwrap() {
+        if !discourse::prompt_one(ask_again)?
+            .as_bool()
+            .expect("Question::confirm returns a bool")
+        {
             break;
         }
     }

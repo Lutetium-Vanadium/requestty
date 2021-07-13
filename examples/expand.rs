@@ -1,7 +1,6 @@
 fn main() {
     let question = discourse::Question::expand("overwrite")
         .message("Conflict on `file.rs`")
-        .separator(" = The Meats = ")
         .choices(vec![
             ('y', "Overwrite"),
             ('a', "Overwrite this one and all next"),

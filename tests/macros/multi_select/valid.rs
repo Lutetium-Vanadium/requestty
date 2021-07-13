@@ -17,7 +17,7 @@ fn main() {
                 "choice" default true,
                 choice default default_choice || false,
             ],
-            page_size: 0,
+            page_size: 10,
             should_loop: true,
         }
     ];

@@ -24,7 +24,21 @@ impl<'a> Options<'a> {
 #[doc(hidden)]
 #[macro_export]
 macro_rules! impl_options_builder {
-    () => {
+    // NOTE: the 2 extra lines at the end of each doc comment is intentional -- it makes sure that
+    // other docs that come from the macro invocation have appropriate spacing
+    (message $(#[$message_meta:meta])+  when $(#[$when_meta:meta])+ ask_if_answered $(#[$ask_if_answered_meta:meta])+) => {
+        /// The message to display when the prompt is rendered in the terminal.
+        ///
+        /// It can be either a [`String`] or a [`FnOnce`] that returns a [`String`]. If it is a
+        /// function, it is passed all the previous [`Answers`], and will be called right before the
+        /// question is prompted to the user.
+        ///
+        /// If it is not given, the `message` defaults to "\<name\>: ".
+        ///
+        /// [`Answers`]: crate::Answers
+        ///
+        ///
+        $(#[$message_meta])*
         pub fn message<M>(mut self, message: M) -> Self
         where
             M: Into<crate::question::options::Getter<'a, String>>,
@@ -33,6 +47,18 @@ macro_rules! impl_options_builder {
             self
         }
 
+        /// Whether to ask the question (`true`) or not (`false`).
+        ///
+        /// It can be either a [`bool`] or a [`FnOnce`] that returns a [`bool`]. If it is a
+        /// function, it is passed all the previous [`Answers`], and will be called right before the
+        /// question is prompted to the user.
+        ///
+        /// If it is not given, it defaults to `true`.
+        ///
+        /// [`Answers`]: crate::Answers
+        ///
+        ///
+        $(#[$when_meta])*
         pub fn when<W>(mut self, when: W) -> Self
         where
             W: Into<crate::question::options::Getter<'a, bool>>,
@@ -41,18 +67,33 @@ macro_rules! impl_options_builder {
             self
         }
 
+        /// Prompt the question even if it is answered.
+        ///
+        /// By default if an answer with the given `name` already exists, the question will be
+        /// skipped. This can be override by setting `ask_if_answered` is set to `true`.
+        ///
+        /// If this is not given, it defaults to `false`.
+        ///
+        /// If you need to dynamically decide whether the question should be asked, use [`when`].
+        ///
+        /// [`Answers`]: crate::Answers
+        /// [`when`]: Self::when
+        ///
+        ///
+        $(#[$ask_if_answered_meta])*
         pub fn ask_if_answered(mut self, ask_if_answered: bool) -> Self {
             self.opts.ask_if_answered = ask_if_answered;
             self
         }
     };
-
-    ($t:ident; ($self:ident, $opts:ident) => $body:expr) => {
-#[rustfmt::skip]
-        crate::impl_options_builder!($t<>; ($self, $opts) => $body);
-    };
 }
 
+/// Optionally dynamically get a value.
+///
+/// It can either be a [`FnOnce`] that results in a value, or the value itself.
+///
+/// This should not need to be constructed manually, as it is used with the [`Into`] trait.
+#[allow(missing_docs)]
 pub enum Getter<'a, T> {
     Function(Box<dyn FnOnce(&Answers) -> T + 'a>),
     Value(T),
@@ -78,11 +119,7 @@ impl<T> Getter<'_, T> {
 
 macro_rules! impl_getter_from_val {
     ($T:ty, $I:ty) => {
-        impl<'a> From<$I> for Getter<'a, $T> {
-            fn from(value: $I) -> Self {
-                Self::Value(value.into())
-            }
-        }
+        impl_getter_from_val!($T, $I, value => value.into());
     };
 
     ($T:ty, $I:ty, $value:ident => $body:expr) => {

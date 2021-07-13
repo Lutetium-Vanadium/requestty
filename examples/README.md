@@ -1,9 +1,8 @@
 # Discourse Examples
 
 The examples given show some basic usage of the library in different
-ways. `templates/pizza.rs` has a question iterator declaration which is
-used in some examples which demonstrate things other than declaring
-questions.
+ways. You can also see the documentation for the `Question` type for
+examples on each prompt type.
 
 ## Required features
 

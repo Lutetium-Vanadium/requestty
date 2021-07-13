@@ -1,9 +1,152 @@
+//! `discourse` is an easy-to-use collection of interactive cli prompts inspired by [Inquirer.js].
+//!
+//! [Inquirer.js]: https://github.com/SBoudrias/Inquirer.js/
+//!
+//! # Questions
+//!
+//! This crate is based on creating [`Question`]s, and then prompting them to the user. There are 10
+//! in-built [`Question`]s, but if none of them fit your need, you can [create your own!](#plugins)
+//!
+//! There are 2 ways of creating [`Question`]s.
+//!
+//! ### Using builders
+//!
+//! ```
+//! use discourse::{Question, Answers};
+//!
+//! let question = Question::expand("toppings")
+//!     .message("What toppings do you want?")
+//!     .when(|answers: &Answers| !answers["custom_toppings"].as_bool().unwrap())
+//!     .choice('p', "Pepperoni and cheese")
+//!     .choice('a', "All dressed")
+//!     .choice('w', "Hawaiian")
+//!     .build();
+//! ```
+//!
+//! See [`Question`] for more information on the builders.
+//!
+//! ### Using macros
+//!
+//! Unlike the builder api, the macros can only be used to create a list of questions.
+//!
+//! ```
+//! use discourse::{questions, Answers};
+//!
+//! let questions = questions! [
+//!     Expand {
+//!         name: "toppings",
+//!         message: "What toppings do you want?",
+//!         when: |answers: &Answers| !answers["custom_toppings"].as_bool().unwrap(),
+//!         choices: [
+//!             ('p', "Pepperoni and cheese"),
+//!             ('a', "All dressed"),
+//!             ('w', "Hawaiian"),
+//!         ]
+//!     }
+//! ];
+//! ```
+//!
+//! See [`questions`] and [`prompt_module`] for more information on the macros.
+//!
+//! ### Prompting
+//!
+//! [`Question`]s can be asked in 2 main ways.
+//!
+//! - Using direct [functions](#functions) provided by the crate.
+//!   ```no_run
+//!   let questions = vec![
+//!       // Declare the questions you want to ask
+//!   ];
+//!
+//!   let answers = discourse::prompt(questions)?;
+//!   # Result::<_, discourse::ErrorKind>::Ok(())
+//!   ```
+//!
+//! - Using [`PromptModule`]
+//!   ```no_run
+//!   use discourse::PromptModule;
+//!
+//!   let questions = PromptModule::new(vec![
+//!       // Declare the questions you want to ask
+//!   ]);
+//!
+//!   let answers = questions.prompt_all()?;
+//!   # Result::<_, discourse::ErrorKind>::Ok(())
+//!   ```
+//!   This is mainly useful if you need more control over prompting the questions, and using
+//!   previous [`Answers`].
+//!
+//! See the documentation of [`Question`] for more information on the different in-built questions.
+//!
+//! # Terminal Interaction
+//!
+//! Terminal interaction is handled by 2 traits: [`Backend`] and [`EventIterator`].
+//!
+//! The traits are already implemented for terminal libraries:
+//! - [`crossterm`](https://crates.io/crates/crossterm) (default)
+//! - [`termion`](https://crates.io/crates/termion)
+//!
+//! The default backend is `crossterm` for the following reasons:
+//! - Wider terminal support
+//! - Better event processing (in my experience)
+//!
+//! [`Backend`]: plugin::Backend
+//! [`EventIterator`]: plugin::EventIterator
+//!
+//! # Plugins
+//!
+//! If the crate's in-built prompts does not satisfy your needs, you can build your own custom
+//! prompts using the [`Plugin`](question::Plugin) trait.
+//!
+//! # Optional features
+//!
+//! - `smallvec` (default): Enabling this feature will use [`SmallVec`] instead of [`Vec`] for [auto
+//!   completions]. This allows inlining single completions.
+//!
+//! - `crossterm` (default): Enabling this feature will use the [`crossterm`](https://crates.io/crates/crossterm)
+//!   library for terminal interactions such as drawing and receiving events.
+//!
+//! - `termion`: Enabling this feature will use the [`termion`](https://crates.io/crates/termion)
+//!   library for terminal interactions such as drawing and receiving events.
+//!
+//! [`SmallVec`]: https://docs.rs/smallvec/1.6.1/smallvec/struct.SmallVec.html
+//! [auto completions]: crate::question::InputBuilder::auto_complete
+//!
+//! # Examples
+//!
+//! ```no_run
+//! use discourse::Question;
+//!
+//! let password = Question::password("password")
+//!     .message("What is your password?")
+//!     .mask('*')
+//!     .build();
+//!
+//! let answer = discourse::prompt_one(password)?;
+//!
+//! println!("Your password was: {}", answer.as_string().expect("password returns a string"));
+//! # Result::<_, discourse::ErrorKind>::Ok(())
+//! ```
+//!
+//! For more examples, see the documentation for the various in-built questions, and the
+//! [`examples`] directory.
+//!
+//! [`examples`]: https://github.com/lutetium-vanadium/discourse/tree/master/examples
+#![deny(
+    missing_docs,
+    missing_doc_code_examples,
+    missing_debug_implementations,
+    unreachable_pub,
+    broken_intra_doc_links
+)]
+#![warn(rust_2018_idioms)]
+
 mod answer;
 pub mod question;
 
 use ui::{
-    backend,
-    events::{self, EventIterator},
+    backend::{get_backend, Backend},
+    events::{get_events, EventIterator},
 };
 
 pub use answer::{Answer, Answers, ExpandItem, ListItem};
@@ -71,7 +214,7 @@ pub use ui::{ErrorKind, Result};
 /// See also [`prompt_module`].
 pub use macros::questions;
 
-/// A macro to easily get a [`PromptModule`].
+/// A macro to easily write a [`PromptModule`].
 ///
 /// # Usage
 ///
@@ -137,11 +280,22 @@ macro_rules! prompt_module {
     };
 }
 
+/// A module that re-exports all the things required for writing [`Plugin`]s.
+///
+/// [`Plugin`]: plugin::Plugin
 pub mod plugin {
     pub use crate::{question::Plugin, Answer, Answers};
-    pub use ui::{self, backend::Backend, events::EventIterator};
+    pub use ui::{
+        backend::{self, Backend},
+        events::{self, EventIterator},
+        style,
+    };
 }
 
+/// A collection of questions and answers for previously answered questions.
+///
+/// Unlike [`prompt`], this allows you to control how many questions you want to ask, and ask with
+/// previous answers as well.
 #[derive(Debug, Clone, PartialEq)]
 pub struct PromptModule<Q> {
     questions: Q,
@@ -152,6 +306,7 @@ impl<'a, Q> PromptModule<Q>
 where
     Q: Iterator<Item = Question<'a>>,
 {
+    /// Creates a new `PromptModule` with the given questions
     pub fn new<I>(questions: I) -> Self
     where
         I: IntoIterator<IntoIter = Q, Item = Question<'a>>,
@@ -162,18 +317,34 @@ where
         }
     }
 
+    /// Creates a `PromptModule` with the given questions and answers
     pub fn with_answers(mut self, answers: Answers) -> Self {
         self.answers = answers;
         self
     }
 
+    /// Prompt a single question with the default [`Backend`] and [`EventIterator`].
+    ///
+    /// This may or may not actually prompt the question based on what `when` and `ask_if_answered`
+    /// is set to for that particular question.
+    pub fn prompt(&mut self) -> Result<Option<&mut Answer>> {
+        let stdout = std::io::stdout();
+        let mut stdout = get_backend(stdout.lock())?;
+
+        self.prompt_with(&mut stdout, &mut get_events())
+    }
+
+    /// Prompt a single question with the given [`Backend`] and [`EventIterator`].
+    ///
+    /// This may or may not actually prompt the question based on what `when` and `ask_if_answered`
+    /// is set to for that particular question.
     pub fn prompt_with<B, E>(
         &mut self,
         backend: &mut B,
         events: &mut E,
     ) -> Result<Option<&mut Answer>>
     where
-        B: backend::Backend,
+        B: Backend,
         E: EventIterator,
     {
         while let Some(question) = self.questions.next() {
@@ -185,16 +356,23 @@ where
         Ok(None)
     }
 
-    pub fn prompt(&mut self) -> Result<Option<&mut Answer>> {
+    /// Prompt all remaining questions with the default [`Backend`] and [`EventIterator`].
+    ///
+    /// It consumes `self` and returns the answers to all the questions asked.
+    pub fn prompt_all(self) -> Result<Answers> {
         let stdout = std::io::stdout();
-        let mut stdout = backend::get_backend(stdout.lock())?;
+        let mut stdout = get_backend(stdout.lock())?;
+        let mut events = get_events();
 
-        self.prompt_with(&mut stdout, &mut events::get_events())
+        self.prompt_all_with(&mut stdout, &mut events)
     }
 
+    /// Prompt all remaining questions with the given [`Backend`] and [`EventIterator`].
+    ///
+    /// It consumes `self` and returns the answers to all the questions asked.
     pub fn prompt_all_with<B, E>(mut self, backend: &mut B, events: &mut E) -> Result<Answers>
     where
-        B: backend::Backend,
+        B: Backend,
         E: EventIterator,
     {
         self.answers.reserve(self.questions.size_hint().0);
@@ -204,46 +382,55 @@ where
         Ok(self.answers)
     }
 
-    pub fn prompt_all(self) -> Result<Answers> {
-        let stdout = std::io::stdout();
-        let mut stdout = backend::get_backend(stdout.lock())?;
-        let mut events = events::get_events();
-
-        self.prompt_all_with(&mut stdout, &mut events)
-    }
-
+    /// Consumes `self` returning the answers to the previously asked questions.
     pub fn into_answers(self) -> Answers {
         self.answers
     }
 }
 
+/// Prompt all the questions in the given iterator, with the default [`Backend`] and [`EventIterator`].
 pub fn prompt<'a, Q>(questions: Q) -> Result<Answers>
 where
     Q: IntoIterator<Item = Question<'a>>,
 {
-    PromptModule::new(questions).prompt_all()
+    PromptModule::new(questions.into_iter()).prompt_all()
 }
 
+/// Prompt the given question, with the default [`Backend`] and [`EventIterator`].
+///
+/// # Panics
+///
+/// This will panic if `when` on the [`Question`] prevents the question from being asked.
 pub fn prompt_one<'a, I: Into<Question<'a>>>(question: I) -> Result<Answer> {
-    let ans = prompt(std::iter::once(question.into()))?;
-    Ok(ans.into_iter().next().unwrap().1)
+    let stdout = std::io::stdout();
+    let mut stdout = get_backend(stdout.lock())?;
+    let mut events = get_events();
+
+    prompt_one_with(question.into(), &mut stdout, &mut events)
 }
 
+/// Prompt all the questions in the given iterator, with the given [`Backend`] and [`EventIterator`].
 pub fn prompt_with<'a, Q, B, E>(questions: Q, backend: &mut B, events: &mut E) -> Result<Answers>
 where
     Q: IntoIterator<Item = Question<'a>>,
-    B: backend::Backend,
+    B: Backend,
     E: EventIterator,
 {
-    PromptModule::new(questions).prompt_all_with(backend, events)
+    PromptModule::new(questions.into_iter()).prompt_all_with(backend, events)
 }
 
+/// Prompt the given question, with the given [`Backend`] and [`EventIterator`].
+///
+/// # Panics
+///
+/// This will panic if `when` on the [`Question`] prevents the question from being asked.
 pub fn prompt_one_with<'a, Q, B, E>(question: Q, backend: &mut B, events: &mut E) -> Result<Answer>
 where
     Q: Into<Question<'a>>,
-    B: backend::Backend,
+    B: Backend,
     E: EventIterator,
 {
-    let ans = prompt_with(std::iter::once(question.into()), backend, events)?;
-    Ok(ans.into_iter().next().unwrap().1)
+    let ans = question.into().ask(&Answers::default(), backend, events)?;
+
+    Ok(ans.expect("The question wasn't asked").1)
 }

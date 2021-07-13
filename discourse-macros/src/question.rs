@@ -7,15 +7,16 @@ use syn::{parse::Parse, spanned::Spanned};
 use crate::helpers::*;
 
 bitflags::bitflags! {
-    pub struct BuilderMethods: u8 {
-        const DEFAULT       = 0b0000_0001;
-        const TRANSFORM     = 0b0000_0010;
-        const VAL_FIL       = 0b0000_0100;
-        const AUTO_COMPLETE = 0b0000_1000;
-        const LIST          = 0b0001_0000;
-        const MASK          = 0b0010_0000;
-        const EXTENSION     = 0b0100_0000;
-        const PLUGIN        = 0b1000_0000;
+    pub struct BuilderMethods: u16 {
+        const DEFAULT        = 0b00000_0001;
+        const TRANSFORM      = 0b00000_0010;
+        const VAL_FIL        = 0b00000_0100;
+        const AUTO_COMPLETE  = 0b00000_1000;
+        const LOOP_PAGE_SIZE = 0b00001_0000;
+        const CHOICES        = 0b00010_0000;
+        const MASK           = 0b00100_0000;
+        const EXTENSION      = 0b01000_0000;
+        const PLUGIN         = 0b10000_0000;
     }
 }
 
@@ -58,16 +59,23 @@ impl QuestionKind {
                     | BuilderMethods::TRANSFORM
                     | BuilderMethods::VAL_FIL
                     | BuilderMethods::AUTO_COMPLETE
+                    | BuilderMethods::LOOP_PAGE_SIZE
             }
             QuestionKind::Int | QuestionKind::Float => {
                 BuilderMethods::DEFAULT | BuilderMethods::TRANSFORM | BuilderMethods::VAL_FIL
             }
             QuestionKind::Confirm => BuilderMethods::DEFAULT | BuilderMethods::TRANSFORM,
             QuestionKind::Select | QuestionKind::RawSelect | QuestionKind::Expand => {
-                BuilderMethods::DEFAULT | BuilderMethods::TRANSFORM | BuilderMethods::LIST
+                BuilderMethods::DEFAULT
+                    | BuilderMethods::TRANSFORM
+                    | BuilderMethods::LOOP_PAGE_SIZE
+                    | BuilderMethods::CHOICES
             }
             QuestionKind::MultiSelect => {
-                BuilderMethods::TRANSFORM | BuilderMethods::VAL_FIL | BuilderMethods::LIST
+                BuilderMethods::TRANSFORM
+                    | BuilderMethods::VAL_FIL
+                    | BuilderMethods::LOOP_PAGE_SIZE
+                    | BuilderMethods::CHOICES
             }
             QuestionKind::Password => {
                 BuilderMethods::TRANSFORM | BuilderMethods::VAL_FIL | BuilderMethods::MASK
@@ -188,8 +196,10 @@ fn check_allowed(ident: &syn::Ident, kind: QuestionKind) -> syn::Result<()> {
         BuilderMethods::VAL_FIL
     } else if ident == "auto_complete" {
         BuilderMethods::AUTO_COMPLETE
-    } else if ident == "choices" || ident == "page_size" || ident == "should_loop" {
-        BuilderMethods::LIST
+    } else if ident == "choices" {
+        BuilderMethods::CHOICES
+    } else if ident == "page_size" || ident == "should_loop" {
+        BuilderMethods::LOOP_PAGE_SIZE
     } else if ident == "mask" {
         BuilderMethods::MASK
     } else if ident == "extension" {
@@ -316,7 +326,11 @@ impl quote::ToTokens for Question {
         let name = &self.name;
 
         if let QuestionKind::Plugin = self.kind {
-            let plugin = self.opts.plugin.as_ref().unwrap();
+            let plugin = self
+                .opts
+                .plugin
+                .as_ref()
+                .expect("Parsing would error if no plugin was there");
             // If just the name was passed into Question::plugin, type errors associated
             // with its conversion to a string would take the span _including_ that of
             // plugin. Explicitly performing `String::from`, makes the error span due to

@@ -1,4 +1,4 @@
-use discourse::plugin::ui::style::Stylize;
+use discourse::plugin::style::Stylize;
 use discourse::Question;
 
 fn map_err<E>(_: E) {}

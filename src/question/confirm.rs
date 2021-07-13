@@ -11,7 +11,7 @@ use super::{Options, TransformByVal as Transform};
 use crate::{Answer, Answers};
 
 #[derive(Debug, Default)]
-pub struct Confirm<'a> {
+pub(super) struct Confirm<'a> {
     default: Option<bool>,
     transform: Transform<'a, bool>,
 }
@@ -65,7 +65,10 @@ impl Prompt for ConfirmPrompt<'_> {
         match self.input.value() {
             Some('y') | Some('Y') => true,
             Some('n') | Some('N') => false,
-            _ => self.confirm.default.unwrap(),
+            _ => self
+                .confirm
+                .default
+                .expect("Validation would fail if there was no answer and no default"),
         }
     }
 }
@@ -105,6 +108,22 @@ impl<'a> Confirm<'a> {
     }
 }
 
+/// The builder for a [`confirm`] prompt.
+///
+/// See the various methods for more details on each available option.
+///
+/// # Examples
+///
+/// ```
+/// use discourse::Question;
+///
+/// let int = Question::confirm("anonymous")
+///     .message("Do you want to remain anonymous?")
+///     .build();
+/// ```
+///
+/// [`confirm`]: crate::question::Question::confirm
+#[derive(Debug)]
 pub struct ConfirmBuilder<'a> {
     opts: Options<'a>,
     confirm: Confirm<'a>,
@@ -118,20 +137,93 @@ impl<'a> ConfirmBuilder<'a> {
         }
     }
 
+    crate::impl_options_builder! {
+    message
+    /// # Examples
+    ///
+    /// ```
+    /// use discourse::Question;
+    ///
+    /// let confirm = Question::confirm("anonymous")
+    ///     .message("Do you want to remain anonymous?")
+    ///     .build();
+    /// ```
+
+    when
+    /// # Examples
+    ///
+    /// ```
+    /// use discourse::{Question, Answers};
+    ///
+    /// let confirm = Question::confirm("anonymous")
+    ///     .when(|previous_answers: &Answers| match previous_answers.get("auth") {
+    ///         Some(ans) => !ans.as_bool().unwrap(),
+    ///         None => true,
+    ///     })
+    ///     .build();
+    /// ```
+
+    ask_if_answered
+    /// # Examples
+    ///
+    /// ```
+    /// use discourse::Question;
+    ///
+    /// let confirm = Question::confirm("anonymous")
+    ///     .ask_if_answered(true)
+    ///     .build();
+    /// ```
+    }
+
+    /// Set a default value for the confirm
+    ///
+    /// If the input text is empty, the `default` is taken as the answer.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use discourse::Question;
+    ///
+    /// let confirm = Question::confirm("anonymous")
+    ///     .default(false)
+    ///     .build();
+    /// ```
     pub fn default(mut self, default: bool) -> Self {
         self.confirm.default = Some(default);
         self
     }
 
-    crate::impl_options_builder!();
-    crate::impl_transform_builder!(by val bool; confirm);
+    crate::impl_transform_builder! {
+    /// # Examples
+    ///
+    /// ```
+    /// use discourse::Question;
+    ///
+    /// let confirm = Question::confirm("anonymous")
+    ///     .transform(|anonymous, previous_answers, backend| {
+    ///         if anonymous  {
+    ///             write!(backend, "Ok, you are now anonymous!")
+    ///         } else {
+    ///             write!(backend, "Please enter your details in the later prompts!")
+    ///         }
+    ///     })
+    ///     .build();
+    /// ```
+    by val bool; confirm
+    }
 
+    /// Consumes the builder returning a [`Question`]
+    ///
+    /// [`Question`]: crate::question::Question
     pub fn build(self) -> super::Question<'a> {
         super::Question::new(self.opts, super::QuestionKind::Confirm(self.confirm))
     }
 }
 
 impl<'a> From<ConfirmBuilder<'a>> for super::Question<'a> {
+    /// Consumes the builder returning a [`Question`]
+    ///
+    /// [`Question`]: crate::question::Question
     fn from(builder: ConfirmBuilder<'a>) -> Self {
         builder.build()
     }
@@ -142,7 +234,7 @@ mod tests {
     use super::*;
     use ui::{backend::TestBackend, events::KeyCode, layout::Layout};
 
-    fn confirm(default: Option<bool>, message: &str) -> ConfirmPrompt {
+    fn confirm(default: Option<bool>, message: &str) -> ConfirmPrompt<'_> {
         Confirm {
             default,
             ..Default::default()

@@ -2,7 +2,7 @@ use std::path::Path;
 
 use fuzzy_matcher::{skim::SkimMatcherV2, FuzzyMatcher};
 
-use discourse::question::Completions;
+use discourse::question::{completions, Completions};
 
 fn auto_complete(p: String) -> Completions<String> {
     let current: &Path = p.as_ref();
@@ -35,12 +35,12 @@ fn auto_complete(p: String) -> Completions<String> {
             })
             .collect(),
         Err(_) => {
-            return Completions::from([p]);
+            return completions![p];
         }
     };
 
     if files.is_empty() {
-        Completions::from([p])
+        return completions![p];
     } else {
         let fuzzer = SkimMatcherV2::default();
         files.sort_by_cached_key(|file| fuzzer.fuzzy_match(file, last).unwrap_or(i64::MAX));

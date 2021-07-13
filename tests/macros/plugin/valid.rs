@@ -8,7 +8,7 @@ impl Plugin for TestPlugin {
         self,
         _message: String,
         _answers: &Answers,
-        _stdout: &mut dyn Backend,
+        _backend: &mut dyn Backend,
         _events: &mut dyn EventIterator,
     ) -> discourse::Result<Answer> {
         Ok(Answer::Int(0))

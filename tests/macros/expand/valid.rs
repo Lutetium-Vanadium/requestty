@@ -4,7 +4,7 @@ fn main() {
         default: 'c',
         transform: |_, _, _| Ok(()),
         choices: [('c', "choice")],
-        page_size: 0,
+        page_size: 10,
         should_loop: true,
     }];
 }

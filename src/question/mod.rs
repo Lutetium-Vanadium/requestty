@@ -1,3 +1,5 @@
+//! A module that contains things related to [`Question`]s.
+
 mod choice;
 mod confirm;
 mod editor;
@@ -12,6 +14,7 @@ mod password;
 mod plugin;
 mod raw_select;
 
+pub use choice::Choice;
 pub use confirm::ConfirmBuilder;
 pub use editor::EditorBuilder;
 pub use expand::ExpandBuilder;
@@ -19,20 +22,70 @@ pub use input::InputBuilder;
 pub use multi_select::MultiSelectBuilder;
 pub use number::{FloatBuilder, IntBuilder};
 pub use password::PasswordBuilder;
-pub use plugin::PluginBuilder;
+pub use plugin::{Plugin, PluginBuilder};
 pub use raw_select::RawSelectBuilder;
 pub use select::SelectBuilder;
 
-use crate::{Answer, Answers};
-pub use choice::Choice;
-use choice::{get_sep_str, ChoiceList};
-use options::Options;
-pub use plugin::Plugin;
-use plugin::PluginInteral;
+use std::fmt;
 use ui::{backend::Backend, events::EventIterator};
 
-use std::fmt;
+use crate::{Answer, Answers};
+use choice::{get_sep_str, ChoiceList};
+use options::Options;
+use plugin::PluginInteral;
 
+/// A `Question` that can be asked.
+///
+/// There are 11 variants.
+///
+/// - [`input`](Question::input)
+/// - [`password`](Question::password)
+/// - [`editor`](Question::editor)
+/// - [`confirm`](Question::confirm)
+/// - [`int`](Question::int)
+/// - [`float`](Question::float)
+/// - [`expand`](Question::expand)
+/// - [`select`](Question::select)
+/// - [`raw_select`](Question::raw_select)
+/// - [`multi_select`](Question::multi_select)
+/// - [`plugin`](Question::plugin)
+///
+/// Every [`Question`] has 4 common options.
+///
+/// - `name` (required): This is used as the key in [`Answers`].
+///   It is not shown to the user unless `message` is unspecified.
+///
+/// - `message`: The message to display when the prompt is rendered in the terminal.
+///   If it is not given, the `message` defaults to "\<name\>: ". It is recommended to set this as
+///   `name` is meant to be a programmatic `id`.
+///
+/// - `when`: Whether to ask the question or not.
+///   This can be used to have context based questions. If it is not given, it defaults to `true`.
+///
+/// - `ask_if_answered`: Prompt the question even if it is answered.
+///   By default if an answer with the given `name` already exists, the question will be skipped.
+///   This can be override by setting `ask_if_answered` is set to `true`.
+///
+/// A `Question` can be asked by creating a [`PromptModule`] or using [`prompt_one`] or
+/// [`prompt_one_with`].
+///
+/// # Examples
+///
+/// ```
+/// use discourse::Question;
+///
+/// let question = Question::input("name")
+///     .message("What is your name?")
+///     .default("John Doe")
+///     .transform(|name, previous_answers, backend| {
+///         write!(backend, "Hello, {}!", name)
+///     })
+///     .build();
+/// ```
+///
+/// [`PromptModule`]: crate::PromptModule
+/// [`prompt_one`]: crate::prompt_one
+/// [`prompt_one_with`]: crate::prompt_one_with
 #[derive(Debug)]
 pub struct Question<'a> {
     kind: QuestionKind<'a>,
@@ -46,46 +99,308 @@ impl<'a> Question<'a> {
 }
 
 impl Question<'static> {
+    /// Prompt that takes user input and returns a [`String`]
+    ///
+    /// See the various methods on the [`builder`] for more details on each available option.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use discourse::Question;
+    ///
+    /// let input = Question::input("name")
+    ///     .message("What is your name?")
+    ///     .default("John Doe")
+    ///     .transform(|name, previous_answers, backend| {
+    ///         write!(backend, "Hello, {}!", name)
+    ///     })
+    ///     .build();
+    /// ```
+    ///
+    /// [`builder`]: InputBuilder
     pub fn input<N: Into<String>>(name: N) -> InputBuilder<'static> {
         InputBuilder::new(name.into())
     }
 
-    pub fn int<N: Into<String>>(name: N) -> IntBuilder<'static> {
-        IntBuilder::new(name.into())
-    }
-
-    pub fn float<N: Into<String>>(name: N) -> FloatBuilder<'static> {
-        FloatBuilder::new(name.into())
-    }
-
-    pub fn confirm<N: Into<String>>(name: N) -> ConfirmBuilder<'static> {
-        ConfirmBuilder::new(name.into())
-    }
-
-    pub fn select<N: Into<String>>(name: N) -> SelectBuilder<'static> {
-        SelectBuilder::new(name.into())
-    }
-
-    pub fn raw_select<N: Into<String>>(name: N) -> RawSelectBuilder<'static> {
-        RawSelectBuilder::new(name.into())
-    }
-
-    pub fn expand<N: Into<String>>(name: N) -> ExpandBuilder<'static> {
-        ExpandBuilder::new(name.into())
-    }
-
-    pub fn multi_select<N: Into<String>>(name: N) -> MultiSelectBuilder<'static> {
-        MultiSelectBuilder::new(name.into())
-    }
-
+    /// Prompt that takes user input and hides it.
+    ///
+    /// See the various methods on the [`builder`] for more details on each available option.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use discourse::Question;
+    ///
+    /// let password = Question::password("password")
+    ///     .message("What is your password?")
+    ///     .mask('*')
+    ///     .build();
+    /// ```
+    ///
+    /// [`builder`]: PasswordBuilder
     pub fn password<N: Into<String>>(name: N) -> PasswordBuilder<'static> {
         PasswordBuilder::new(name.into())
     }
 
+    /// Prompt that takes launches the users preferred editor on a temporary file
+    ///
+    /// Once the user exits their editor, the contents of the temporary file are read in as the
+    /// result. The editor to use is determined by the `$VISUAL` or `$EDITOR` environment variables.
+    /// If neither of those are present, `vim` (for unix) or `notepad` (for windows) is used.
+    ///
+    /// See the various methods on the [`builder`] for more details on each available option.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use discourse::Question;
+    ///
+    /// let password = Question::editor("description")
+    ///     .message("Please enter a short description about yourself")
+    ///     .extension(".md")
+    ///     .build();
+    /// ```
+    ///
+    /// [`builder`]: EditorBuilder
     pub fn editor<N: Into<String>>(name: N) -> EditorBuilder<'static> {
         EditorBuilder::new(name.into())
     }
 
+    /// Prompt that returns `true` or `false`.
+    ///
+    /// See the various methods on the [`builder`] for more details on each available option.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use discourse::Question;
+    ///
+    /// let int = Question::confirm("anonymous")
+    ///     .message("Do you want to remain anonymous?")
+    ///     .build();
+    /// ```
+    ///
+    /// [`builder`]: ConfirmBuilder
+    pub fn confirm<N: Into<String>>(name: N) -> ConfirmBuilder<'static> {
+        ConfirmBuilder::new(name.into())
+    }
+
+    /// Prompt that takes a [`i64`] as input.
+    ///
+    /// The number is parsed using [`from_str`].
+    ///
+    /// See the various methods on the [`builder`] for more details on each available option.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use discourse::Question;
+    ///
+    /// let int = Question::int("age")
+    ///     .message("What is your age?")
+    ///     .validate(|age, previous_answers| {
+    ///         if age > 0 && age < 130 {
+    ///             Ok(())
+    ///         } else {
+    ///             Err(format!("You cannot be {} years old!", age))
+    ///         }
+    ///     })
+    ///     .build();
+    /// ```
+    ///
+    /// [`builder`]: IntBuilder
+    /// [`from_str`]: https://doc.rust-lang.org/std/primitive.i64.html#method.from_str
+    pub fn int<N: Into<String>>(name: N) -> IntBuilder<'static> {
+        IntBuilder::new(name.into())
+    }
+
+    /// Prompt that takes a [`f64`] as input.
+    ///
+    /// The number is parsed using [`from_str`], but cannot be `NaN`.
+    ///
+    /// See the various methods on the [`builder`] for more details on each available option.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use discourse::Question;
+    ///
+    /// let float = Question::float("number")
+    ///     .message("What is your favourite number?")
+    ///     .validate(|num, previous_answers| {
+    ///         if num.is_finite() {
+    ///             Ok(())
+    ///         } else {
+    ///             Err("Please enter a finite number".to_owned())
+    ///         }
+    ///     })
+    ///     .build();
+    /// ```
+    ///
+    /// [`builder`]: FloatBuilder
+    /// [`from_str`]: https://doc.rust-lang.org/std/primitive.f64.html#method.from_str
+    pub fn float<N: Into<String>>(name: N) -> FloatBuilder<'static> {
+        FloatBuilder::new(name.into())
+    }
+
+    /// Prompt that allows the user to select from a list of options by key
+    ///
+    /// The keys are ascii case-insensitive characters. The 'h' option is added by the prompt and
+    /// shouldn't be defined.
+    ///
+    /// The choices are represented with the [`Choice`] enum. [`Choice::Choice`] can be multi-line,
+    /// but [`Choice::Separator`]s can only be single line.
+    ///
+    /// See the various methods on the [`builder`] for more details on each available option.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use discourse::Question;
+    ///
+    /// let expand = Question::expand("overwrite")
+    ///     .message("Conflict on `file.rs`")
+    ///     .choices(vec![
+    ///         ('y', "Overwrite"),
+    ///         ('a', "Overwrite this one and all next"),
+    ///         ('d', "Show diff"),
+    ///     ])
+    ///     .default_separator()
+    ///     .choice('x', "Abort")
+    ///     .build();
+    /// ```
+    ///
+    /// [`builder`]: ExpandBuilder
+    pub fn expand<N: Into<String>>(name: N) -> ExpandBuilder<'static> {
+        ExpandBuilder::new(name.into())
+    }
+
+    /// Prompt that allows the user to select from a list of options
+    ///
+    /// The choices are represented with the [`Choice`] enum. [`Choice::Choice`] can be multi-line,
+    /// but [`Choice::Separator`]s can only be single line.
+    ///
+    /// See the various methods on the [`builder`] for more details on each available option.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use discourse::{Question, DefaultSeparator};
+    ///
+    /// let select = Question::select("theme")
+    ///     .message("What do you want to do?")
+    ///     .choices(vec![
+    ///         "Order a pizza".into(),
+    ///         "Make a reservation".into(),
+    ///         DefaultSeparator,
+    ///         "Ask for opening hours".into(),
+    ///         "Contact support".into(),
+    ///         "Talk to the receptionist".into(),
+    ///     ])
+    ///     .build();
+    /// ```
+    ///
+    /// [`builder`]: SelectBuilder
+    pub fn select<N: Into<String>>(name: N) -> SelectBuilder<'static> {
+        SelectBuilder::new(name.into())
+    }
+
+    /// Prompt that allows the user to select from a list of options with indices
+    ///
+    /// The choices are represented with the [`Choice`] enum. [`Choice::Choice`] can be multi-line,
+    /// but [`Choice::Separator`]s can only be single line.
+    ///
+    /// See the various methods on the [`builder`] for more details on each available option.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use discourse::{Question, DefaultSeparator};
+    ///
+    /// let raw_select = Question::raw_select("theme")
+    ///     .message("What do you want to do?")
+    ///     .choices(vec![
+    ///         "Order a pizza".into(),
+    ///         "Make a reservation".into(),
+    ///         DefaultSeparator,
+    ///         "Ask for opening hours".into(),
+    ///         "Contact support".into(),
+    ///         "Talk to the receptionist".into(),
+    ///     ])
+    ///     .build();
+    /// ```
+    ///
+    /// [`builder`]: RawSelectBuilder
+    pub fn raw_select<N: Into<String>>(name: N) -> RawSelectBuilder<'static> {
+        RawSelectBuilder::new(name.into())
+    }
+
+    /// Prompt that allows the user to select multiple items from a list of options
+    ///
+    /// Unlike the other list based prompts, this has a per choice boolean default.
+    ///
+    /// The choices are represented with the [`Choice`] enum. [`Choice::Choice`] can be multi-line,
+    /// but [`Choice::Separator`]s can only be single line.
+    ///
+    /// See the various methods on the [`builder`] for more details on each available option.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use discourse::{Question, DefaultSeparator};
+    ///
+    /// let multi_select = Question::multi_select("cheese")
+    ///     .message("What cheese do you want?")
+    ///     .choice_with_default("Mozzarella", true)
+    ///     .choices(vec![
+    ///         "Cheddar",
+    ///         "Parmesan",
+    ///     ])
+    ///     .build();
+    /// ```
+    ///
+    /// [`builder`]: MultiSelectBuilder
+    pub fn multi_select<N: Into<String>>(name: N) -> MultiSelectBuilder<'static> {
+        MultiSelectBuilder::new(name.into())
+    }
+
+    /// Create a [`Question`] from a custom prompt.
+    ///
+    /// See [`Plugin`] for more information on writing custom prompts.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use discourse::{plugin, Question};
+    ///
+    /// #[derive(Debug)]
+    /// struct MyPlugin { /* ... */ }
+    ///
+    /// # impl MyPlugin {
+    /// #     fn new() -> MyPlugin {
+    /// #         MyPlugin {}
+    /// #     }
+    /// # }
+    ///
+    /// impl plugin::Plugin for MyPlugin {
+    ///     fn ask(
+    ///         self,
+    ///         message: String,
+    ///         answers: &plugin::Answers,
+    ///         backend: &mut dyn plugin::Backend,
+    ///         events: &mut dyn plugin::EventIterator,
+    ///     ) -> discourse::Result<plugin::Answer> {
+    /// #       todo!()
+    ///         /* ... */
+    ///     }
+    /// }
+    ///
+    /// let plugin = Question::plugin("my-plugin", MyPlugin::new())
+    ///     .message("Hello from MyPlugin!")
+    ///     .build();
+    /// ```
+    ///
+    /// [`builder`]: PluginBuilder
     pub fn plugin<'a, N, P>(name: N, plugin: P) -> PluginBuilder<'a>
     where
         N: Into<String>,
@@ -117,9 +432,13 @@ impl Question<'_> {
         b: &mut B,
         events: &mut I,
     ) -> ui::Result<Option<(String, Answer)>> {
-        if (!self.opts.ask_if_answered && answers.contains_key(&self.opts.name))
-            || !self.opts.when.get(answers)
-        {
+        // Already asked
+        if !self.opts.ask_if_answered && answers.contains_key(&self.opts.name) {
+            return Ok(None);
+        }
+
+        // Shouldn't be asked
+        if !self.opts.when.get(answers) {
             return Ok(None);
         }
 
@@ -209,10 +528,29 @@ macro_rules! handler {
     };
 }
 
+/// The type which needs to be returned by the [`auto_complete`] function.
+///
+/// [`auto_complete`]: InputBuilder::auto_complete
 #[cfg(feature = "smallvec")]
 pub type Completions<T> = smallvec::SmallVec<[T; 1]>;
+
+/// The type which needs to be returned by the [`auto_complete`] function.
+///
+/// [`auto_complete`]: InputBuilder::auto_complete
 #[cfg(not(feature = "smallvec"))]
 pub type Completions<T> = Vec<T>;
+
+#[cfg(feature = "smallvec")]
+pub use smallvec::smallvec as completions;
+#[cfg(not(feature = "smallvec"))]
+pub use std::vec as completions;
+
+#[doc(hidden)]
+#[macro_export]
+macro_rules! __completions_count {
+    ($e:expr) => (1);
+    ($e:expr, $($rest:expr)+) => (1 + $(+ $crate::question::__completions_count!($rest) )+);
+}
 
 handler!(Filter, FnOnce(T, &Answers) -> T);
 handler!(AutoComplete, FnMut(T, &Answers) -> Completions<T>);
@@ -227,7 +565,21 @@ handler!(
 #[doc(hidden)]
 #[macro_export]
 macro_rules! impl_filter_builder {
-    ($t:ty; $inner:ident) => {
+    // NOTE: the 2 extra lines at the end of each doc comment is intentional -- it makes sure that
+    // other docs that come from the macro invocation have appropriate spacing
+    ($(#[$meta:meta])+ $t:ty; $inner:ident) => {
+        /// Function to change the final submitted value before it is displayed to the user and
+        /// added to the [`Answers`].
+        ///
+        /// It is a [`FnOnce`] that is given the answer and the previous [`Answers`], and should
+        /// return the new answer.
+        ///
+        /// This will be called after the answer has been validated.
+        ///
+        /// [`Answers`]: crate::Answers
+        ///
+        ///
+        $(#[$meta])+
         pub fn filter<F>(mut self, filter: F) -> Self
         where
             F: FnOnce($t, &crate::Answers) -> $t + 'a,
@@ -241,7 +593,27 @@ macro_rules! impl_filter_builder {
 #[doc(hidden)]
 #[macro_export]
 macro_rules! impl_auto_complete_builder {
-    ($t:ty; $inner:ident) => {
+    // NOTE: the 2 extra lines at the end of each doc comment is intentional -- it makes sure that
+    // other docs that come from the macro invocation have appropriate spacing
+    ($(#[$meta:meta])+ $t:ty; $inner:ident) => {
+        /// Function to suggest completions to the answer when the user presses `Tab`.
+        ///
+        /// It is a [`FnMut`] that is given the current state of the answer and the previous
+        /// [`Answers`], and should return a list of completions.
+        ///
+        /// There must be at least 1 completion. Returning 0 completions will cause a panic. If
+        /// there are no completions to give, you can simply return the state of the answer passed
+        /// to you.
+        ///
+        /// If there is 1 completion, then the state of the answer becomes that completion.
+        ///
+        /// If there are 2 or more completions, a list of completions is displayed from which the
+        /// user can pick one completion.
+        ///
+        /// [`Answers`]: crate::Answers
+        ///
+        ///
+        $(#[$meta])+
         pub fn auto_complete<F>(mut self, auto_complete: F) -> Self
         where
             F: FnMut($t, &crate::Answers) -> Completions<$t> + 'a,
@@ -256,22 +628,34 @@ macro_rules! impl_auto_complete_builder {
 #[doc(hidden)]
 #[macro_export]
 macro_rules! impl_validate_builder {
-    ($t:ty; $inner:ident) => {
-        pub fn validate<F>(mut self, filter: F) -> Self
-        where
-            F: FnMut(&$t, &crate::Answers) -> Result<(), String> + 'a,
-        {
-            self.$inner.validate = crate::question::Validate::Sync(Box::new(filter));
-            self
-        }
+    ($(#[$meta:meta])+ $t:ty; $inner:ident) => {
+        crate::impl_validate_builder!($(#[$meta])* impl &$t; $inner Validate);
     };
 
-    (by val $t:ty; $inner:ident) => {
+    ($(#[$meta:meta])+ by val $t:ty; $inner:ident) => {
+        crate::impl_validate_builder!($(#[$meta])* impl $t; $inner ValidateByVal);
+    };
+
+    // NOTE: the 2 extra lines at the end of each doc comment is intentional -- it makes sure that
+    // other docs that come from the macro invocation have appropriate spacing
+    ($(#[$meta:meta])+ impl $t:ty; $inner:ident $handler:ident) => {
+        /// Function to validate the submitted value before it's returned.
+        ///
+        /// It is a [`FnMut`] that is given the answer and the previous [`Answers`], and should
+        /// return `Ok(())` if the given answer is valid. If it is invalid, it should return an
+        /// [`Err`] with the error message to display to the user.
+        ///
+        /// This will be called when the user presses the `Enter` key.
+        ///
+        /// [`Answers`]: crate::Answers
+        ///
+        ///
+        $(#[$meta])*
         pub fn validate<F>(mut self, filter: F) -> Self
         where
             F: FnMut($t, &crate::Answers) -> Result<(), String> + 'a,
         {
-            self.$inner.validate = crate::question::ValidateByVal::Sync(Box::new(filter));
+            self.$inner.validate = crate::question::$handler::Sync(Box::new(filter));
             self
         }
     };
@@ -280,22 +664,34 @@ macro_rules! impl_validate_builder {
 #[doc(hidden)]
 #[macro_export]
 macro_rules! impl_transform_builder {
-    ($t:ty; $inner:ident) => {
-        pub fn transform<F>(mut self, transform: F) -> Self
-        where
-            F: FnOnce(&$t, &crate::Answers, &mut dyn Backend) -> std::io::Result<()> + 'a,
-        {
-            self.$inner.transform = crate::question::Transform::Sync(Box::new(transform));
-            self
-        }
+    ($(#[$meta:meta])+ $t:ty; $inner:ident) => {
+        crate::impl_transform_builder!($(#[$meta])* impl &$t; $inner Transform);
     };
 
-    (by val $t:ty; $inner:ident) => {
+    ($(#[$meta:meta])+ by val $t:ty; $inner:ident) => {
+        crate::impl_transform_builder!($(#[$meta])* impl $t; $inner TransformByVal);
+    };
+
+    // NOTE: the 2 extra lines at the end of each doc comment is intentional -- it makes sure that
+    // other docs that come from the macro invocation have appropriate spacing
+    ($(#[$meta:meta])+ impl $t:ty; $inner:ident $handler:ident) => {
+        /// Change the way the answer looks when displayed to the user.
+        ///
+        /// It is a [`FnOnce`] that is given the answer, previous [`Answers`] and the [`Backend`] to
+        /// display the answer on. After the `transform` is called, a new line is also added.
+        ///
+        /// It will only be called once the user finishes answering the question.
+        ///
+        /// [`Answers`]: crate::Answers
+        /// [`Backend`]: crate::plugin::Backend
+        ///
+        ///
+        $(#[$meta])*
         pub fn transform<F>(mut self, transform: F) -> Self
         where
             F: FnOnce($t, &crate::Answers, &mut dyn Backend) -> std::io::Result<()> + 'a,
         {
-            self.$inner.transform = crate::question::TransformByVal::Sync(Box::new(transform));
+            self.$inner.transform = crate::question::$handler::Sync(Box::new(transform));
             self
         }
     };

@@ -5,23 +5,59 @@ use std::{
     ops::{Deref, DerefMut},
 };
 
+/// The different answer types that can be returned by the [`Question`]s
+///
+/// [`Question`]: crate::question::Question
 #[derive(Debug, Clone, PartialEq, PartialOrd)]
 pub enum Answer {
+    /// Strings will be returned by [`input`], [`password`] and [`editor`].
+    ///
+    /// [`input`]: crate::question::Question::input
+    /// [`password`]: crate::question::Question::password
+    /// [`editor`]: crate::question::Question::editor
     String(String),
+    /// ListItems will be returned by [`select`] and [`raw_select`].
+    ///
+    /// [`select`]: crate::question::Question::select
+    /// [`raw_select`]: crate::question::Question::raw_select
     ListItem(ListItem),
+    /// ExpandItems will be returned by [`expand`].
+    ///
+    /// [`expand`]: crate::question::Question::expand
     ExpandItem(ExpandItem<String>),
+    /// Ints will be returned by [`int`].
+    ///
+    /// [`int`]: crate::question::Question::int
     Int(i64),
+    /// Floats will be returned by [`float`].
+    ///
+    /// [`float`]: crate::question::Question::float
     Float(f64),
+    /// Bools will be returned by [`confirm`].
+    ///
+    /// [`confirm`]: crate::question::Question::confirm
     Bool(bool),
+    /// ListItems will be returned by [`multi_select`].
+    ///
+    /// [`multi_select`]: crate::question::Question::multi_select
     ListItems(Vec<ListItem>),
 }
 
 impl Answer {
-    /// Returns `true` if the answer is [`String`].
+    /// Returns `true` if the answer is [`Answer::String`].
     pub fn is_string(&self) -> bool {
         matches!(self, Self::String(..))
     }
 
+    /// Returns [`Some`] if it is a [`Answer::String`], otherwise returns [`None`].
+    pub fn as_string(&self) -> Option<&str> {
+        match self {
+            Self::String(v) => Some(v),
+            _ => None,
+        }
+    }
+
+    /// Returns the `Ok(String)` if it is one, otherwise returns itself as an [`Err`].
     pub fn try_into_string(self) -> Result<String, Self> {
         match self {
             Self::String(v) => Ok(v),
@@ -29,11 +65,20 @@ impl Answer {
         }
     }
 
-    /// Returns `true` if the answer is [`ListItem`].
+    /// Returns `true` if the answer is [`Answer::ListItem`].
     pub fn is_list_item(&self) -> bool {
         matches!(self, Self::ListItem(..))
     }
 
+    /// Returns [`Some`] if it is a [`Answer::ListItem`], otherwise returns [`None`].
+    pub fn as_list_item(&self) -> Option<&ListItem> {
+        match self {
+            Self::ListItem(v) => Some(v),
+            _ => None,
+        }
+    }
+
+    /// Returns the `Ok(ListItem)` if it is one, otherwise returns itself as an [`Err`].
     pub fn try_into_list_item(self) -> Result<ListItem, Self> {
         match self {
             Self::ListItem(v) => Ok(v),
@@ -41,11 +86,20 @@ impl Answer {
         }
     }
 
-    /// Returns `true` if the answer is [`ExpandItem`].
+    /// Returns `true` if the answer is [`Answer::ExpandItem`].
     pub fn is_expand_item(&self) -> bool {
         matches!(self, Self::ExpandItem(..))
     }
 
+    /// Returns [`Some`] if it is [`Answer::ExpandItem`], otherwise returns [`None`].
+    pub fn as_expand_item(&self) -> Option<&ExpandItem<String>> {
+        match self {
+            Self::ExpandItem(v) => Some(v),
+            _ => None,
+        }
+    }
+
+    /// Returns the `Ok(ExpandItem)` if it is one, otherwise returns itself as an [`Err`].
     pub fn try_into_expand_item(self) -> Result<ExpandItem<String>, Self> {
         match self {
             Self::ExpandItem(v) => Ok(v),
@@ -53,11 +107,20 @@ impl Answer {
         }
     }
 
-    /// Returns `true` if the answer is [`Int`].
+    /// Returns `true` if the answer is [`Answer::Int`].
     pub fn is_int(&self) -> bool {
         matches!(self, Self::Int(..))
     }
 
+    /// Returns [`Some`] if it is [`Answer::Int`], otherwise returns [`None`].
+    pub fn as_int(&self) -> Option<i64> {
+        match self {
+            Self::Int(v) => Some(*v),
+            _ => None,
+        }
+    }
+
+    /// Returns the `Ok(i64)` if it is one, otherwise returns itself as an [`Err`].
     pub fn try_into_int(self) -> Result<i64, Self> {
         match self {
             Self::Int(v) => Ok(v),
@@ -65,11 +128,20 @@ impl Answer {
         }
     }
 
-    /// Returns `true` if the answer is [`Float`].
+    /// Returns `true` if the answer is [`Answer::Float`].
     pub fn is_float(&self) -> bool {
         matches!(self, Self::Float(..))
     }
 
+    /// Returns [`Some`] if it is [`Answer::Float`], otherwise returns [`None`].
+    pub fn as_float(&self) -> Option<f64> {
+        match self {
+            Self::Float(v) => Some(*v),
+            _ => None,
+        }
+    }
+
+    /// Returns the `Ok(f64)` if it is one, otherwise returns itself as an [`Err`].
     pub fn try_into_float(self) -> Result<f64, Self> {
         match self {
             Self::Float(v) => Ok(v),
@@ -77,11 +149,20 @@ impl Answer {
         }
     }
 
-    /// Returns `true` if the answer is [`Bool`].
+    /// Returns `true` if the answer is [`Answer::Bool`].
     pub fn is_bool(&self) -> bool {
         matches!(self, Self::Bool(..))
     }
 
+    /// Returns [`Some`] if it is [`Answer::Bool`], otherwise returns [`None`].
+    pub fn as_bool(&self) -> Option<bool> {
+        match self {
+            Self::Bool(v) => Some(*v),
+            _ => None,
+        }
+    }
+
+    /// Returns the `Ok(bool)` if it is one, otherwise returns itself as an [`Err`].
     pub fn try_into_bool(self) -> Result<bool, Self> {
         match self {
             Self::Bool(v) => Ok(v),
@@ -89,78 +170,40 @@ impl Answer {
         }
     }
 
-    /// Returns `true` if the answer is [`ListItems`].
+    /// Returns `true` if the answer is [`Answer::ListItems`].
     pub fn is_list_items(&self) -> bool {
         matches!(self, Self::ListItems(..))
     }
 
+    /// Returns [`Some`] if it is [`Answer::ListItems`], otherwise returns [`None`].
+    pub fn as_list_items(&self) -> Option<&[ListItem]> {
+        match self {
+            Self::ListItems(v) => Some(v),
+            _ => None,
+        }
+    }
+
+    /// Returns the `Ok(Vec<ListItem>)` if it is one, otherwise returns itself as an [`Err`].
     pub fn try_into_list_items(self) -> Result<Vec<ListItem>, Self> {
         match self {
             Self::ListItems(v) => Ok(v),
             _ => Err(self),
         }
     }
-
-    pub fn as_string(&self) -> Option<&String> {
-        if let Self::String(v) = self {
-            Some(v)
-        } else {
-            None
-        }
-    }
-
-    pub fn as_list_item(&self) -> Option<&ListItem> {
-        if let Self::ListItem(v) = self {
-            Some(v)
-        } else {
-            None
-        }
-    }
-
-    pub fn as_expand_item(&self) -> Option<&ExpandItem<String>> {
-        if let Self::ExpandItem(v) = self {
-            Some(v)
-        } else {
-            None
-        }
-    }
-
-    pub fn as_int(&self) -> Option<i64> {
-        if let Self::Int(v) = self {
-            Some(*v)
-        } else {
-            None
-        }
-    }
-
-    pub fn as_float(&self) -> Option<f64> {
-        if let Self::Float(v) = self {
-            Some(*v)
-        } else {
-            None
-        }
-    }
-
-    pub fn as_bool(&self) -> Option<bool> {
-        if let Self::Bool(v) = self {
-            Some(*v)
-        } else {
-            None
-        }
-    }
-
-    pub fn as_list_items(&self) -> Option<&Vec<ListItem>> {
-        if let Self::ListItems(v) = self {
-            Some(v)
-        } else {
-            None
-        }
-    }
 }
 
+/// A representation of a [`Choice`] at a particular index.
+///
+/// It will be returned by [`select`] and [`raw_select`].
+///
+/// [`Choice`]: crate::Choice
+/// [`select`]: crate::question::Question::select
+/// [`raw_select`]: crate::question::Question::raw_select
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct ListItem {
+    /// The index of the choice
     pub index: usize,
+    /// The actual choice
     pub name: String,
 }
 
@@ -170,9 +213,17 @@ impl From<(usize, String)> for ListItem {
     }
 }
 
+/// A representation of a [`Choice`] for a particular key.
+///
+/// It will be returned by [`expand`].
+///
+/// [`Choice`]: crate::Choice
+/// [`expand`]: crate::question::Question::expand
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct ExpandItem<S> {
+    /// The key associated with the choice
     pub key: char,
+    /// The actual choice
     pub name: S,
 }
 
@@ -207,6 +258,9 @@ impl<S: ui::Widget> ui::Widget for ExpandItem<S> {
     }
 }
 
+/// A collections of answers of previously asked [`Question`]s.
+///
+/// [`Question`]: crate::question::Question
 #[derive(Default, Clone, PartialEq)]
 pub struct Answers {
     answers: HashMap<String, Answer>,

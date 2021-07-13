@@ -11,7 +11,7 @@ use super::{Filter, Options, Transform, Validate};
 use crate::{Answer, Answers};
 
 #[derive(Debug, Default)]
-pub struct Password<'a> {
+pub(super) struct Password<'a> {
     mask: Option<char>,
     filter: Filter<'a, String>,
     validate: Validate<'a, str>,
@@ -108,6 +108,23 @@ impl<'p> Password<'p> {
     }
 }
 
+/// The builder for an [`password`] prompt.
+///
+/// See the various methods for more details on each available option.
+///
+/// # Examples
+///
+/// ```
+/// use discourse::Question;
+///
+/// let password = Question::password("password")
+///     .message("What is your password?")
+///     .mask('*')
+///     .build();
+/// ```
+///
+/// [`password`]: crate::question::Question::password
+#[derive(Debug)]
 pub struct PasswordBuilder<'a> {
     opts: Options<'a>,
     password: Password<'a>,
@@ -121,22 +138,127 @@ impl<'a> PasswordBuilder<'a> {
         }
     }
 
+    crate::impl_options_builder! {
+    message
+    /// # Examples
+    ///
+    /// ```
+    /// use discourse::Question;
+    ///
+    /// let password = Question::password("password")
+    ///     .message("What is your password?")
+    ///     .build();
+    /// ```
+
+    when
+    /// # Examples
+    ///
+    /// ```
+    /// use discourse::{Answers, Question};
+    ///
+    /// let password = Question::password("password")
+    ///     .when(|previous_answers: &Answers| match previous_answers.get("anonymous") {
+    ///         Some(ans) => !ans.as_bool().unwrap(),
+    ///         None => true,
+    ///     })
+    ///     .build();
+    /// ```
+
+    ask_if_answered
+    /// # Examples
+    ///
+    /// ```
+    /// use discourse::Question;
+    ///
+    /// let password = Question::password("password")
+    ///     .ask_if_answered(true)
+    ///     .build();
+    /// ```
+    }
+
+    /// Set a mask to print instead of the characters
+    ///
+    /// Each character when printed to the terminal will be replaced by the given mask. If a mask is
+    /// not provided, then input will be hidden.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use discourse::Question;
+    ///
+    /// let password = Question::password("password")
+    ///     .mask('*')
+    ///     .build();
+    /// ```
     pub fn mask(mut self, mask: char) -> Self {
         self.password.mask = Some(mask);
         self
     }
 
-    crate::impl_options_builder!();
-    crate::impl_filter_builder!(String; password);
-    crate::impl_validate_builder!(str; password);
-    crate::impl_transform_builder!(str; password);
+    crate::impl_filter_builder! {
+    /// # Examples
+    ///
+    /// ```
+    /// use discourse::Question;
+    ///
+    /// # fn encrypt(s: String) -> String { s }
+    ///
+    /// let password = Question::password("password")
+    ///     .filter(|password, previous_answers| encrypt(password))
+    ///     .build();
+    /// ```
+    String; password
+    }
 
+    crate::impl_validate_builder! {
+    /// # Examples
+    ///
+    /// ```
+    /// use discourse::Question;
+    ///
+    /// let password = Question::password("password")
+    ///     .validate(|password, previous_answers| if password.chars().count() >= 5 {
+    ///         Ok(())
+    ///     } else {
+    ///         Err("Your password be at least 5 characters long".to_owned())
+    ///     })
+    ///     .build();
+    /// ```
+    str; password
+    }
+
+    crate::impl_transform_builder! {
+    /// # Examples
+    ///
+    /// ```
+    /// use discourse::Question;
+    /// use discourse::plugin::style::Color;
+    ///
+    /// let password = Question::password("password")
+    ///     .transform(|password, previous_answers, backend| {
+    ///         backend.set_fg(Color::Cyan)?;
+    ///         for _ in password.chars() {
+    ///             write!(backend, "*")?;
+    ///         }
+    ///         backend.set_fg(Color::Reset)
+    ///     })
+    ///     .build();
+    /// ```
+    str; password
+    }
+
+    /// Consumes the builder returning a [`Question`]
+    ///
+    /// [`Question`]: crate::question::Question
     pub fn build(self) -> super::Question<'a> {
         super::Question::new(self.opts, super::QuestionKind::Password(self.password))
     }
 }
 
 impl<'a> From<PasswordBuilder<'a>> for super::Question<'a> {
+    /// Consumes the builder returning a [`Question`]
+    ///
+    /// [`Question`]: crate::question::Question
     fn from(builder: PasswordBuilder<'a>) -> Self {
         builder.build()
     }

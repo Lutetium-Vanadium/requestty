@@ -42,13 +42,14 @@ pub trait List {
     /// skipped during navigation.
     fn is_selectable(&self, index: usize) -> bool;
 
-    /// The maximum height that can be taken by the list. If the total height exceeds the page size,
-    /// the list will be scrollable.
+    /// The maximum height that can be taken by the list.
+    ///
+    /// If the total height exceeds the page size, the list will be scrollable.
     fn page_size(&self) -> usize;
 
     /// Whether to wrap around when user gets to the last element.
     ///
-    /// This only applies when the list is not scrollable, i.e. page size > total height.
+    /// This only applies when the list is scrollable, i.e. page size > total height.
     fn should_loop(&self) -> bool;
 
     /// The height of the element at an index will take to render
@@ -275,7 +276,11 @@ impl<L: List> Select<L> {
             _ => unreachable!(),
         };
 
-        let heights = &self.heights.as_ref().unwrap().heights[..];
+        let heights = &self
+            .heights
+            .as_ref()
+            .expect("`adjust_page` called before `height` or `render`")
+            .heights[..];
 
         // -1 since the message at the end takes one line
         let max_height = self.page_size() - 1;
@@ -379,7 +384,11 @@ impl<L: List> Select<L> {
     }
 
     fn init_page(&mut self) {
-        let heights = &self.heights.as_ref().unwrap().heights[..];
+        let heights = &self
+            .heights
+            .as_ref()
+            .expect("`init_page` called before `height` or `render`")
+            .heights[..];
 
         self.page_start = 0;
         self.page_start_height = heights[self.page_start];
@@ -412,7 +421,11 @@ impl<L: List> Select<L> {
         old_layout: &mut Layout,
         b: &mut B,
     ) -> io::Result<()> {
-        let heights = &self.heights.as_ref().unwrap().heights[..];
+        let heights = &self
+            .heights
+            .as_ref()
+            .expect("`render_in` called from someplace other than `render`")
+            .heights[..];
 
         // Create a new local copy of the layout to operate on to avoid changes in max_height and
         // render_region to be reflected upstream
@@ -630,7 +643,7 @@ impl<L: List> super::Widget for Select<L> {
                 .max(
                     self.heights
                     .as_ref()
-                    .unwrap()
+                    .expect("`maybe_update_heights` should set `self.heights` if missing")
                     .heights
                     .get(self.at)
                     .unwrap_or(&0)
