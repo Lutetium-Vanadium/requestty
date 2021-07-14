@@ -253,7 +253,7 @@ impl<I: Into<String>> From<I> for Choice<String> {
     }
 }
 
-impl<I: Into<String>> From<(char, I)> for Choice<ExpandItem<String>> {
+impl<I: Into<String>> From<(char, I)> for Choice<ExpandItem> {
     fn from((key, name): (char, I)) -> Self {
         Choice::Choice(ExpandItem {
             key,

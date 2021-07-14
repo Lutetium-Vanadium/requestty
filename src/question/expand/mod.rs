@@ -15,11 +15,39 @@ use crate::{Answer, Answers, ExpandItem};
 mod tests;
 
 #[derive(Debug)]
+struct ExpandText {
+    key: char,
+    name: Text<String>,
+}
+
+impl Widget for ExpandText {
+    fn render<B: Backend>(
+        &mut self,
+        layout: &mut ui::layout::Layout,
+        backend: &mut B,
+    ) -> io::Result<()> {
+        self.name.render(layout, backend)
+    }
+
+    fn height(&mut self, layout: &mut ui::layout::Layout) -> u16 {
+        self.name.height(layout)
+    }
+
+    fn cursor_pos(&mut self, layout: ui::layout::Layout) -> (u16, u16) {
+        self.name.cursor_pos(layout)
+    }
+
+    fn handle_key(&mut self, key: KeyEvent) -> bool {
+        self.name.handle_key(key)
+    }
+}
+
+#[derive(Debug)]
 pub(super) struct Expand<'a> {
-    choices: super::ChoiceList<ExpandItem<Text<String>>>,
+    choices: super::ChoiceList<ExpandText>,
     selected: Option<char>,
     default: char,
-    transform: Transform<'a, ExpandItem<String>>,
+    transform: Transform<'a, ExpandItem>,
 }
 
 impl<'a> Default for Expand<'a> {
@@ -41,7 +69,7 @@ struct ExpandPrompt<'a, F> {
 }
 
 impl<F: Fn(char) -> Option<char>> ExpandPrompt<'_, F> {
-    fn selected(&mut self) -> Option<&mut ExpandItem<Text<String>>> {
+    fn selected(&mut self) -> Option<&mut ExpandText> {
         let key = self.input.value()?;
 
         self.select
@@ -56,7 +84,7 @@ impl<F: Fn(char) -> Option<char>> ExpandPrompt<'_, F> {
             .find(|item| item.key == key)
     }
 
-    fn finish_with(self, c: char) -> ExpandItem<String> {
+    fn finish_with(self, c: char) -> ExpandItem {
         let item = self
             .select
             .into_inner()
@@ -79,7 +107,7 @@ impl<F: Fn(char) -> Option<char>> ExpandPrompt<'_, F> {
 
 impl<F: Fn(char) -> Option<char>> Prompt for ExpandPrompt<'_, F> {
     type ValidateErr = &'static str;
-    type Output = ExpandItem<String>;
+    type Output = ExpandItem;
 
     fn validate(&mut self) -> Result<Validation, Self::ValidateErr> {
         match self.input.value().unwrap_or(self.select.list.default) {
@@ -246,7 +274,7 @@ impl Expand<'_> {
     fn has_valid_default(&self) -> bool {
         self.default == 'h'
             || self.choices.choices.iter().any(
-                |c| matches!(c, Choice::Choice(ExpandItem { key, .. }) if *key == self.default),
+                |c| matches!(c, Choice::Choice(ExpandText { key, .. }) if *key == self.default),
             )
     }
 
@@ -529,7 +557,7 @@ impl<'a> ExpandBuilder<'a> {
 
         self.keys.insert(key);
 
-        self.expand.choices.choices.push(Choice::Choice(ExpandItem {
+        self.expand.choices.choices.push(Choice::Choice(ExpandText {
             key,
             name: Text::new(name.into()),
         }));
@@ -608,7 +636,7 @@ impl<'a> ExpandBuilder<'a> {
     /// ```
     pub fn choices<I, T>(mut self, choices: I) -> Self
     where
-        T: Into<Choice<ExpandItem<String>>>,
+        T: Into<Choice<ExpandItem>>,
         I: IntoIterator<Item = T>,
     {
         let Self {
@@ -628,7 +656,7 @@ impl<'a> ExpandBuilder<'a> {
                 }
                 keys.insert(key);
 
-                ExpandItem {
+                ExpandText {
                     name: Text::new(name),
                     key,
                 }
@@ -650,7 +678,7 @@ impl<'a> ExpandBuilder<'a> {
     ///     })
     ///     .build();
     /// ```
-    ExpandItem<String>; expand
+    ExpandItem; expand
     }
 
     /// Consumes the builder returning a [`Question`]

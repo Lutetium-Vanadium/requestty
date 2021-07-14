@@ -1,7 +1,6 @@
 use std::{
     collections::hash_map::{Entry, HashMap, IntoIter},
     hash::Hash,
-    io,
     ops::{Deref, DerefMut},
 };
 
@@ -24,7 +23,7 @@ pub enum Answer {
     /// ExpandItems will be returned by [`expand`].
     ///
     /// [`expand`]: crate::question::Question::expand
-    ExpandItem(ExpandItem<String>),
+    ExpandItem(ExpandItem),
     /// Ints will be returned by [`int`].
     ///
     /// [`int`]: crate::question::Question::int
@@ -92,7 +91,7 @@ impl Answer {
     }
 
     /// Returns [`Some`] if it is [`Answer::ExpandItem`], otherwise returns [`None`].
-    pub fn as_expand_item(&self) -> Option<&ExpandItem<String>> {
+    pub fn as_expand_item(&self) -> Option<&ExpandItem> {
         match self {
             Self::ExpandItem(v) => Some(v),
             _ => None,
@@ -100,7 +99,7 @@ impl Answer {
     }
 
     /// Returns the `Ok(ExpandItem)` if it is one, otherwise returns itself as an [`Err`].
-    pub fn try_into_expand_item(self) -> Result<ExpandItem<String>, Self> {
+    pub fn try_into_expand_item(self) -> Result<ExpandItem, Self> {
         match self {
             Self::ExpandItem(v) => Ok(v),
             _ => Err(self),
@@ -220,41 +219,19 @@ impl From<(usize, String)> for ListItem {
 /// [`Choice`]: crate::Choice
 /// [`expand`]: crate::question::Question::expand
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct ExpandItem<S> {
+pub struct ExpandItem {
     /// The key associated with the choice
     pub key: char,
     /// The actual choice
-    pub name: S,
+    pub name: String,
 }
 
-impl<I: Into<String>> From<(char, I)> for ExpandItem<String> {
+impl<I: Into<String>> From<(char, I)> for ExpandItem {
     fn from((key, name): (char, I)) -> Self {
         Self {
             key,
             name: name.into(),
         }
-    }
-}
-
-impl<S: ui::Widget> ui::Widget for ExpandItem<S> {
-    fn render<B: ui::backend::Backend>(
-        &mut self,
-        layout: &mut ui::layout::Layout,
-        backend: &mut B,
-    ) -> io::Result<()> {
-        self.name.render(layout, backend)
-    }
-
-    fn height(&mut self, layout: &mut ui::layout::Layout) -> u16 {
-        self.name.height(layout)
-    }
-
-    fn handle_key(&mut self, key: ui::events::KeyEvent) -> bool {
-        self.name.handle_key(key)
-    }
-
-    fn cursor_pos(&mut self, layout: ui::layout::Layout) -> (u16, u16) {
-        self.name.cursor_pos(layout)
     }
 }
 
