@@ -4,15 +4,18 @@ mod choice;
 mod confirm;
 mod editor;
 mod expand;
+mod handler;
+#[macro_use]
+mod impl_macros;
 mod input;
 mod multi_select;
 mod number;
-mod select;
 #[macro_use]
 mod options;
 mod password;
 mod plugin;
 mod raw_select;
+mod select;
 
 pub use choice::Choice;
 pub use confirm::ConfirmBuilder;
@@ -26,11 +29,11 @@ pub use plugin::{Plugin, PluginBuilder};
 pub use raw_select::RawSelectBuilder;
 pub use select::SelectBuilder;
 
-use std::fmt;
 use ui::{backend::Backend, events::EventIterator};
 
 use crate::{Answer, Answers};
 use choice::{get_sep_str, ChoiceList};
+use handler::{AutoComplete, Filter, Transform, TransformByVal, Validate, ValidateByVal};
 use options::Options;
 use plugin::PluginInteral;
 
@@ -526,67 +529,6 @@ impl Question<'_> {
     }
 }
 
-macro_rules! handler {
-    ($name:ident, $fn_trait:ident ( $($type:ty),* ) -> $return:ty) => {
-        pub(crate) enum $name<'a, T> {
-            Sync(Box<dyn $fn_trait( $($type),* ) -> $return + 'a>),
-            None,
-        }
-
-        impl<'a, T> $name<'a, T> {
-            #[allow(unused)]
-            fn take(&mut self) -> Self {
-                std::mem::replace(self, Self::None)
-            }
-        }
-
-        impl<T> Default for $name<'_, T> {
-            fn default() -> Self {
-                Self::None
-            }
-        }
-
-        impl<T: fmt::Debug> fmt::Debug for $name<'_, T> {
-            fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-                match self {
-                    Self::Sync(_) => f.write_str("Sync(_)"),
-                    Self::None => f.write_str("None"),
-                }
-            }
-        }
-    };
-
-    // The type signature of the function must only contain &T
-    ($name:ident, ?Sized $fn_trait:ident ( $($type:ty),* ) -> $return:ty) => {
-        pub(crate) enum $name<'a, T: ?Sized> {
-            Sync(Box<dyn $fn_trait( $($type),* ) -> $return + 'a>),
-            None,
-        }
-
-        impl<'a, T: ?Sized> $name<'a, T> {
-            #[allow(unused)]
-            fn take(&mut self) -> Self {
-                std::mem::replace(self, Self::None)
-            }
-        }
-
-        impl<T: ?Sized> Default for $name<'_, T> {
-            fn default() -> Self {
-                Self::None
-            }
-        }
-
-        impl<T: fmt::Debug + ?Sized> fmt::Debug for $name<'_, T> {
-            fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-                match self {
-                    Self::Sync(_) => f.write_str("Sync(_)"),
-                    Self::None => f.write_str("None"),
-                }
-            }
-        }
-    };
-}
-
 /// The type which needs to be returned by the [`auto_complete`] function.
 ///
 /// [`auto_complete`]: InputBuilder::auto_complete
@@ -604,171 +546,3 @@ pub use smallvec::smallvec as completions;
 
 #[cfg(not(feature = "smallvec"))]
 pub use std::vec as completions;
-
-#[doc(hidden)]
-#[macro_export]
-macro_rules! __completions_count {
-    ($e:expr) => (1);
-    ($e:expr, $($rest:expr)+) => (1 + $(+ $crate::question::__completions_count!($rest) )+);
-}
-
-handler!(Filter, FnOnce(T, &Answers) -> T);
-handler!(AutoComplete, FnMut(T, &Answers) -> Completions<T>);
-handler!(Validate, ?Sized FnMut(&T, &Answers) -> Result<(), String>);
-handler!(ValidateByVal, FnMut(T, &Answers) -> Result<(), String>);
-handler!(Transform, ?Sized FnOnce(&T, &Answers, &mut dyn Backend) -> std::io::Result<()>);
-handler!(
-    TransformByVal,
-    FnOnce(T, &Answers, &mut dyn Backend) -> std::io::Result<()>
-);
-
-#[doc(hidden)]
-#[macro_export]
-macro_rules! impl_filter_builder {
-    // NOTE: the 2 extra lines at the end of each doc comment is intentional -- it makes sure that
-    // other docs that come from the macro invocation have appropriate spacing
-    ($(#[$meta:meta])+ $t:ty; $inner:ident) => {
-        /// Function to change the final submitted value before it is displayed to the user and
-        /// added to the [`Answers`].
-        ///
-        /// It is a [`FnOnce`] that is given the answer and the previous [`Answers`], and should
-        /// return the new answer.
-        ///
-        /// This will be called after the answer has been validated.
-        ///
-        /// [`Answers`]: crate::Answers
-        ///
-        ///
-        $(#[$meta])+
-        pub fn filter<F>(mut self, filter: F) -> Self
-        where
-            F: FnOnce($t, &crate::Answers) -> $t + 'a,
-        {
-            self.$inner.filter = crate::question::Filter::Sync(Box::new(filter));
-            self
-        }
-    };
-}
-
-#[doc(hidden)]
-#[macro_export]
-macro_rules! impl_auto_complete_builder {
-    // NOTE: the 2 extra lines at the end of each doc comment is intentional -- it makes sure that
-    // other docs that come from the macro invocation have appropriate spacing
-    ($(#[$meta:meta])+ $t:ty; $inner:ident) => {
-        /// Function to suggest completions to the answer when the user presses `Tab`.
-        ///
-        /// It is a [`FnMut`] that is given the current state of the answer and the previous
-        /// [`Answers`], and should return a list of completions.
-        ///
-        /// There must be at least 1 completion. Returning 0 completions will cause a panic. If
-        /// there are no completions to give, you can simply return the state of the answer passed
-        /// to you.
-        ///
-        /// If there is 1 completion, then the state of the answer becomes that completion.
-        ///
-        /// If there are 2 or more completions, a list of completions is displayed from which the
-        /// user can pick one completion.
-        ///
-        /// [`Answers`]: crate::Answers
-        ///
-        ///
-        $(#[$meta])+
-        pub fn auto_complete<F>(mut self, auto_complete: F) -> Self
-        where
-            F: FnMut($t, &crate::Answers) -> Completions<$t> + 'a,
-        {
-            self.$inner.auto_complete =
-                crate::question::AutoComplete::Sync(Box::new(auto_complete));
-            self
-        }
-    };
-}
-
-#[doc(hidden)]
-#[macro_export]
-macro_rules! impl_validate_builder {
-    ($(#[$meta:meta])+ $t:ty; $inner:ident) => {
-        crate::impl_validate_builder!($(#[$meta])* impl &$t; $inner Validate);
-    };
-
-    ($(#[$meta:meta])+ by val $t:ty; $inner:ident) => {
-        crate::impl_validate_builder!($(#[$meta])* impl $t; $inner ValidateByVal);
-    };
-
-    // NOTE: the 2 extra lines at the end of each doc comment is intentional -- it makes sure that
-    // other docs that come from the macro invocation have appropriate spacing
-    ($(#[$meta:meta])+ impl $t:ty; $inner:ident $handler:ident) => {
-        /// Function to validate the submitted value before it's returned.
-        ///
-        /// It is a [`FnMut`] that is given the answer and the previous [`Answers`], and should
-        /// return `Ok(())` if the given answer is valid. If it is invalid, it should return an
-        /// [`Err`] with the error message to display to the user.
-        ///
-        /// This will be called when the user presses the `Enter` key.
-        ///
-        /// [`Answers`]: crate::Answers
-        ///
-        ///
-        $(#[$meta])*
-        pub fn validate<F>(mut self, filter: F) -> Self
-        where
-            F: FnMut($t, &crate::Answers) -> Result<(), String> + 'a,
-        {
-            self.$inner.validate = crate::question::$handler::Sync(Box::new(filter));
-            self
-        }
-    };
-}
-
-#[doc(hidden)]
-#[macro_export]
-macro_rules! impl_transform_builder {
-    ($(#[$meta:meta])+ $t:ty; $inner:ident) => {
-        crate::impl_transform_builder!($(#[$meta])* impl &$t; $inner Transform);
-    };
-
-    ($(#[$meta:meta])+ by val $t:ty; $inner:ident) => {
-        crate::impl_transform_builder!($(#[$meta])* impl $t; $inner TransformByVal);
-    };
-
-    // NOTE: the 2 extra lines at the end of each doc comment is intentional -- it makes sure that
-    // other docs that come from the macro invocation have appropriate spacing
-    ($(#[$meta:meta])+ impl $t:ty; $inner:ident $handler:ident) => {
-        /// Change the way the answer looks when displayed to the user.
-        ///
-        /// It is a [`FnOnce`] that is given the answer, previous [`Answers`] and the [`Backend`] to
-        /// display the answer on. After the `transform` is called, a new line is also added.
-        ///
-        /// It will only be called once the user finishes answering the question.
-        ///
-        /// [`Answers`]: crate::Answers
-        /// [`Backend`]: crate::plugin::Backend
-        ///
-        ///
-        $(#[$meta])*
-        pub fn transform<F>(mut self, transform: F) -> Self
-        where
-            F: FnOnce($t, &crate::Answers, &mut dyn Backend) -> std::io::Result<()> + 'a,
-        {
-            self.$inner.transform = crate::question::$handler::Sync(Box::new(transform));
-            self
-        }
-    };
-}
-
-#[doc(hidden)]
-#[macro_export]
-macro_rules! write_final {
-    ($transform:expr, $message:expr, $ans:expr, $answers:expr, $backend:expr, $custom:expr) => {{
-        ui::widgets::Prompt::write_finished_message(&$message, $backend)?;
-
-        match $transform {
-            Transform::Sync(transform) => transform($ans, $answers, $backend)?,
-            _ => $custom,
-        }
-
-        $backend.write_all(b"\n")?;
-        $backend.flush()?;
-    }};
-}
