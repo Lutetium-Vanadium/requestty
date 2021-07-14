@@ -101,6 +101,8 @@ impl<'a> Question<'a> {
 impl Question<'static> {
     /// Prompt that takes user input and returns a [`String`]
     ///
+    /// ![](https://raw.githubusercontent.com/lutetium-vanadium/discourse/master/assets/input.gif)
+    ///
     /// See the various methods on the [`builder`] for more details on each available option.
     ///
     /// # Examples
@@ -123,6 +125,12 @@ impl Question<'static> {
     }
 
     /// Prompt that takes user input and hides it.
+    ///
+    /// How it looks if you set a mask:
+    /// ![](https://raw.githubusercontent.com/lutetium-vanadium/discourse/master/assets/password-mask.gif)
+    ///
+    /// How it looks if you do not set a mask:
+    /// ![](https://raw.githubusercontent.com/lutetium-vanadium/discourse/master/assets/password-hidden.gif)
     ///
     /// See the various methods on the [`builder`] for more details on each available option.
     ///
@@ -148,6 +156,8 @@ impl Question<'static> {
     /// result. The editor to use is determined by the `$VISUAL` or `$EDITOR` environment variables.
     /// If neither of those are present, `vim` (for unix) or `notepad` (for windows) is used.
     ///
+    /// ![](https://raw.githubusercontent.com/lutetium-vanadium/discourse/master/assets/editor.gif)
+    ///
     /// See the various methods on the [`builder`] for more details on each available option.
     ///
     /// # Examples
@@ -155,7 +165,7 @@ impl Question<'static> {
     /// ```
     /// use discourse::Question;
     ///
-    /// let password = Question::editor("description")
+    /// let editor = Question::editor("description")
     ///     .message("Please enter a short description about yourself")
     ///     .extension(".md")
     ///     .build();
@@ -168,6 +178,8 @@ impl Question<'static> {
 
     /// Prompt that returns `true` or `false`.
     ///
+    /// ![](https://raw.githubusercontent.com/lutetium-vanadium/discourse/master/assets/confirm.gif)
+    ///
     /// See the various methods on the [`builder`] for more details on each available option.
     ///
     /// # Examples
@@ -175,7 +187,7 @@ impl Question<'static> {
     /// ```
     /// use discourse::Question;
     ///
-    /// let int = Question::confirm("anonymous")
+    /// let confirm = Question::confirm("anonymous")
     ///     .message("Do you want to remain anonymous?")
     ///     .build();
     /// ```
@@ -188,6 +200,8 @@ impl Question<'static> {
     /// Prompt that takes a [`i64`] as input.
     ///
     /// The number is parsed using [`from_str`].
+    ///
+    /// ![](https://raw.githubusercontent.com/lutetium-vanadium/discourse/master/assets/int.gif)
     ///
     /// See the various methods on the [`builder`] for more details on each available option.
     ///
@@ -217,6 +231,8 @@ impl Question<'static> {
     /// Prompt that takes a [`f64`] as input.
     ///
     /// The number is parsed using [`from_str`], but cannot be `NaN`.
+    ///
+    /// ![](https://raw.githubusercontent.com/lutetium-vanadium/discourse/master/assets/float.gif)
     ///
     /// See the various methods on the [`builder`] for more details on each available option.
     ///
@@ -251,6 +267,8 @@ impl Question<'static> {
     /// The choices are represented with the [`Choice`] enum. [`Choice::Choice`] can be multi-line,
     /// but [`Choice::Separator`]s can only be single line.
     ///
+    /// ![](https://raw.githubusercontent.com/lutetium-vanadium/discourse/master/assets/expand.gif)
+    ///
     /// See the various methods on the [`builder`] for more details on each available option.
     ///
     /// # Examples
@@ -279,6 +297,8 @@ impl Question<'static> {
     ///
     /// The choices are represented with the [`Choice`] enum. [`Choice::Choice`] can be multi-line,
     /// but [`Choice::Separator`]s can only be single line.
+    ///
+    /// ![](https://raw.githubusercontent.com/lutetium-vanadium/discourse/master/assets/select.gif)
     ///
     /// See the various methods on the [`builder`] for more details on each available option.
     ///
@@ -309,6 +329,8 @@ impl Question<'static> {
     ///
     /// The choices are represented with the [`Choice`] enum. [`Choice::Choice`] can be multi-line,
     /// but [`Choice::Separator`]s can only be single line.
+    ///
+    /// ![](https://raw.githubusercontent.com/lutetium-vanadium/discourse/master/assets/raw-select.gif)
     ///
     /// See the various methods on the [`builder`] for more details on each available option.
     ///
@@ -341,6 +363,8 @@ impl Question<'static> {
     ///
     /// The choices are represented with the [`Choice`] enum. [`Choice::Choice`] can be multi-line,
     /// but [`Choice::Separator`]s can only be single line.
+    ///
+    /// ![](https://raw.githubusercontent.com/lutetium-vanadium/discourse/master/assets/multi-select.gif)
     ///
     /// See the various methods on the [`builder`] for more details on each available option.
     ///
@@ -532,6 +556,7 @@ macro_rules! handler {
 ///
 /// [`auto_complete`]: InputBuilder::auto_complete
 #[cfg(feature = "smallvec")]
+#[cfg_attr(docsrs, doc(cfg(feature = "smallvec")))]
 pub type Completions<T> = smallvec::SmallVec<[T; 1]>;
 
 /// The type which needs to be returned by the [`auto_complete`] function.
@@ -541,7 +566,9 @@ pub type Completions<T> = smallvec::SmallVec<[T; 1]>;
 pub type Completions<T> = Vec<T>;
 
 #[cfg(feature = "smallvec")]
+#[cfg_attr(docsrs, doc(cfg(feature = "smallvec")))]
 pub use smallvec::smallvec as completions;
+
 #[cfg(not(feature = "smallvec"))]
 pub use std::vec as completions;
 

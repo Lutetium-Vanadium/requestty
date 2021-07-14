@@ -8,9 +8,11 @@ mod crossterm;
 mod termion;
 
 #[cfg(feature = "crossterm")]
+#[cfg_attr(docsrs, doc(cfg(feature = "crossterm")))]
 pub use self::crossterm::CrosstermEvents;
 
 #[cfg(feature = "termion")]
+#[cfg_attr(docsrs, doc(cfg(feature = "termion")))]
 pub use self::termion::TermionEvents;
 
 mod keys;

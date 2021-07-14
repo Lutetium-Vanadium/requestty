@@ -15,3 +15,7 @@ termion = { version = "1.5", optional = true }
 [dev-dependencies]
 # remove color printing since it messes with the snapshot's colours
 insta = { version = "1.7.1", default-features = false }
+
+[package.metadata.docs.rs]
+all-features = true
+rustc-args = ["--cfg", "docsrs"]

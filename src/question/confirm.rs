@@ -117,7 +117,7 @@ impl<'a> Confirm<'a> {
 /// ```
 /// use discourse::Question;
 ///
-/// let int = Question::confirm("anonymous")
+/// let confirm = Question::confirm("anonymous")
 ///     .message("Do you want to remain anonymous?")
 ///     .build();
 /// ```

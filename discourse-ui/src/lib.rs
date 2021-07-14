@@ -23,6 +23,7 @@
     broken_intra_doc_links
 )]
 #![warn(rust_2018_idioms)]
+#![cfg_attr(docsrs, feature(doc_cfg))]
 
 pub use error::{ErrorKind, Result};
 pub use input::{Input, Prompt, Validation};

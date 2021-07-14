@@ -20,12 +20,16 @@ pub use test_backend::TestBackend;
 
 #[cfg(feature = "termion")]
 mod termion;
+
 #[cfg(feature = "termion")]
+#[cfg_attr(docsrs, doc(cfg(feature = "termion")))]
 pub use self::termion::TermionBackend;
 
 #[cfg(feature = "crossterm")]
 mod crossterm;
+
 #[cfg(feature = "crossterm")]
+#[cfg_attr(docsrs, doc(cfg(feature = "crossterm")))]
 pub use self::crossterm::CrosstermBackend;
 
 use crate::style::{Attributes, Color, Styled};
