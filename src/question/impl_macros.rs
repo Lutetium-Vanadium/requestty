@@ -148,4 +148,3 @@ macro_rules! write_final {
         $backend.flush()?;
     }};
 }
-

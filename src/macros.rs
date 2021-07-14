@@ -124,4 +124,3 @@ macro_rules! prompt_module {
         $crate::PromptModule::new($crate::questions! [ $($tt)* ])
     };
 }
-

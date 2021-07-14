@@ -1,6 +1,7 @@
 use ui::{backend::TestBackend, layout::Layout};
 
 use super::*;
+use crate::question::Completions;
 
 const NINPUTS: usize = 3;
 static INPUT_IDS: [&str; NINPUTS] = ["no_default", "default", "auto_complete"];
