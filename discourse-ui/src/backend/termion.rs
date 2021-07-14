@@ -14,6 +14,7 @@ use super::{Attributes, Backend, ClearType, Color, MoveDirection, Size};
 
 /// A backend that uses the `termion` library.
 #[allow(missing_debug_implementations)]
+#[cfg_attr(docsrs, doc(cfg(feature = "termion")))]
 pub struct TermionBackend<W: Write> {
     attributes: Attributes,
     buffer: RawTerminal<W>,

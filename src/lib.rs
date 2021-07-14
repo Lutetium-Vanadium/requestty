@@ -134,7 +134,7 @@
 //! [`examples`]: https://github.com/lutetium-vanadium/discourse/tree/master/examples
 #![deny(
     missing_docs,
-    missing_doc_code_examples,
+    // missing_doc_code_examples,
     missing_debug_implementations,
     unreachable_pub,
     broken_intra_doc_links

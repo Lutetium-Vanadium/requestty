@@ -101,7 +101,10 @@ impl<'a> Question<'a> {
 impl Question<'static> {
     /// Prompt that takes user input and returns a [`String`]
     ///
-    /// ![](https://raw.githubusercontent.com/lutetium-vanadium/discourse/master/assets/input.gif)
+    /// <img
+    ///   src="https://raw.githubusercontent.com/lutetium-vanadium/discourse/master/assets/input.gif"
+    ///   style="max-height: 11rem"
+    /// />
     ///
     /// See the various methods on the [`builder`] for more details on each available option.
     ///
@@ -127,10 +130,18 @@ impl Question<'static> {
     /// Prompt that takes user input and hides it.
     ///
     /// How it looks if you set a mask:
-    /// ![](https://raw.githubusercontent.com/lutetium-vanadium/discourse/master/assets/password-mask.gif)
+    ///
+    /// <img
+    ///   src="https://raw.githubusercontent.com/lutetium-vanadium/discourse/master/assets/password-mask.gif"
+    ///   style="max-height: 11rem"
+    /// />
     ///
     /// How it looks if you do not set a mask:
-    /// ![](https://raw.githubusercontent.com/lutetium-vanadium/discourse/master/assets/password-hidden.gif)
+    ///
+    /// <img
+    ///   src="https://raw.githubusercontent.com/lutetium-vanadium/discourse/master/assets/password-hidden.gif"
+    ///   style="max-height: 11rem"
+    /// />
     ///
     /// See the various methods on the [`builder`] for more details on each available option.
     ///
@@ -156,7 +167,10 @@ impl Question<'static> {
     /// result. The editor to use is determined by the `$VISUAL` or `$EDITOR` environment variables.
     /// If neither of those are present, `vim` (for unix) or `notepad` (for windows) is used.
     ///
-    /// ![](https://raw.githubusercontent.com/lutetium-vanadium/discourse/master/assets/editor.gif)
+    /// <img
+    ///   src="https://raw.githubusercontent.com/lutetium-vanadium/discourse/master/assets/editor.gif"
+    ///   style="max-height: 30rem"
+    /// />
     ///
     /// See the various methods on the [`builder`] for more details on each available option.
     ///
@@ -178,7 +192,10 @@ impl Question<'static> {
 
     /// Prompt that returns `true` or `false`.
     ///
-    /// ![](https://raw.githubusercontent.com/lutetium-vanadium/discourse/master/assets/confirm.gif)
+    /// <img
+    ///   src="https://raw.githubusercontent.com/lutetium-vanadium/discourse/master/assets/confirm.gif"
+    ///   style="max-height: 11rem"
+    /// />
     ///
     /// See the various methods on the [`builder`] for more details on each available option.
     ///
@@ -201,7 +218,10 @@ impl Question<'static> {
     ///
     /// The number is parsed using [`from_str`].
     ///
-    /// ![](https://raw.githubusercontent.com/lutetium-vanadium/discourse/master/assets/int.gif)
+    /// <img
+    ///   src="https://raw.githubusercontent.com/lutetium-vanadium/discourse/master/assets/int.gif"
+    ///   style="max-height: 11rem"
+    /// />
     ///
     /// See the various methods on the [`builder`] for more details on each available option.
     ///
@@ -232,7 +252,10 @@ impl Question<'static> {
     ///
     /// The number is parsed using [`from_str`], but cannot be `NaN`.
     ///
-    /// ![](https://raw.githubusercontent.com/lutetium-vanadium/discourse/master/assets/float.gif)
+    /// <img
+    ///   src="https://raw.githubusercontent.com/lutetium-vanadium/discourse/master/assets/float.gif"
+    ///   style="max-height: 11rem"
+    /// />
     ///
     /// See the various methods on the [`builder`] for more details on each available option.
     ///
@@ -267,7 +290,10 @@ impl Question<'static> {
     /// The choices are represented with the [`Choice`] enum. [`Choice::Choice`] can be multi-line,
     /// but [`Choice::Separator`]s can only be single line.
     ///
-    /// ![](https://raw.githubusercontent.com/lutetium-vanadium/discourse/master/assets/expand.gif)
+    /// <img
+    ///   src="https://raw.githubusercontent.com/lutetium-vanadium/discourse/master/assets/expand.gif"
+    ///   style="max-height: 15rem"
+    /// />
     ///
     /// See the various methods on the [`builder`] for more details on each available option.
     ///
@@ -298,7 +324,10 @@ impl Question<'static> {
     /// The choices are represented with the [`Choice`] enum. [`Choice::Choice`] can be multi-line,
     /// but [`Choice::Separator`]s can only be single line.
     ///
-    /// ![](https://raw.githubusercontent.com/lutetium-vanadium/discourse/master/assets/select.gif)
+    /// <img
+    ///   src="https://raw.githubusercontent.com/lutetium-vanadium/discourse/master/assets/select.gif"
+    ///   style="max-height: 15rem"
+    /// />
     ///
     /// See the various methods on the [`builder`] for more details on each available option.
     ///
@@ -330,7 +359,10 @@ impl Question<'static> {
     /// The choices are represented with the [`Choice`] enum. [`Choice::Choice`] can be multi-line,
     /// but [`Choice::Separator`]s can only be single line.
     ///
-    /// ![](https://raw.githubusercontent.com/lutetium-vanadium/discourse/master/assets/raw-select.gif)
+    /// <img
+    ///   src="https://raw.githubusercontent.com/lutetium-vanadium/discourse/master/assets/raw-select.gif"
+    ///   style="max-height: 15rem"
+    /// />
     ///
     /// See the various methods on the [`builder`] for more details on each available option.
     ///
@@ -364,7 +396,10 @@ impl Question<'static> {
     /// The choices are represented with the [`Choice`] enum. [`Choice::Choice`] can be multi-line,
     /// but [`Choice::Separator`]s can only be single line.
     ///
-    /// ![](https://raw.githubusercontent.com/lutetium-vanadium/discourse/master/assets/multi-select.gif)
+    /// <img
+    ///   src="https://raw.githubusercontent.com/lutetium-vanadium/discourse/master/assets/multi-select.gif"
+    ///   style="max-height: 20rem"
+    /// />
     ///
     /// See the various methods on the [`builder`] for more details on each available option.
     ///
@@ -556,7 +591,6 @@ macro_rules! handler {
 ///
 /// [`auto_complete`]: InputBuilder::auto_complete
 #[cfg(feature = "smallvec")]
-#[cfg_attr(docsrs, doc(cfg(feature = "smallvec")))]
 pub type Completions<T> = smallvec::SmallVec<[T; 1]>;
 
 /// The type which needs to be returned by the [`auto_complete`] function.
@@ -566,7 +600,6 @@ pub type Completions<T> = smallvec::SmallVec<[T; 1]>;
 pub type Completions<T> = Vec<T>;
 
 #[cfg(feature = "smallvec")]
-#[cfg_attr(docsrs, doc(cfg(feature = "smallvec")))]
 pub use smallvec::smallvec as completions;
 
 #[cfg(not(feature = "smallvec"))]

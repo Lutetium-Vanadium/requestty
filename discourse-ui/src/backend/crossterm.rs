@@ -16,6 +16,7 @@ use super::{Attributes, Backend, ClearType, Color, MoveDirection, Size};
 
 /// A backend that uses the `crossterm` library.
 #[derive(Debug, Clone)]
+#[cfg_attr(docsrs, doc(cfg(feature = "crossterm")))]
 pub struct CrosstermBackend<W> {
     buffer: W,
     attributes: Attributes,

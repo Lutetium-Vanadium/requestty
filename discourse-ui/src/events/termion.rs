@@ -12,6 +12,7 @@ use termion::{
 use super::EventIterator;
 
 /// An iterator over the input keys using the `termion` crate
+#[cfg_attr(docsrs, doc(cfg(feature = "termion")))]
 pub struct TermionEvents {
     events: input::Keys<Stdin>,
 }

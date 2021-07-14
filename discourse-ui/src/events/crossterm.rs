@@ -4,6 +4,8 @@ use super::EventIterator;
 
 /// An iterator over the input keys using the `crossterm` crate
 #[derive(Debug, Default)]
+#[cfg_attr(docsrs, doc(cfg(feature = "crossterm")))]
+#[non_exhaustive]
 pub struct CrosstermEvents {}
 
 impl CrosstermEvents {
