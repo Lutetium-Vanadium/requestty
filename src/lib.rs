@@ -46,7 +46,7 @@
 //! ];
 //! ```
 //!
-//! See [`questions`] and [`prompt_module`] for more information on the macros.
+//! See [`questions!`] and [`prompt_module!`] for more information on the macros.
 //!
 //! ### Prompting
 //!
@@ -82,11 +82,12 @@
 //!
 //! Terminal interaction is handled by 2 traits: [`Backend`] and [`EventIterator`].
 //!
-//! The traits are already implemented for terminal libraries:
+//! The traits are already implemented and can be enabled with features for the following terminal
+//! libraries:
 //! - [`crossterm`](https://crates.io/crates/crossterm) (default)
 //! - [`termion`](https://crates.io/crates/termion)
 //!
-//! The default backend is `crossterm` for the following reasons:
+//! The default is `crossterm` for the following reasons:
 //! - Wider terminal support
 //! - Better event processing (in my experience)
 //!
@@ -142,16 +143,74 @@
 #![cfg_attr(docsrs, feature(doc_cfg))]
 
 mod answer;
-mod macros;
 mod prompt_module;
 pub mod question;
 
-use ui::{
-    backend::{get_backend, Backend},
-    events::{get_events, EventIterator},
-};
+use ui::{backend::Backend, events::EventIterator};
 
-pub use self::macros::questions;
+/// A macro to easily write an iterator of [`Question`]s.
+///
+/// [`Question`]: crate::Question
+///
+/// # Usage
+///
+/// You can specify questions similar to a `vec![]` of struct instantiations. Each field corresponds
+/// to calling the builder method of the same name for the respective question kind.
+/// ```
+/// # let some_variable = "message";
+/// # let when = true;
+/// # fn get_default() -> bool { true }
+/// use discourse::questions;
+///
+/// let questions = questions![
+///     MultiSelect {
+///         // Each field takes a value, which can result in anything that implements `Into`
+///         // for the required type
+///         name: "name",
+///         // The value can be any expression, for example a local variable.
+///         message: some_variable,
+///         // If the field name and the variable name are the same, this shorthand can be
+///         // used.
+///         when,
+///         // While most values are generic expressions, if a array literal is passed to
+///         // choices, some special syntax applies. Also, unlike other fields, 'choices'
+///         // will call `choices_with_default` for `MultiSelect` questions only.
+///         choices: [
+///             // By default array entries are taken as `Choice(_)`s.
+///             "Choice 1",
+///             // For `MultiSelect` if the word 'default' follows the initial expression, a
+///             // default can be set for that choice.
+///             "Choice 2" default get_default(),
+///             // The word 'separator' or 'sep' can be used to create separators. If no
+///             // expression is given along with 'separator', it is taken as a
+///             // `DefaultSeparator`.
+///             separator,
+///             // Otherwise if there is an expression, it is taken as a `Separator(_)`,
+///             sep "Separator text!",
+///         ],
+///     },
+/// ];
+/// ```
+///
+/// # Inline
+///
+/// By default, the questions are stored in a [`Vec`]. However, if you wish to store the questions
+/// on the stack, prefix the questions with `inline`:
+/// ```
+/// use discourse::questions;
+///
+/// let questions = questions! [ inline
+///     Input {
+///         name: "input"
+///     },
+/// ];
+/// ```
+///
+/// Note that inlining only works for rust version 1.51 onwards. Pre 1.51, a [`Vec`] is still used.
+///
+/// See also [`prompt_module`].
+pub use macros::questions;
+
 pub use answer::{Answer, Answers, ExpandItem, ListItem};
 pub use prompt_module::PromptModule;
 pub use question::{Choice::Choice, Choice::DefaultSeparator, Choice::Separator, Question};
@@ -170,6 +229,8 @@ pub mod plugin {
 }
 
 /// Prompt all the questions in the given iterator, with the default [`Backend`] and [`EventIterator`].
+#[cfg(any(feature = "crossterm", feature = "termion"))]
+#[cfg_attr(docsrs, doc(cfg(any(feature = "crossterm", feature = "termion"))))]
 pub fn prompt<'a, Q>(questions: Q) -> Result<Answers>
 where
     Q: IntoIterator<Item = Question<'a>>,
@@ -182,10 +243,12 @@ where
 /// # Panics
 ///
 /// This will panic if `when` on the [`Question`] prevents the question from being asked.
+#[cfg(any(feature = "crossterm", feature = "termion"))]
+#[cfg_attr(docsrs, doc(cfg(any(feature = "crossterm", feature = "termion"))))]
 pub fn prompt_one<'a, I: Into<Question<'a>>>(question: I) -> Result<Answer> {
     let stdout = std::io::stdout();
-    let mut stdout = get_backend(stdout.lock())?;
-    let mut events = get_events();
+    let mut stdout = ui::backend::get_backend(stdout.lock());
+    let mut events = ui::events::get_events();
 
     prompt_one_with(question.into(), &mut stdout, &mut events)
 }

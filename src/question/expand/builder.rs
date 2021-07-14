@@ -163,8 +163,8 @@ impl<'a> ExpandBuilder<'a> {
     ///
     /// See [`expand`] for more information.
     ///
-    /// [`Choice`]: super::Choice::Choice
-    /// [`expand`]: super::Question::expand
+    /// [`Choice`]: crate::question::Choice::Choice
+    /// [`expand`]: crate::question::Question::expand
     ///
     /// # Panics
     ///
@@ -203,8 +203,8 @@ impl<'a> ExpandBuilder<'a> {
     ///
     /// See [`expand`] for more information.
     ///
-    /// [`Separator`]: super::Choice::Separator
-    /// [`expand`]: super::Question::expand
+    /// [`Separator`]: crate::question::Choice::Separator
+    /// [`expand`]: crate::question::Question::expand
     ///
     /// # Examples
     ///
@@ -227,8 +227,8 @@ impl<'a> ExpandBuilder<'a> {
     ///
     /// See [`expand`] for more information.
     ///
-    /// [`DefaultSeparator`]: super::Choice::DefaultSeparator
-    /// [`expand`]: super::Question::expand
+    /// [`DefaultSeparator`]: crate::question::Choice::DefaultSeparator
+    /// [`expand`]: crate::question::Question::expand
     ///
     /// # Examples
     ///
@@ -248,8 +248,8 @@ impl<'a> ExpandBuilder<'a> {
     ///
     /// See [`expand`] for more information.
     ///
-    /// [`Choice`]: super::Choice
-    /// [`expand`]: super::Question::expand
+    /// [`Choice`]: crate::question::Choice
+    /// [`expand`]: crate::question::Question::expand
     ///
     /// # Panics
     ///

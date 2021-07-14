@@ -1,10 +1,9 @@
 use std::{
-    fmt,
     io::{self, Write},
     ops,
 };
 
-use super::{ClearType, MoveDirection, Size};
+use super::{Backend, ClearType, MoveDirection, Size};
 use crate::{
     layout::Layout,
     style::{Attributes, Color},
@@ -231,19 +230,39 @@ impl TestBackend {
         }
     }
 
-    /// Asserts that two backends are equal to each other, otherwise it panics printing what the
-    /// backend would look like.
-    pub fn assert_eq(&self, other: &Self) {
-        if *self != *other {
-            panic!(
-                r#"assertion failed: `(left == right)`
+    #[cfg(any(feature = "crossterm", feature = "termion"))]
+    fn assertion_failed(&self, other: &Self) {
+        panic!(
+            r#"assertion failed: `(left == right)`
  left:
 {}
 right:
 {}
 "#,
-                self, other
-            );
+            self, other
+        );
+    }
+
+    #[cfg(not(any(feature = "crossterm", feature = "termion")))]
+    fn assertion_failed(&self, other: &Self) {
+        panic!(
+            r#"assertion failed: `(left == right)`
+ left:
+`TestBackend` {:p}
+right:
+`TestBackend` {:p}
+
+Enable any of the default backends to view what the `TestBackend`s looked like
+"#,
+            self, other
+        );
+    }
+
+    /// Asserts that two `TestBackend`s are equal to each other, otherwise it panics printing what
+    /// the backend would look like.
+    pub fn assert_eq(&self, other: &Self) {
+        if *self != *other {
+            self.assertion_failed(other);
         }
     }
 }
@@ -367,14 +386,17 @@ impl super::Backend for TestBackend {
     }
 }
 
-impl fmt::Display for TestBackend {
+#[cfg(any(feature = "crossterm", feature = "termion"))]
+#[cfg_attr(docsrs, doc(cfg(any(feature = "crossterm", feature = "termion"))))]
+impl std::fmt::Display for TestBackend {
     /// Writes all the cells of the `TestBackend` using [`write_to_buf`].
     ///
     /// A screenshot of what the printed output looks like:
+    ///
     /// ![](https://raw.githubusercontent.com/lutetium-vanadium/discourse/master/assets/test-backend-rendered.png)
     ///
     /// [`write_to_buf`]: TestBackend::write_to_buf
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let mut buf = Vec::with_capacity(self.size.area() as usize);
 
         if let Err(e) = self.write_to_buf(&mut buf) {
@@ -396,13 +418,12 @@ fn map_reset(c: Color, to: Color) -> Color {
 }
 
 impl TestBackend {
-    /// Writes all the cells of the `TestBackend` with the default backend (see [`get_backend`]).
+    /// Writes all the cells of the `TestBackend` to the given backend.
     ///
     /// A screenshot of what the printed output looks like:
-    /// ![](https://raw.githubusercontent.com/lutetium-vanadium/discourse/master/assets/test-backend-rendered.png)
     ///
-    /// [`get_backend`]: crate::backend::get_backend
-    pub fn write_to_buf<W: Write>(&self, mut buf: W) -> io::Result<()> {
+    /// ![](https://raw.githubusercontent.com/lutetium-vanadium/discourse/master/assets/test-backend-rendered.png)
+    pub fn write_to_backend<B: Backend>(&self, mut backend: B) -> io::Result<()> {
         let mut fg = Color::Reset;
         let mut bg = Color::Reset;
         let mut attributes = Attributes::empty();
@@ -415,19 +436,19 @@ impl TestBackend {
 
         let width = self.size.width as usize;
 
-        write!(buf, "{}", symbols::BOX_LIGHT_TOP_LEFT)?;
+        write!(backend, "{}", symbols::BOX_LIGHT_TOP_LEFT)?;
         for _ in 0..self.size.width {
-            write!(buf, "{}", symbols::BOX_LIGHT_HORIZONTAL)?;
+            write!(backend, "{}", symbols::BOX_LIGHT_HORIZONTAL)?;
         }
-        writeln!(buf, "{}", symbols::BOX_LIGHT_TOP_RIGHT)?;
+        writeln!(backend, "{}", symbols::BOX_LIGHT_TOP_RIGHT)?;
 
         for (i, cell) in self.viewport().iter().enumerate() {
             if i % width == 0 {
-                write!(buf, "{}", symbols::BOX_LIGHT_VERTICAL)?;
+                write!(backend, "{}", symbols::BOX_LIGHT_VERTICAL)?;
             }
 
             if cell.attributes != attributes {
-                display_ops::set_attributes(attributes, cell.attributes, &mut buf)?;
+                backend.set_attributes(cell.attributes)?;
                 attributes = cell.attributes;
             }
 
@@ -441,82 +462,52 @@ impl TestBackend {
             };
 
             if cell_fg != fg {
-                display_ops::write_fg(cell_fg, &mut buf)?;
+                backend.set_fg(cell_fg)?;
                 fg = cell_fg;
             }
             if cell_bg != bg {
-                display_ops::write_bg(cell_bg, &mut buf)?;
+                backend.set_bg(cell_fg)?;
                 bg = cell_bg;
             }
 
-            write!(buf, "{}", cell.value.unwrap_or(' '))?;
+            write!(backend, "{}", cell.value.unwrap_or(' '))?;
 
             if (i + 1) % width == 0 {
                 if !attributes.is_empty() {
-                    display_ops::set_attributes(attributes, Attributes::empty(), &mut buf)?;
+                    backend.set_attributes(Attributes::empty())?;
                     attributes = Attributes::empty();
                 }
                 if fg != Color::Reset {
                     fg = Color::Reset;
-                    display_ops::write_fg(fg, &mut buf)?;
+                    backend.set_fg(fg)?;
                 }
                 if bg != Color::Reset {
                     bg = Color::Reset;
-                    display_ops::write_bg(bg, &mut buf)?;
+                    backend.set_bg(bg)?;
                 }
-                writeln!(buf, "{}", symbols::BOX_LIGHT_VERTICAL)?;
+                writeln!(backend, "{}", symbols::BOX_LIGHT_VERTICAL)?;
             }
         }
 
-        write!(buf, "{}", symbols::BOX_LIGHT_BOTTOM_LEFT)?;
+        write!(backend, "{}", symbols::BOX_LIGHT_BOTTOM_LEFT)?;
         for _ in 0..self.size.width {
-            write!(buf, "{}", symbols::BOX_LIGHT_HORIZONTAL)?;
+            write!(backend, "{}", symbols::BOX_LIGHT_HORIZONTAL)?;
         }
-        write!(buf, "{}", symbols::BOX_LIGHT_BOTTOM_RIGHT)?;
+        write!(backend, "{}", symbols::BOX_LIGHT_BOTTOM_RIGHT)?;
 
-        buf.flush()
-    }
-}
-
-#[cfg(feature = "crossterm")]
-mod display_ops {
-    use std::io::{self, Write};
-
-    use crossterm::{
-        queue,
-        style::{SetBackgroundColor, SetForegroundColor},
-    };
-
-    use crate::style::Color;
-
-    pub(super) use crate::backend::crossterm::set_attributes;
-
-    pub(super) fn write_fg<W: Write>(fg: Color, mut w: W) -> io::Result<()> {
-        queue!(w, SetForegroundColor(fg.into()))
+        backend.flush()
     }
 
-    pub(super) fn write_bg<W: Write>(bg: Color, mut w: W) -> io::Result<()> {
-        queue!(w, SetBackgroundColor(bg.into()))
-    }
-}
-
-// XXX: Only works when crossterm and termion are the only two available backends
-//
-// Instead of directly checking for termion, we check for not crossterm so that compiling
-// (documentation) with both features enabled will not error
-#[cfg(not(feature = "crossterm"))]
-mod display_ops {
-    use std::io::{self, Write};
-
-    use crate::{backend::termion, style::Color};
-
-    pub(super) use self::termion::set_attributes;
-
-    pub(super) fn write_fg<W: Write>(fg: Color, mut w: W) -> io::Result<()> {
-        write!(w, "{}", termion::Fg(fg))
-    }
-
-    pub(super) fn write_bg<W: Write>(bg: Color, mut w: W) -> io::Result<()> {
-        write!(w, "{}", termion::Bg(bg))
+    /// Writes all the cells of the `TestBackend` with the default backend (see [`get_backend`]).
+    ///
+    /// A screenshot of what the printed output looks like:
+    ///
+    /// ![](https://raw.githubusercontent.com/lutetium-vanadium/discourse/master/assets/test-backend-rendered.png)
+    ///
+    /// [`get_backend`]: crate::backend::get_backend
+    #[cfg(any(feature = "crossterm", feature = "termion"))]
+    #[cfg_attr(docsrs, doc(cfg(any(feature = "crossterm", feature = "termion"))))]
+    pub fn write_to_buf<W: Write>(&self, buf: W) -> io::Result<()> {
+        self.write_to_backend(super::get_backend(buf))
     }
 }

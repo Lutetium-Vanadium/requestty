@@ -20,6 +20,8 @@ pub use keys::{KeyCode, KeyEvent, KeyModifiers};
 pub use movement::Movement;
 
 /// Gets the default [`EventIterator`] based on the features enabled.
+#[cfg(any(feature = "crossterm", feature = "termion"))]
+#[cfg_attr(docsrs, doc(cfg(any(feature = "crossterm", feature = "termion"))))]
 pub fn get_events() -> impl EventIterator {
     #[cfg(feature = "crossterm")]
     return CrosstermEvents::new();

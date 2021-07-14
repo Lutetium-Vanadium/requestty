@@ -3,9 +3,11 @@
 use std::{fmt::Display, io};
 
 /// Gets the default [`Backend`] based on the features enabled.
-pub fn get_backend<W: io::Write>(buf: W) -> io::Result<impl Backend> {
+#[cfg(any(feature = "crossterm", feature = "termion"))]
+#[cfg_attr(docsrs, doc(cfg(any(feature = "crossterm", feature = "termion"))))]
+pub fn get_backend<W: io::Write>(buf: W) -> impl Backend {
     #[cfg(feature = "crossterm")]
-    return Ok(CrosstermBackend::new(buf));
+    return CrosstermBackend::new(buf);
 
     // XXX: Only works when crossterm and termion are the only two available backends
     //

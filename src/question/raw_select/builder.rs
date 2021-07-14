@@ -94,7 +94,7 @@ impl<'a> RawSelectBuilder<'a> {
     ///
     /// If the default given is not a [`Choice`], it will cause a panic on [`build`]
     ///
-    /// [`Choice`]: super::Choice
+    /// [`Choice`]: crate::question::Choice
     /// [`build`]: Self::build
     ///
     /// # Examples
@@ -169,8 +169,8 @@ impl<'a> RawSelectBuilder<'a> {
     ///
     /// See [`raw_select`] for more information.
     ///
-    /// [`Choice`]: super::Choice::Choice
-    /// [`raw_select`]: super::Question::raw_select
+    /// [`Choice`]: crate::question::Choice::Choice
+    /// [`raw_select`]: crate::question::Question::raw_select
     ///
     /// # Examples
     ///
@@ -194,8 +194,8 @@ impl<'a> RawSelectBuilder<'a> {
     ///
     /// See [`raw_select`] for more information.
     ///
-    /// [`Separator`]: super::Choice::Separator
-    /// [`raw_select`]: super::Question::raw_select
+    /// [`Separator`]: crate::question::Choice::Separator
+    /// [`raw_select`]: crate::question::Question::raw_select
     ///
     /// # Examples
     ///
@@ -218,8 +218,8 @@ impl<'a> RawSelectBuilder<'a> {
     ///
     /// See [`raw_select`] for more information.
     ///
-    /// [`DefaultSeparator`]: super::Choice::DefaultSeparator
-    /// [`raw_select`]: super::Question::raw_select
+    /// [`DefaultSeparator`]: crate::question::Choice::DefaultSeparator
+    /// [`raw_select`]: crate::question::Question::raw_select
     ///
     /// # Examples
     ///
@@ -242,8 +242,8 @@ impl<'a> RawSelectBuilder<'a> {
     ///
     /// See [`raw_select`] for more information.
     ///
-    /// [`Choice`]: super::Choice
-    /// [`raw_select`]: super::Question::raw_select
+    /// [`Choice`]: crate::question::Choice
+    /// [`raw_select`]: crate::question::Question::raw_select
     ///
     /// # Examples
     ///

@@ -132,9 +132,9 @@ impl<'a> MultiSelectBuilder<'a> {
     ///
     /// See [`multi_select`] for more information.
     ///
-    /// [`Choice`]: super::Choice::Choice
+    /// [`Choice`]: crate::question::Choice::Choice
     /// [`choice_with_default`]: Self::choice_with_default
-    /// [`multi_select`]: super::Question::multi_select
+    /// [`multi_select`]: crate::question::Question::multi_select
     ///
     /// # Examples
     ///
@@ -153,8 +153,8 @@ impl<'a> MultiSelectBuilder<'a> {
     ///
     /// See [`multi_select`] for more information.
     ///
-    /// [`Choice`]: super::Choice::Choice
-    /// [`multi_select`]: super::Question::multi_select
+    /// [`Choice`]: crate::question::Choice::Choice
+    /// [`multi_select`]: crate::question::Question::multi_select
     ///
     /// # Examples
     ///
@@ -178,8 +178,8 @@ impl<'a> MultiSelectBuilder<'a> {
     ///
     /// See [`multi_select`] for more information.
     ///
-    /// [`Separator`]: super::Choice::Separator
-    /// [`multi_select`]: super::Question::multi_select
+    /// [`Separator`]: crate::question::Choice::Separator
+    /// [`multi_select`]: crate::question::Question::multi_select
     ///
     /// # Examples
     ///
@@ -203,8 +203,8 @@ impl<'a> MultiSelectBuilder<'a> {
     ///
     /// See [`multi_select`] for more information.
     ///
-    /// [`DefaultSeparator`]: super::Choice::DefaultSeparator
-    /// [`multi_select`]: super::Question::multi_select
+    /// [`DefaultSeparator`]: crate::question::Choice::DefaultSeparator
+    /// [`multi_select`]: crate::question::Question::multi_select
     ///
     /// # Examples
     ///
@@ -231,9 +231,9 @@ impl<'a> MultiSelectBuilder<'a> {
     ///
     /// See [`multi_select`] for more information.
     ///
-    /// [`Choice`]: super::Choice
+    /// [`Choice`]: crate::question::Choice
     /// [`choices_with_default`]: Self::choices_with_default
-    /// [`multi_select`]: super::Question::multi_select
+    /// [`multi_select`]: crate::question::Question::multi_select
     ///
     /// # Examples
     ///
@@ -267,8 +267,8 @@ impl<'a> MultiSelectBuilder<'a> {
     ///
     /// See [`multi_select`] for more information.
     ///
-    /// [`Choice`]: super::Choice
-    /// [`multi_select`]: super::Question::multi_select
+    /// [`Choice`]: crate::question::Choice
+    /// [`multi_select`]: crate::question::Question::multi_select
     ///
     /// # Examples
     ///

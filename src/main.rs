@@ -2,9 +2,21 @@
 // this is a temporary file, for testing out the prompts
 use discourse::{DefaultSeparator, Question, Separator};
 use std::env;
+use std::io::Write;
+use ui::{
+    backend::{Backend, TestBackend},
+    style::Color,
+};
 
 fn main() {
     let s = String::from("Hello there ");
+
+    let mut backend = TestBackend::new((50, 20).into());
+    backend.set_fg(Color::Red).unwrap();
+    backend.write_all(b"Hello world!").unwrap();
+    println!("{}", backend);
+
+    return;
 
     let q = match env::args().nth(1).as_deref() {
         Some("b") => vec![
