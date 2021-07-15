@@ -202,7 +202,7 @@ impl Answer {
 pub struct ListItem {
     /// The index of the choice
     pub index: usize,
-    /// The actual choice
+    /// The string given to the choice
     pub name: String,
 }
 
@@ -222,7 +222,7 @@ impl From<(usize, String)> for ListItem {
 pub struct ExpandItem {
     /// The key associated with the choice
     pub key: char,
-    /// The actual choice
+    /// The string given to the choice
     pub name: String,
 }
 

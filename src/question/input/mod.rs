@@ -55,49 +55,45 @@ struct InputPrompt<'i, 'a> {
     answers: &'a Answers,
 }
 
-#[inline]
-/// Calls a function with the given select. Anytime the select is used, it must be used
-/// through this function. This is is because the selected element of the select doesn't
-/// actually contain the element, it is contained by the input. This function
-/// temporarily swaps the select's selected item and the input, performs the function,
-/// and swaps back.
-fn select_op<T, F: FnOnce(&mut CompletionSelector) -> T>(
-    input: &mut widgets::StringInput,
-    select: &mut CompletionSelector,
-    op: F,
-) -> T {
-    let mut res = None;
+impl InputPrompt<'_, '_> {
+    fn maybe_select_op<T, F: FnOnce(&mut CompletionSelector) -> T>(&mut self, op: F) -> Option<T> {
+        let mut res = None;
 
-    input.replace_with(|mut s| {
-        std::mem::swap(
-            &mut s,
-            &mut select.selected_mut().as_mut().unwrap_choice().text,
-        );
-        res = Some(op(select));
-        std::mem::swap(
-            &mut s,
-            &mut select.selected_mut().as_mut().unwrap_choice().text,
-        );
-        s
-    });
+        let Self { input, select, .. } = self;
 
-    res.unwrap()
+        if let Some(select) = select {
+            input.replace_with(|mut s| {
+                std::mem::swap(
+                    &mut s,
+                    &mut select.selected_mut().as_mut().unwrap_choice().text,
+                );
+                res = Some(op(select));
+                std::mem::swap(
+                    &mut s,
+                    &mut select.selected_mut().as_mut().unwrap_choice().text,
+                );
+                s
+            });
+        }
+
+        res
+    }
 }
 
 impl Widget for InputPrompt<'_, '_> {
     fn render<B: Backend>(&mut self, layout: &mut ui::layout::Layout, b: &mut B) -> io::Result<()> {
         self.prompt.render(layout, b)?;
         self.input.render(layout, b)?;
-        if let Some(ref mut select) = self.select {
-            select_op(&mut self.input, select, |select| select.render(layout, b))?;
-        }
+        self.maybe_select_op(|select| select.render(layout, b))
+            .transpose()?;
         Ok(())
     }
 
     fn height(&mut self, layout: &mut ui::layout::Layout) -> u16 {
         let mut height = self.prompt.height(layout) + self.input.height(layout) - 1;
-        if let Some(ref mut select) = self.select {
-            height += select_op(&mut self.input, select, |select| select.height(layout)) - 1;
+
+        if let Some(picker_height) = self.maybe_select_op(|select| select.height(layout)) {
+            height += picker_height - 1;
         }
         height
     }
@@ -145,12 +141,11 @@ impl Widget for InputPrompt<'_, '_> {
 
         if input.handle_key(key) {
             *select = None;
-            true
-        } else if let Some(select) = select {
-            select_op(input, select, |select| select.handle_key(key))
-        } else {
-            false
+            return true;
         }
+
+        self.maybe_select_op(|select| select.handle_key(key))
+            .unwrap_or(false)
     }
 
     fn cursor_pos(&mut self, layout: ui::layout::Layout) -> (u16, u16) {
