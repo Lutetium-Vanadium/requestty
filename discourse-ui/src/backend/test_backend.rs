@@ -466,7 +466,7 @@ impl TestBackend {
                 fg = cell_fg;
             }
             if cell_bg != bg {
-                backend.set_bg(cell_fg)?;
+                backend.set_bg(cell_bg)?;
                 bg = cell_bg;
             }
 
