@@ -1,4 +1,4 @@
-use discourse::{DefaultSeparator, Question};
+use requestty::{DefaultSeparator, Question};
 
 fn main() {
     let questions = vec![
@@ -21,5 +21,5 @@ fn main() {
             .build(),
     ];
 
-    println!("{:#?}", discourse::prompt(questions));
+    println!("{:#?}", requestty::prompt(questions));
 }

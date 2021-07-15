@@ -1,5 +1,5 @@
 error: option `plugin` does not exist for kind `password`
  --> $DIR/plugin.rs:2:46
   |
-2 |     let q = discourse::questions![Password { plugin: todo!() }];
+2 |     let q = requestty::questions![Password { plugin: todo!() }];
   |                                              ^^^^^^

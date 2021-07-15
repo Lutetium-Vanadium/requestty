@@ -1,4 +1,4 @@
-use discourse::{Answer, Question};
+use requestty::{Answer, Question};
 use ui::{
     events::{KeyCode, TestEvents},
     style::Stylize,
@@ -30,7 +30,7 @@ fn test_validate() {
         KeyCode::Enter.into(),
     ]);
 
-    let ans = discourse::prompt_one_with(prompt, &mut backend, &mut events).unwrap();
+    let ans = requestty::prompt_one_with(prompt, &mut backend, &mut events).unwrap();
     assert_eq!(ans, Answer::Float(3.2));
 }
 
@@ -48,7 +48,7 @@ fn test_filter() {
         KeyCode::Enter.into(),
     ]);
 
-    let ans = discourse::prompt_one_with(prompt, &mut backend, &mut events).unwrap();
+    let ans = requestty::prompt_one_with(prompt, &mut backend, &mut events).unwrap();
     assert_eq!(ans, Answer::Float(3.2));
 }
 
@@ -66,7 +66,7 @@ fn test_transform() {
         KeyCode::Enter.into(),
     ]);
 
-    let ans = discourse::prompt_one_with(prompt, &mut backend, &mut events).unwrap();
+    let ans = requestty::prompt_one_with(prompt, &mut backend, &mut events).unwrap();
     assert_eq!(ans, Answer::Float(3.2));
 }
 
@@ -81,7 +81,7 @@ fn test_default() {
         KeyCode::Enter.into(),
     ]);
 
-    let ans = discourse::prompt_one_with(prompt, &mut backend, &mut events).unwrap();
+    let ans = requestty::prompt_one_with(prompt, &mut backend, &mut events).unwrap();
     assert_eq!(ans, Answer::Float(3.2));
 
     let prompt = Question::float("name").message("message").default(3.2);
@@ -89,6 +89,6 @@ fn test_default() {
     let mut backend = helpers::SnapshotOnFlushBackend::new((50, 20).into());
     let mut events = TestEvents::new(Some(KeyCode::Enter.into()));
 
-    let ans = discourse::prompt_one_with(prompt, &mut backend, &mut events).unwrap();
+    let ans = requestty::prompt_one_with(prompt, &mut backend, &mut events).unwrap();
     assert_eq!(ans, Answer::Float(3.2));
 }

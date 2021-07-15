@@ -1,5 +1,5 @@
 [package]
-name = "discourse"
+name = "requestty"
 version = "0.0.1"
 authors = ["Lutetium Vanadium"]
 edition = "2018"
@@ -7,14 +7,14 @@ edition = "2018"
 [workspace]
 members = [
     ".",
-    "discourse-ui",
-    "discourse-macros",
+    "requestty-ui",
+    "requestty-macros",
 ]
 
 [dependencies]
 tempfile = "3"
-ui = { package = "discourse-ui", path = "./discourse-ui" }
-macros = { package = "discourse-macros", path = "./discourse-macros" }
+ui = { package = "requestty-ui", path = "./requestty-ui" }
+macros = { package = "requestty-macros", path = "./requestty-macros" }
 
 smallvec = { version = "1.6", optional = true }
 

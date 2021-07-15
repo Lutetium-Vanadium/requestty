@@ -1,3 +1,3 @@
 fn main() {
-    let q = discourse::questions![Confirm { validate: todo!() }];
+    let q = requestty::questions![Confirm { validate: todo!() }];
 }

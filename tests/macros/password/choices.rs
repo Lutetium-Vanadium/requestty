@@ -1,3 +1,3 @@
 fn main() {
-    discourse::questions![Password { choices: todo!() }];
+    requestty::questions![Password { choices: todo!() }];
 }

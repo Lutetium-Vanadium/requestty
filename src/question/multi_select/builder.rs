@@ -15,7 +15,7 @@ use crate::{
 /// # Examples
 ///
 /// ```
-/// use discourse::{Question, DefaultSeparator};
+/// use requestty::{Question, DefaultSeparator};
 ///
 /// let multi_select = Question::multi_select("cheese")
 ///     .message("What cheese do you want?")
@@ -47,7 +47,7 @@ impl<'a> MultiSelectBuilder<'a> {
     /// # Examples
     ///
     /// ```
-    /// use discourse::Question;
+    /// use requestty::Question;
     ///
     /// let multi_select = Question::multi_select("cheese")
     ///     .message("What cheese do you want?")
@@ -58,7 +58,7 @@ impl<'a> MultiSelectBuilder<'a> {
     /// # Examples
     ///
     /// ```
-    /// use discourse::{Answers, Question};
+    /// use requestty::{Answers, Question};
     ///
     /// let multi_select = Question::multi_select("cheese")
     ///     .when(|previous_answers: &Answers| match previous_answers.get("vegan") {
@@ -72,7 +72,7 @@ impl<'a> MultiSelectBuilder<'a> {
     /// # Examples
     ///
     /// ```
-    /// use discourse::{Answers, Question};
+    /// use requestty::{Answers, Question};
     ///
     /// let multi_select = Question::multi_select("cheese")
     ///     .ask_if_answered(true)
@@ -93,7 +93,7 @@ impl<'a> MultiSelectBuilder<'a> {
     /// # Examples
     ///
     /// ```
-    /// use discourse::Question;
+    /// use requestty::Question;
     ///
     /// let multi_select = Question::multi_select("cheese")
     ///     .page_size(10)
@@ -115,7 +115,7 @@ impl<'a> MultiSelectBuilder<'a> {
     /// # Examples
     ///
     /// ```
-    /// use discourse::Question;
+    /// use requestty::Question;
     ///
     /// let multi_select = Question::multi_select("cheese")
     ///     .should_loop(false)
@@ -139,7 +139,7 @@ impl<'a> MultiSelectBuilder<'a> {
     /// # Examples
     ///
     /// ```
-    /// use discourse::Question;
+    /// use requestty::Question;
     ///
     /// let multi_select = Question::multi_select("cheese")
     ///     .choice("Cheddar")
@@ -159,7 +159,7 @@ impl<'a> MultiSelectBuilder<'a> {
     /// # Examples
     ///
     /// ```
-    /// use discourse::Question;
+    /// use requestty::Question;
     ///
     /// let multi_select = Question::multi_select("cheese")
     ///     .choice_with_default("Mozzarella", true)
@@ -184,7 +184,7 @@ impl<'a> MultiSelectBuilder<'a> {
     /// # Examples
     ///
     /// ```
-    /// use discourse::Question;
+    /// use requestty::Question;
     ///
     /// let multi_select = Question::multi_select("cheese")
     ///     .separator("-- custom separator text --")
@@ -209,7 +209,7 @@ impl<'a> MultiSelectBuilder<'a> {
     /// # Examples
     ///
     /// ```
-    /// use discourse::Question;
+    /// use requestty::Question;
     ///
     /// let multi_select = Question::multi_select("cheese")
     ///     .default_separator()
@@ -238,7 +238,7 @@ impl<'a> MultiSelectBuilder<'a> {
     /// # Examples
     ///
     /// ```
-    /// use discourse::Question;
+    /// use requestty::Question;
     ///
     /// let multi_select = Question::multi_select("cheese")
     ///     .choices(vec![
@@ -273,7 +273,7 @@ impl<'a> MultiSelectBuilder<'a> {
     /// # Examples
     ///
     /// ```
-    /// use discourse::Question;
+    /// use requestty::Question;
     ///
     /// let multi_select = Question::multi_select("cheese")
     ///     .choices_with_default(vec![
@@ -329,7 +329,7 @@ impl<'a> MultiSelectBuilder<'a> {
     /// # Examples
     ///
     /// ```
-    /// use discourse::Question;
+    /// use requestty::Question;
     ///
     /// let multi_select = Question::multi_select("evil-cheese")
     ///     .filter(|mut cheeses, previous_answers| {
@@ -347,7 +347,7 @@ impl<'a> MultiSelectBuilder<'a> {
     /// # Examples
     ///
     /// ```
-    /// use discourse::Question;
+    /// use requestty::Question;
     ///
     /// let multi_select = Question::multi_select("cheese")
     ///     .validate(|cheeses, previous_answers| {
@@ -366,7 +366,7 @@ impl<'a> MultiSelectBuilder<'a> {
     /// # Examples
     ///
     /// ```
-    /// use discourse::Question;
+    /// use requestty::Question;
     ///
     /// let multi_select = Question::multi_select("cheese")
     ///     .transform(|cheeses, previous_answers, backend| {

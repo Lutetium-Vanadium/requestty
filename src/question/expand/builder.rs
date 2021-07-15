@@ -15,7 +15,7 @@ use crate::{
 /// # Examples
 ///
 /// ```
-/// use discourse::Question;
+/// use requestty::Question;
 ///
 /// let expand = Question::expand("overwrite")
 ///     .message("Conflict on `file.rs`")
@@ -51,7 +51,7 @@ impl<'a> ExpandBuilder<'a> {
     /// # Examples
     ///
     /// ```
-    /// use discourse::Question;
+    /// use requestty::Question;
     ///
     /// let expand = Question::expand("overwrite")
     ///     .message("Conflict on `file.rs`")
@@ -62,7 +62,7 @@ impl<'a> ExpandBuilder<'a> {
     /// # Examples
     ///
     /// ```
-    /// use discourse::{Question, Answers};
+    /// use requestty::{Question, Answers};
     ///
     /// let expand = Question::expand("overwrite")
     ///     .when(|previous_answers: &Answers| match previous_answers.get("ignore-conflicts") {
@@ -76,7 +76,7 @@ impl<'a> ExpandBuilder<'a> {
     /// # Examples
     ///
     /// ```
-    /// use discourse::Question;
+    /// use requestty::Question;
     ///
     /// let expand = Question::expand("overwrite")
     ///     .ask_if_answered(true)
@@ -99,7 +99,7 @@ impl<'a> ExpandBuilder<'a> {
     /// # Examples
     ///
     /// ```
-    /// use discourse::Question;
+    /// use requestty::Question;
     ///
     /// let expand = Question::expand("overwrite")
     ///     .choice('d', "Show diff")
@@ -125,7 +125,7 @@ impl<'a> ExpandBuilder<'a> {
     /// # Examples
     ///
     /// ```
-    /// use discourse::Question;
+    /// use requestty::Question;
     ///
     /// let expand = Question::expand("overwrite")
     ///     .page_size(10)
@@ -148,7 +148,7 @@ impl<'a> ExpandBuilder<'a> {
     /// # Examples
     ///
     /// ```
-    /// use discourse::Question;
+    /// use requestty::Question;
     ///
     /// let expand = Question::expand("overwrite")
     ///     .should_loop(false)
@@ -173,7 +173,7 @@ impl<'a> ExpandBuilder<'a> {
     /// # Examples
     ///
     /// ```
-    /// use discourse::Question;
+    /// use requestty::Question;
     ///
     /// let expand = Question::expand("overwrite")
     ///     .choice('x', "Abort")
@@ -209,7 +209,7 @@ impl<'a> ExpandBuilder<'a> {
     /// # Examples
     ///
     /// ```
-    /// use discourse::Question;
+    /// use requestty::Question;
     ///
     /// let expand = Question::expand("overwrite")
     ///     .separator("-- custom separator text --")
@@ -233,7 +233,7 @@ impl<'a> ExpandBuilder<'a> {
     /// # Examples
     ///
     /// ```
-    /// use discourse::Question;
+    /// use requestty::Question;
     ///
     /// let expand = Question::expand("overwrite")
     ///     .default_separator()
@@ -258,7 +258,7 @@ impl<'a> ExpandBuilder<'a> {
     /// # Examples
     ///
     /// ```
-    /// use discourse::Question;
+    /// use requestty::Question;
     ///
     /// let expand = Question::expand("overwrite")
     ///     .choices(vec![
@@ -304,7 +304,7 @@ impl<'a> ExpandBuilder<'a> {
     /// # Examples
     ///
     /// ```
-    /// use discourse::Question;
+    /// use requestty::Question;
     ///
     /// let expand = Question::expand("overwrite")
     ///     .transform(|choice, previous_answers, backend| {

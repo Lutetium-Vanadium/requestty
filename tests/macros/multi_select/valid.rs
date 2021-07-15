@@ -2,7 +2,7 @@ fn main() {
     let choice = "choice";
     let default_choice = true;
 
-    discourse::questions! [
+    requestty::questions! [
         MultiSelect {
             name: "name",
             transform: |_, _, _| Ok(()),

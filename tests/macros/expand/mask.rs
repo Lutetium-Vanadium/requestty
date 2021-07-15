@@ -1,3 +1,3 @@
 fn main() {
-    let q = discourse::questions![Expand { mask: todo!() }];
+    let q = requestty::questions![Expand { mask: todo!() }];
 }

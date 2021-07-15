@@ -1,3 +1,3 @@
 fn main() {
-    discourse::questions![Editor { choices: todo!() }];
+    requestty::questions![Editor { choices: todo!() }];
 }

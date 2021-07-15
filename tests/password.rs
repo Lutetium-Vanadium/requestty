@@ -1,4 +1,4 @@
-use discourse::{Answer, Question};
+use requestty::{Answer, Question};
 use ui::{
     events::{KeyCode, TestEvents},
     style::Color,
@@ -29,7 +29,7 @@ fn test_validate() {
         KeyCode::Enter.into(),
     ]);
 
-    let ans = discourse::prompt_one_with(prompt, &mut backend, &mut events).unwrap();
+    let ans = requestty::prompt_one_with(prompt, &mut backend, &mut events).unwrap();
     assert_eq!(ans, Answer::String("str".into()));
 }
 
@@ -48,7 +48,7 @@ fn test_filter() {
         KeyCode::Enter.into(),
     ]);
 
-    let ans = discourse::prompt_one_with(prompt, &mut backend, &mut events).unwrap();
+    let ans = requestty::prompt_one_with(prompt, &mut backend, &mut events).unwrap();
     assert_eq!(ans, Answer::String("str--suffix".into()));
 }
 
@@ -71,7 +71,7 @@ fn test_transform() {
         KeyCode::Enter.into(),
     ]);
 
-    let ans = discourse::prompt_one_with(prompt, &mut backend, &mut events).unwrap();
+    let ans = requestty::prompt_one_with(prompt, &mut backend, &mut events).unwrap();
     assert_eq!(ans, Answer::String("str".into()));
 }
 
@@ -92,6 +92,6 @@ fn test_hidden() {
         KeyCode::Enter.into(),
     ]);
 
-    let ans = discourse::prompt_one_with(prompt, &mut backend, &mut events).unwrap();
+    let ans = requestty::prompt_one_with(prompt, &mut backend, &mut events).unwrap();
     assert_eq!(ans, Answer::String("password".into()));
 }

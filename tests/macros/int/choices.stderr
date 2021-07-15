@@ -1,5 +1,5 @@
 error: option `choices` does not exist for kind `int`
  --> $DIR/choices.rs:2:33
   |
-2 |     discourse::questions![Int { choices: todo!() }];
+2 |     requestty::questions![Int { choices: todo!() }];
   |                                 ^^^^^^^

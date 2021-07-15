@@ -1,22 +1,10 @@
 // TODO: delete
 // this is a temporary file, for testing out the prompts
-use discourse::{DefaultSeparator, Question, Separator};
+use requestty::{DefaultSeparator, Question, Separator};
 use std::env;
-use std::io::Write;
-use ui::{
-    backend::{Backend, TestBackend},
-    style::Color,
-};
 
 fn main() {
     let s = String::from("Hello there ");
-
-    let mut backend = TestBackend::new((50, 20).into());
-    backend.set_fg(Color::Red).unwrap();
-    backend.write_all(b"Hello world!").unwrap();
-    println!("{}", backend);
-
-    return;
 
     let q = match env::args().nth(1).as_deref() {
         Some("b") => vec![
@@ -29,7 +17,7 @@ fn main() {
         Some("s") => vec![
             Question::input("a").message("Hello there 2").into(),
             Question::input("b")
-                .message(|_: &discourse::Answers| s[0..(s.len() - 1)].to_owned())
+                .message(|_: &requestty::Answers| s[0..(s.len() - 1)].to_owned())
                 .filter(|mut ans, _| {
                     ans.insert_str(0, &s);
                     ans
@@ -184,5 +172,5 @@ fn main() {
         _ => panic!("no arg"),
     };
 
-    println!("{:#?}", discourse::prompt(q));
+    println!("{:#?}", requestty::prompt(q));
 }

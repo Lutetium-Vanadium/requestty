@@ -1,5 +1,5 @@
 fn main() {
-    discourse::questions![Editor {
+    requestty::questions![Editor {
         should_loop: todo!()
     }];
 }

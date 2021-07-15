@@ -1,3 +1,3 @@
 fn main() {
-    discourse::questions![Password { page_size: todo!() }];
+    requestty::questions![Password { page_size: todo!() }];
 }

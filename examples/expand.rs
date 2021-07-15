@@ -1,5 +1,5 @@
 fn main() {
-    let question = discourse::Question::expand("overwrite")
+    let question = requestty::Question::expand("overwrite")
         .message("Conflict on `file.rs`")
         .choices(vec![
             ('y', "Overwrite"),
@@ -10,5 +10,5 @@ fn main() {
         .choice('x', "Abort")
         .build();
 
-    println!("{:#?}", discourse::prompt_one(question));
+    println!("{:#?}", requestty::prompt_one(question));
 }

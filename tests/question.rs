@@ -1,4 +1,4 @@
-use discourse::{plugin::*, question::PluginBuilder, Question};
+use requestty::{plugin::*, question::PluginBuilder, Question};
 
 #[derive(Debug)]
 struct Validate<'a> {
@@ -13,7 +13,7 @@ impl Plugin for Validate<'_> {
         _: &Answers,
         _: &mut dyn Backend,
         _: &mut dyn EventIterator,
-    ) -> discourse::Result<Answer> {
+    ) -> requestty::Result<Answer> {
         assert_eq!(message, self.message);
         *self.prompted = true;
 
@@ -26,7 +26,7 @@ fn plugin<'a>(name: &str, message: &'static str, prompted: &'a mut bool) -> Plug
 }
 
 fn prompt_all<'a>(questions: impl IntoIterator<Item = Question<'a>>) {
-    discourse::prompt_with(
+    requestty::prompt_with(
         questions,
         &mut ui::backend::TestBackend::new((1, 1).into()),
         &mut ui::events::TestEvents::empty(),
@@ -70,7 +70,7 @@ fn test_when() {
             .build(),
         plugin("name-1", "message", &mut prompted_1)
             .message("message")
-            .when(|ans: &discourse::Answers| !ans.is_empty())
+            .when(|ans: &requestty::Answers| !ans.is_empty())
             .build(),
     ]);
 

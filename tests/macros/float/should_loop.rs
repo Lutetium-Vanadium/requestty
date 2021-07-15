@@ -1,5 +1,5 @@
 fn main() {
-    discourse::questions![Float {
+    requestty::questions![Float {
         should_loop: todo!()
     }];
 }

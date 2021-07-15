@@ -5,9 +5,9 @@ enum Direction {
     Back,
 }
 
-fn prompt() -> discourse::Result<Direction> {
-    let answer = discourse::prompt_one(
-        discourse::Question::select("direction")
+fn prompt() -> requestty::Result<Direction> {
+    let answer = requestty::prompt_one(
+        requestty::Question::select("direction")
             .message("Which direction would you like to go?")
             .choice("Forward")
             .choice("Right")
@@ -32,7 +32,7 @@ fn main() {
     }
 }
 
-fn exit_house() -> discourse::Result<()> {
+fn exit_house() -> requestty::Result<()> {
     loop {
         match prompt()? {
             Direction::Forward => {
@@ -46,7 +46,7 @@ fn exit_house() -> discourse::Result<()> {
     }
 }
 
-fn encounter1() -> discourse::Result<()> {
+fn encounter1() -> requestty::Result<()> {
     loop {
         match prompt()? {
             Direction::Forward => {
@@ -66,7 +66,7 @@ fn encounter1() -> discourse::Result<()> {
     }
 }
 
-fn encounter2a() -> discourse::Result<()> {
+fn encounter2a() -> requestty::Result<()> {
     loop {
         match prompt()? {
             Direction::Forward => {
@@ -85,9 +85,9 @@ fn encounter2a() -> discourse::Result<()> {
     }
 }
 
-fn encounter2b() -> discourse::Result<()> {
-    discourse::prompt_one(
-        discourse::Question::select("weapon")
+fn encounter2b() -> requestty::Result<()> {
+    requestty::prompt_one(
+        requestty::Question::select("weapon")
             .message("Pick one")
             .choice("Use the stick")
             .choice("Grab a large rock")

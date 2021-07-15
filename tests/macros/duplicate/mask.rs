@@ -1,5 +1,5 @@
 fn main() {
-    let q = discourse::questions![Password {
+    let q = requestty::questions![Password {
         mask: todo!(),
         mask: todo!(),
     }];

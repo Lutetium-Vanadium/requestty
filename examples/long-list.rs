@@ -1,5 +1,5 @@
 fn main() {
-    let question = discourse::Question::select("long-list")
+    let question = requestty::Question::select("long-list")
         .message("Select from this super long list")
         .choices(('A'..='Z').map(|c| c.to_string()))
         .choices(
@@ -17,5 +17,5 @@ fn main() {
         .default_separator()
         .build();
 
-    println!("{:#?}", discourse::prompt_one(question));
+    println!("{:#?}", requestty::prompt_one(question));
 }

@@ -1,4 +1,4 @@
-use discourse::{Answer, Question};
+use requestty::{Answer, Question};
 use ui::{
     events::{KeyCode, TestEvents},
     style::Stylize,
@@ -17,7 +17,7 @@ fn test_validate() {
         KeyCode::Enter.into(),
     ]);
 
-    let ans = discourse::prompt_one_with(
+    let ans = requestty::prompt_one_with(
         Question::confirm("name").message("message").build(),
         &mut backend,
         &mut events,
@@ -29,7 +29,7 @@ fn test_validate() {
     let mut backend = helpers::SnapshotOnFlushBackend::new(size);
     let mut events = TestEvents::new(vec![KeyCode::Char('n').into(), KeyCode::Enter.into()]);
 
-    let ans = discourse::prompt_one_with(
+    let ans = requestty::prompt_one_with(
         Question::confirm("name")
             .message("message")
             .default(true)
@@ -44,7 +44,7 @@ fn test_validate() {
     let mut backend = helpers::SnapshotOnFlushBackend::new(size);
     let mut events = TestEvents::new(Some(KeyCode::Enter.into()));
 
-    let ans = discourse::prompt_one_with(
+    let ans = requestty::prompt_one_with(
         Question::confirm("name")
             .message("message")
             .default(true)
@@ -59,7 +59,7 @@ fn test_validate() {
     let mut backend = helpers::SnapshotOnFlushBackend::new(size);
     let mut events = TestEvents::new(Some(KeyCode::Enter.into()));
 
-    let ans = discourse::prompt_one_with(
+    let ans = requestty::prompt_one_with(
         Question::confirm("name")
             .message("message")
             .default(false)
@@ -78,7 +78,7 @@ fn test_transform() {
     let mut backend = helpers::SnapshotOnFlushBackend::new(size);
     let mut events = TestEvents::new(Some(KeyCode::Enter.into()));
 
-    let ans = discourse::prompt_one_with(
+    let ans = requestty::prompt_one_with(
         Question::confirm("name")
             .message("message")
             .default(true)

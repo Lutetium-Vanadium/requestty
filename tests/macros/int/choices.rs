@@ -1,3 +1,3 @@
 fn main() {
-    discourse::questions![Int { choices: todo!() }];
+    requestty::questions![Int { choices: todo!() }];
 }

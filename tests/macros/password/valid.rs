@@ -1,5 +1,5 @@
 fn main() {
-    discourse::questions![Password {
+    requestty::questions![Password {
         name: "name",
         mask: '*',
         transform: |_, _, _| Ok(()),

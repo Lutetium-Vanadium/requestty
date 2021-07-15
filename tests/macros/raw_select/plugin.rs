@@ -1,3 +1,3 @@
 fn main() {
-    let q = discourse::questions![RawSelect { plugin: todo!() }];
+    let q = requestty::questions![RawSelect { plugin: todo!() }];
 }

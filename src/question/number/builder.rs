@@ -30,7 +30,7 @@ macro_rules! builder {
             /// # Examples
             ///
             /// ```
-            /// use discourse::Question;
+            /// use requestty::Question;
             ///
             #[doc = $declare]
             ///     .message("Please enter a number")
@@ -41,7 +41,7 @@ macro_rules! builder {
             /// # Examples
             ///
             /// ```
-            /// use discourse::{Question, Answers};
+            /// use requestty::{Question, Answers};
             ///
             #[doc = $declare]
             ///     .when(|previous_answers: &Answers| match previous_answers.get("ask_number") {
@@ -55,7 +55,7 @@ macro_rules! builder {
             /// # Examples
             ///
             /// ```
-            /// use discourse::{Question, Answers};
+            /// use requestty::{Question, Answers};
             ///
             #[doc = $declare]
             ///     .ask_if_answered(true)
@@ -72,7 +72,7 @@ macro_rules! builder {
             /// # Examples
             ///
             /// ```
-            /// use discourse::Question;
+            /// use requestty::Question;
             ///
             #[doc = $declare]
             #[doc = $default]
@@ -87,7 +87,7 @@ macro_rules! builder {
             /// # Examples
             ///
             /// ```
-            /// use discourse::Question;
+            /// use requestty::Question;
             ///
             #[doc = $declare]
             #[doc = $filter]
@@ -100,7 +100,7 @@ macro_rules! builder {
             /// # Examples
             ///
             /// ```
-            /// use discourse::Question;
+            /// use requestty::Question;
             ///
             #[doc = $declare]
             ///     .validate(|n, previous_answers| {
@@ -119,7 +119,7 @@ macro_rules! builder {
             /// # Examples
             ///
             /// ```
-            /// use discourse::Question;
+            /// use requestty::Question;
             ///
             #[doc = $declare]
             ///     .transform(|n, previous_answers, backend| {
@@ -159,7 +159,7 @@ builder! {
 /// # Examples
 ///
 /// ```
-/// use discourse::Question;
+/// use requestty::Question;
 ///
 /// let int = Question::int("age")
 ///     .message("What is your age?")
@@ -192,7 +192,7 @@ builder! {
 /// # Examples
 ///
 /// ```
-/// use discourse::Question;
+/// use requestty::Question;
 ///
 /// let float = Question::float("number")
 ///     .message("What is your favourite number?")

@@ -1,5 +1,5 @@
 error: option `plugin` does not exist for kind `expand`
  --> $DIR/plugin.rs:2:44
   |
-2 |     let q = discourse::questions![Expand { plugin: todo!() }];
+2 |     let q = requestty::questions![Expand { plugin: todo!() }];
   |                                            ^^^^^^

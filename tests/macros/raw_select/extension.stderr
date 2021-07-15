@@ -1,5 +1,5 @@
 error: option `extension` does not exist for kind `raw_select`
  --> $DIR/extension.rs:2:47
   |
-2 |     let q = discourse::questions![RawSelect { extension: todo!() }];
+2 |     let q = requestty::questions![RawSelect { extension: todo!() }];
   |                                               ^^^^^^^^^

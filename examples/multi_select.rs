@@ -1,7 +1,7 @@
-use discourse::{Choice, Separator};
+use requestty::{Choice, Separator};
 
 fn main() {
-    let question = discourse::Question::multi_select("toppings")
+    let question = requestty::Question::multi_select("toppings")
         .message("Select toppings")
         .separator(" = The Meats = ")
         .choices(vec!["Pepperoni", "Ham", "Ground Meat", "Bacon"])
@@ -27,5 +27,5 @@ fn main() {
         })
         .build();
 
-    println!("{:#?}", discourse::prompt_one(question));
+    println!("{:#?}", requestty::prompt_one(question));
 }

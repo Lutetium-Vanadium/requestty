@@ -1,5 +1,5 @@
 fn main() {
-    discourse::questions![Password {
+    requestty::questions![Password {
         should_loop: todo!()
     }];
 }

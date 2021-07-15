@@ -1,5 +1,5 @@
 fn main() {
-    let q = discourse::questions![Editor {
+    let q = requestty::questions![Editor {
         extension: todo!(),
         extension: todo!(),
     }];

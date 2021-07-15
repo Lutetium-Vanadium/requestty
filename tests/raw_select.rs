@@ -1,4 +1,4 @@
-use discourse::{question::Choice, Question};
+use requestty::{question::Choice, Question};
 use rand::prelude::*;
 use rand_chacha::ChaCha12Rng;
 use ui::{
@@ -48,7 +48,7 @@ fn test_tranform() {
         KeyCode::Enter.into(),
     ]);
 
-    let ans = discourse::prompt_one_with(raw_select, &mut backend, &mut events)
+    let ans = requestty::prompt_one_with(raw_select, &mut backend, &mut events)
         .unwrap()
         .try_into_list_item()
         .unwrap();
@@ -68,7 +68,7 @@ fn test_default() {
     let mut backend = helpers::SnapshotOnFlushBackend::new(size);
     let mut events = TestEvents::new(Some(KeyCode::Enter.into()));
 
-    let ans = discourse::prompt_one_with(raw_select, &mut backend, &mut events)
+    let ans = requestty::prompt_one_with(raw_select, &mut backend, &mut events)
         .unwrap()
         .try_into_list_item()
         .unwrap();
@@ -97,7 +97,7 @@ fn test_validate() {
         KeyCode::Enter.into(),
     ]);
 
-    let ans = discourse::prompt_one_with(raw_select, &mut backend, &mut events)
+    let ans = requestty::prompt_one_with(raw_select, &mut backend, &mut events)
         .unwrap()
         .try_into_list_item()
         .unwrap();

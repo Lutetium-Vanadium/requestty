@@ -1,6 +1,6 @@
-use discourse::Question;
+use requestty::Question;
 
-fn letter_and_numbers(password: &str, _: &discourse::Answers) -> Result<(), String> {
+fn letter_and_numbers(password: &str, _: &requestty::Answers) -> Result<(), String> {
     if password.contains(|c: char| c.is_ascii_digit()) && password.contains(char::is_alphabetic) {
         Ok(())
     } else {
@@ -21,5 +21,5 @@ fn main() {
             .build(),
     ];
 
-    println!("{:#?}", discourse::prompt(questions));
+    println!("{:#?}", requestty::prompt(questions));
 }

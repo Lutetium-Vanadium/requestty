@@ -1,5 +1,5 @@
 fn main() {
-    discourse::questions![Float {
+    requestty::questions![Float {
         name: "name",
         default: 0.0,
         transform: |_, _, _| Ok(()),

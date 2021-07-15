@@ -1,4 +1,4 @@
-# Discourse Examples
+# Requestty Examples
 
 The examples given show some basic usage of the library in different
 ways. You can also see the documentation for the `Question` type for

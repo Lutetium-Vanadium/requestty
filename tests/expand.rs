@@ -1,4 +1,4 @@
-use discourse::Question;
+use requestty::Question;
 use ui::{
     events::{KeyCode, TestEvents},
     style::Color,
@@ -31,7 +31,7 @@ fn test_tranform() {
         KeyCode::Enter.into(),
     ]);
 
-    let ans = discourse::prompt_one_with(expand, &mut backend, &mut events)
+    let ans = requestty::prompt_one_with(expand, &mut backend, &mut events)
         .unwrap()
         .try_into_expand_item()
         .unwrap();
@@ -58,7 +58,7 @@ fn test_default() {
     let mut backend = helpers::SnapshotOnFlushBackend::new(size);
     let mut events = TestEvents::new(Some(KeyCode::Enter.into()));
 
-    let ans = discourse::prompt_one_with(expand, &mut backend, &mut events)
+    let ans = requestty::prompt_one_with(expand, &mut backend, &mut events)
         .unwrap()
         .try_into_expand_item()
         .unwrap();
@@ -77,7 +77,7 @@ fn test_default() {
         KeyCode::Enter.into(),
     ]);
 
-    let ans = discourse::prompt_one_with(expand, &mut backend, &mut events)
+    let ans = requestty::prompt_one_with(expand, &mut backend, &mut events)
         .unwrap()
         .try_into_expand_item()
         .unwrap();

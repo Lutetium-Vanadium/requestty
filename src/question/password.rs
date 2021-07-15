@@ -115,7 +115,7 @@ impl<'p> Password<'p> {
 /// # Examples
 ///
 /// ```
-/// use discourse::Question;
+/// use requestty::Question;
 ///
 /// let password = Question::password("password")
 ///     .message("What is your password?")
@@ -143,7 +143,7 @@ impl<'a> PasswordBuilder<'a> {
     /// # Examples
     ///
     /// ```
-    /// use discourse::Question;
+    /// use requestty::Question;
     ///
     /// let password = Question::password("password")
     ///     .message("What is your password?")
@@ -154,7 +154,7 @@ impl<'a> PasswordBuilder<'a> {
     /// # Examples
     ///
     /// ```
-    /// use discourse::{Answers, Question};
+    /// use requestty::{Answers, Question};
     ///
     /// let password = Question::password("password")
     ///     .when(|previous_answers: &Answers| match previous_answers.get("anonymous") {
@@ -168,7 +168,7 @@ impl<'a> PasswordBuilder<'a> {
     /// # Examples
     ///
     /// ```
-    /// use discourse::Question;
+    /// use requestty::Question;
     ///
     /// let password = Question::password("password")
     ///     .ask_if_answered(true)
@@ -184,7 +184,7 @@ impl<'a> PasswordBuilder<'a> {
     /// # Examples
     ///
     /// ```
-    /// use discourse::Question;
+    /// use requestty::Question;
     ///
     /// let password = Question::password("password")
     ///     .mask('*')
@@ -199,7 +199,7 @@ impl<'a> PasswordBuilder<'a> {
     /// # Examples
     ///
     /// ```
-    /// use discourse::Question;
+    /// use requestty::Question;
     ///
     /// # fn encrypt(s: String) -> String { s }
     ///
@@ -214,7 +214,7 @@ impl<'a> PasswordBuilder<'a> {
     /// # Examples
     ///
     /// ```
-    /// use discourse::Question;
+    /// use requestty::Question;
     ///
     /// let password = Question::password("password")
     ///     .validate(|password, previous_answers| if password.chars().count() >= 5 {
@@ -231,8 +231,8 @@ impl<'a> PasswordBuilder<'a> {
     /// # Examples
     ///
     /// ```
-    /// use discourse::Question;
-    /// use discourse::plugin::style::Color;
+    /// use requestty::Question;
+    /// use requestty::plugin::style::Color;
     ///
     /// let password = Question::password("password")
     ///     .transform(|password, previous_answers, backend| {

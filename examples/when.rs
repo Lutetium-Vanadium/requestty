@@ -1,4 +1,4 @@
-use discourse::Question;
+use requestty::Question;
 
 fn main() {
     let questions = vec![
@@ -7,15 +7,15 @@ fn main() {
             .build(),
         Question::input("favorite")
             .message("Bacon lover, what is your favourite type of bacon?")
-            .when(|ans: &discourse::Answers| ans["bacon"].as_bool().unwrap())
+            .when(|ans: &requestty::Answers| ans["bacon"].as_bool().unwrap())
             .build(),
         Question::confirm("pizza")
             .message("Ok... Do you like pizza?")
-            .when(|ans: &discourse::Answers| !ans["bacon"].as_bool().unwrap())
+            .when(|ans: &requestty::Answers| !ans["bacon"].as_bool().unwrap())
             .build(),
         Question::input("favourite")
             .message("Whew! What is your favourite type of pizza?")
-            .when(|ans: &discourse::Answers| {
+            .when(|ans: &requestty::Answers| {
                 ans.get("pizza")
                     .map(|b| b.as_bool().unwrap())
                     .unwrap_or(false)
@@ -23,5 +23,5 @@ fn main() {
             .build(),
     ];
 
-    println!("{:#?}", discourse::prompt(questions));
+    println!("{:#?}", requestty::prompt(questions));
 }

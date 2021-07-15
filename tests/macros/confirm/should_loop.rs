@@ -1,5 +1,5 @@
 fn main() {
-    discourse::questions![Confirm {
+    requestty::questions![Confirm {
         should_loop: todo!()
     }];
 }

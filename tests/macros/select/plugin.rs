@@ -1,3 +1,3 @@
 fn main() {
-    let q = discourse::questions![Select { plugin: todo!() }];
+    let q = requestty::questions![Select { plugin: todo!() }];
 }

@@ -1,3 +1,3 @@
 fn main() {
-    discourse::questions![Plugin { name: "plugin" }];
+    requestty::questions![Plugin { name: "plugin" }];
 }

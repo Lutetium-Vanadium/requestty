@@ -118,7 +118,7 @@ where
 /// # let some_variable = "message";
 /// # let when = true;
 /// # fn get_default() -> bool { true }
-/// use discourse::prompt_module;
+/// use requestty::prompt_module;
 ///
 /// let prompt_module = prompt_module![
 ///     MultiSelect {
@@ -155,7 +155,7 @@ where
 /// By default, the questions are stored in a [`Vec`]. However, if you wish to store the questions
 /// on the stack, prefix the questions with `inline`:
 /// ```
-/// use discourse::prompt_module;
+/// use requestty::prompt_module;
 ///
 /// let prompt_module = prompt_module![ inline
 ///     Input {
@@ -167,6 +167,8 @@ where
 /// Note that inlining only works for rust version 1.51 onwards. Pre 1.51, a [`Vec`] is still used.
 ///
 /// See also [`questions`].
+///
+/// [`questions`]: crate::questions
 #[macro_export]
 macro_rules! prompt_module {
     ($($tt:tt)*) => {

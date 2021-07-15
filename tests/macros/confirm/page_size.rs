@@ -1,3 +1,3 @@
 fn main() {
-    discourse::questions![Confirm { page_size: todo!() }];
+    requestty::questions![Confirm { page_size: todo!() }];
 }

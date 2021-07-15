@@ -1,5 +1,5 @@
 error: option `validate` does not exist for kind `confirm`
  --> $DIR/validate.rs:2:45
   |
-2 |     let q = discourse::questions![Confirm { validate: todo!() }];
+2 |     let q = requestty::questions![Confirm { validate: todo!() }];
   |                                             ^^^^^^^^

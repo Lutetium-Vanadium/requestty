@@ -191,7 +191,7 @@ impl Editor<'_> {
 /// # Examples
 ///
 /// ```
-/// use discourse::Question;
+/// use requestty::Question;
 ///
 /// let editor = Question::editor("description")
 ///     .message("Please enter a short description about yourself")
@@ -219,7 +219,7 @@ impl<'a> EditorBuilder<'a> {
     /// # Examples
     ///
     /// ```
-    /// use discourse::Question;
+    /// use requestty::Question;
     ///
     /// let editor = Question::editor("description")
     ///     .message("Please enter a short description about yourself")
@@ -230,7 +230,7 @@ impl<'a> EditorBuilder<'a> {
     /// # Examples
     ///
     /// ```
-    /// use discourse::{Question, Answers};
+    /// use requestty::{Question, Answers};
     ///
     /// let editor = Question::editor("description")
     ///     .when(|previous_answers: &Answers| match previous_answers.get("anonymous") {
@@ -244,7 +244,7 @@ impl<'a> EditorBuilder<'a> {
     /// # Examples
     ///
     /// ```
-    /// use discourse::{Question, Answers};
+    /// use requestty::{Question, Answers};
     ///
     /// let editor = Question::editor("description")
     ///     .ask_if_answered(true)
@@ -260,7 +260,7 @@ impl<'a> EditorBuilder<'a> {
     /// # Examples
     ///
     /// ```
-    /// use discourse::Question;
+    /// use requestty::Question;
     ///
     /// let editor = Question::editor("description")
     ///     .default("My name is ")
@@ -280,7 +280,7 @@ impl<'a> EditorBuilder<'a> {
     /// # Examples
     ///
     /// ```
-    /// use discourse::Question;
+    /// use requestty::Question;
     ///
     /// let editor = Question::editor("description")
     ///     .extension(".md")
@@ -296,7 +296,7 @@ impl<'a> EditorBuilder<'a> {
     ///
     /// ```
     /// # fn parse_markdown(s: String) -> String { s }
-    /// use discourse::Question;
+    /// use requestty::Question;
     ///
     /// let editor = Question::editor("description")
     ///     .filter(|description, previous_answers| parse_markdown(description))
@@ -309,7 +309,7 @@ impl<'a> EditorBuilder<'a> {
     /// # Examples
     ///
     /// ```
-    /// use discourse::Question;
+    /// use requestty::Question;
     ///
     /// let editor = Question::editor("description")
     ///     .validate(|description, previous_answers| if description.lines().count() >= 2 {
@@ -326,7 +326,7 @@ impl<'a> EditorBuilder<'a> {
     /// # Examples
     ///
     /// ```
-    /// use discourse::Question;
+    /// use requestty::Question;
     ///
     /// let editor = Question::editor("description")
     ///     .transform(|description, previous_answers, backend| {

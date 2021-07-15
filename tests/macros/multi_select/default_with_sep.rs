@@ -1,5 +1,5 @@
 fn main() {
-    discourse::questions! [
+    requestty::questions! [
         MultiSelect {
             name: "name",
             choices: [

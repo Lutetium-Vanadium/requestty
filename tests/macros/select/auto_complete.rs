@@ -1,5 +1,5 @@
 fn main() {
-    discourse::questions![Select {
+    requestty::questions![Select {
         auto_complete: todo!()
     }];
 }

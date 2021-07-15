@@ -1,5 +1,5 @@
 fn main() {
     let name = "name";
 
-    discourse::questions![Input { name; }];
+    requestty::questions![Input { name; }];
 }

@@ -2,7 +2,7 @@ use std::path::Path;
 
 use fuzzy_matcher::{skim::SkimMatcherV2, FuzzyMatcher};
 
-use discourse::question::{completions, Completions};
+use requestty::question::{completions, Completions};
 
 fn auto_complete(p: String) -> Completions<String> {
     let current: &Path = p.as_ref();
@@ -49,7 +49,7 @@ fn auto_complete(p: String) -> Completions<String> {
 }
 
 fn main() {
-    let question = discourse::Question::input("a")
+    let question = requestty::Question::input("a")
         .message("Enter a file")
         .auto_complete(|p, _| auto_complete(p))
         .validate(|p, _| {
@@ -61,5 +61,5 @@ fn main() {
         })
         .build();
 
-    println!("{:#?}", discourse::prompt_one(question));
+    println!("{:#?}", requestty::prompt_one(question));
 }

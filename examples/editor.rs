@@ -1,5 +1,5 @@
 fn main() {
-    let question = discourse::Question::editor("bio")
+    let question = requestty::Question::editor("bio")
         .message("Please write a short bio of at least 3 lines.")
         .validate(|answer, _| {
             if answer.lines().count() < 3 {
@@ -10,5 +10,5 @@ fn main() {
         })
         .build();
 
-    println!("{:#?}", discourse::prompt_one(question));
+    println!("{:#?}", requestty::prompt_one(question));
 }

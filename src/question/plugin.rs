@@ -10,7 +10,7 @@ use crate::{Answer, Answers};
 /// interaction. While no particular look is enforced, it is recommended to keep a similar look to
 /// the rest of the in-built questions.
 ///
-/// You can use the `discourse-ui` crate to build the prompts. You can see the implementations of
+/// You can use the `requestty-ui` crate to build the prompts. You can see the implementations of
 /// the in-built questions for examples on how to use it.
 ///
 /// See also [`Question::plugin`]
@@ -63,7 +63,7 @@ impl<T: Plugin> PluginInteral for Option<T> {
 /// # Examples
 ///
 /// ```
-/// use discourse::{plugin, Question};
+/// use requestty::{plugin, Question};
 ///
 /// #[derive(Debug)]
 /// struct MyPlugin { /* ... */ }
@@ -81,7 +81,7 @@ impl<T: Plugin> PluginInteral for Option<T> {
 ///         answers: &plugin::Answers,
 ///         backend: &mut dyn plugin::Backend,
 ///         events: &mut dyn plugin::EventIterator,
-///     ) -> discourse::Result<plugin::Answer> {
+///     ) -> requestty::Result<plugin::Answer> {
 ///         // ...
 /// #         todo!()
 ///     }
@@ -116,7 +116,7 @@ impl<'a> PluginBuilder<'a> {
     /// # Examples
     ///
     /// ```
-    /// use discourse::{plugin, Question};
+    /// use requestty::{plugin, Question};
     ///
     /// #[derive(Debug)]
     /// struct MyPlugin { /* ... */ }
@@ -134,7 +134,7 @@ impl<'a> PluginBuilder<'a> {
     ///         answers: &plugin::Answers,
     ///         backend: &mut dyn plugin::Backend,
     ///         events: &mut dyn plugin::EventIterator,
-    ///     ) -> discourse::Result<plugin::Answer> {
+    ///     ) -> requestty::Result<plugin::Answer> {
     ///         // ...
     /// #         todo!()
     ///     }
@@ -149,7 +149,7 @@ impl<'a> PluginBuilder<'a> {
     /// # Examples
     ///
     /// ```
-    /// use discourse::{plugin, Question, Answers};
+    /// use requestty::{plugin, Question, Answers};
     ///
     /// #[derive(Debug)]
     /// struct MyPlugin { /* ... */ }
@@ -167,7 +167,7 @@ impl<'a> PluginBuilder<'a> {
     ///         answers: &plugin::Answers,
     ///         backend: &mut dyn plugin::Backend,
     ///         events: &mut dyn plugin::EventIterator,
-    ///     ) -> discourse::Result<plugin::Answer> {
+    ///     ) -> requestty::Result<plugin::Answer> {
     ///         // ...
     /// #         todo!()
     ///     }
@@ -185,7 +185,7 @@ impl<'a> PluginBuilder<'a> {
     /// # Examples
     ///
     /// ```
-    /// use discourse::{plugin, Question};
+    /// use requestty::{plugin, Question};
     ///
     /// #[derive(Debug)]
     /// struct MyPlugin { /* ... */ }
@@ -203,7 +203,7 @@ impl<'a> PluginBuilder<'a> {
     ///         answers: &plugin::Answers,
     ///         backend: &mut dyn plugin::Backend,
     ///         events: &mut dyn plugin::EventIterator,
-    ///     ) -> discourse::Result<plugin::Answer> {
+    ///     ) -> requestty::Result<plugin::Answer> {
     ///         // ...
     /// #         todo!()
     ///     }

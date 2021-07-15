@@ -1,5 +1,5 @@
 error: option `page_size` does not exist for kind `password`
  --> $DIR/page_size.rs:2:38
   |
-2 |     discourse::questions![Password { page_size: todo!() }];
+2 |     requestty::questions![Password { page_size: todo!() }];
   |                                      ^^^^^^^^^

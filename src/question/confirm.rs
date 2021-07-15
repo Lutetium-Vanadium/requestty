@@ -115,7 +115,7 @@ impl<'a> Confirm<'a> {
 /// # Examples
 ///
 /// ```
-/// use discourse::Question;
+/// use requestty::Question;
 ///
 /// let confirm = Question::confirm("anonymous")
 ///     .message("Do you want to remain anonymous?")
@@ -142,7 +142,7 @@ impl<'a> ConfirmBuilder<'a> {
     /// # Examples
     ///
     /// ```
-    /// use discourse::Question;
+    /// use requestty::Question;
     ///
     /// let confirm = Question::confirm("anonymous")
     ///     .message("Do you want to remain anonymous?")
@@ -153,7 +153,7 @@ impl<'a> ConfirmBuilder<'a> {
     /// # Examples
     ///
     /// ```
-    /// use discourse::{Question, Answers};
+    /// use requestty::{Question, Answers};
     ///
     /// let confirm = Question::confirm("anonymous")
     ///     .when(|previous_answers: &Answers| match previous_answers.get("auth") {
@@ -167,7 +167,7 @@ impl<'a> ConfirmBuilder<'a> {
     /// # Examples
     ///
     /// ```
-    /// use discourse::Question;
+    /// use requestty::Question;
     ///
     /// let confirm = Question::confirm("anonymous")
     ///     .ask_if_answered(true)
@@ -182,7 +182,7 @@ impl<'a> ConfirmBuilder<'a> {
     /// # Examples
     ///
     /// ```
-    /// use discourse::Question;
+    /// use requestty::Question;
     ///
     /// let confirm = Question::confirm("anonymous")
     ///     .default(false)
@@ -197,7 +197,7 @@ impl<'a> ConfirmBuilder<'a> {
     /// # Examples
     ///
     /// ```
-    /// use discourse::Question;
+    /// use requestty::Question;
     ///
     /// let confirm = Question::confirm("anonymous")
     ///     .transform(|anonymous, previous_answers, backend| {

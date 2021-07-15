@@ -1,4 +1,4 @@
-use discourse::question::Choice;
+use requestty::question::Choice;
 use rand::prelude::*;
 use rand_chacha::ChaCha12Rng;
 use ui::events::{KeyCode, KeyEvent, TestEvents};
@@ -26,7 +26,7 @@ fn choices(len: usize) -> impl Iterator<Item = Choice<String>> {
 
 #[test]
 fn test_transform() {
-    let select = discourse::Question::select("name")
+    let select = requestty::Question::select("name")
         .transform(|item, _, b| {
             b.set_fg(ui::style::Color::Magenta)?;
             write!(b, "{}: {}", item.index, item.name)?;
@@ -43,7 +43,7 @@ fn test_transform() {
         KeyCode::Enter.into(),
     ]);
 
-    let ans = discourse::prompt_one_with(select, &mut backend, &mut events)
+    let ans = requestty::prompt_one_with(select, &mut backend, &mut events)
         .unwrap()
         .try_into_list_item()
         .unwrap();

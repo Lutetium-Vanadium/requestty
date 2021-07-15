@@ -1,5 +1,5 @@
 error: option `extension` does not exist for kind `int`
  --> $DIR/extension.rs:2:41
   |
-2 |     let q = discourse::questions![Int { extension: todo!() }];
+2 |     let q = requestty::questions![Int { extension: todo!() }];
   |                                         ^^^^^^^^^

@@ -1,5 +1,5 @@
 error: unknown question option `unknown`
  --> $DIR/option.rs:2:43
   |
-2 |     let q = discourse::questions![Input { unknown: 0 }];
+2 |     let q = requestty::questions![Input { unknown: 0 }];
   |                                           ^^^^^^^

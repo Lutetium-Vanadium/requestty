@@ -1,5 +1,5 @@
 error: option `mask` does not exist for kind `input`
  --> $DIR/mask.rs:2:43
   |
-2 |     let q = discourse::questions![Input { mask: todo!() }];
+2 |     let q = requestty::questions![Input { mask: todo!() }];
   |                                           ^^^^

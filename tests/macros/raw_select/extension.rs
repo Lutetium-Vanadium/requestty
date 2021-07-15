@@ -1,3 +1,3 @@
 fn main() {
-    let q = discourse::questions![RawSelect { extension: todo!() }];
+    let q = requestty::questions![RawSelect { extension: todo!() }];
 }

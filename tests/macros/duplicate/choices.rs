@@ -1,5 +1,5 @@
 fn main() {
-    let q = discourse::questions![Select {
+    let q = requestty::questions![Select {
         choices: todo!(),
         choices: todo!(),
     }];

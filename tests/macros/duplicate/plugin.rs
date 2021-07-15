@@ -1,5 +1,5 @@
 fn main() {
-    let q = discourse::questions![Plugin {
+    let q = requestty::questions![Plugin {
         plugin: todo!(),
         plugin: todo!(),
     }];

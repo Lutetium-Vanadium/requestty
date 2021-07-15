@@ -13,7 +13,7 @@ use crate::{
 /// # Examples
 ///
 /// ```
-/// use discourse::{Question, DefaultSeparator};
+/// use requestty::{Question, DefaultSeparator};
 ///
 /// let raw_select = Question::raw_select("theme")
 ///     .message("What do you want to do?")
@@ -51,7 +51,7 @@ impl<'a> RawSelectBuilder<'a> {
     /// # Examples
     ///
     /// ```
-    /// use discourse::Question;
+    /// use requestty::Question;
     ///
     /// let raw_select = Question::raw_select("theme")
     ///     .message("What do you want to do?")
@@ -62,7 +62,7 @@ impl<'a> RawSelectBuilder<'a> {
     /// # Examples
     ///
     /// ```
-    /// use discourse::{Question, Answers};
+    /// use requestty::{Question, Answers};
     ///
     /// let raw_select = Question::raw_select("theme")
     ///     .when(|previous_answers: &Answers| match previous_answers.get("use-default-theme") {
@@ -76,7 +76,7 @@ impl<'a> RawSelectBuilder<'a> {
     /// # Examples
     ///
     /// ```
-    /// use discourse::{Question, Answers};
+    /// use requestty::{Question, Answers};
     ///
     /// let raw_select = Question::raw_select("theme")
     ///     .ask_if_answered(true)
@@ -100,7 +100,7 @@ impl<'a> RawSelectBuilder<'a> {
     /// # Examples
     ///
     /// ```
-    /// use discourse::{Question, DefaultSeparator};
+    /// use requestty::{Question, DefaultSeparator};
     ///
     /// let raw_select = Question::raw_select("theme")
     ///     .choices(vec![
@@ -132,7 +132,7 @@ impl<'a> RawSelectBuilder<'a> {
     /// # Examples
     ///
     /// ```
-    /// use discourse::Question;
+    /// use requestty::Question;
     ///
     /// let raw_select = Question::raw_select("theme")
     ///     .page_size(10)
@@ -154,7 +154,7 @@ impl<'a> RawSelectBuilder<'a> {
     /// # Examples
     ///
     /// ```
-    /// use discourse::Question;
+    /// use requestty::Question;
     ///
     /// let raw_select = Question::raw_select("theme")
     ///     .should_loop(false)
@@ -175,7 +175,7 @@ impl<'a> RawSelectBuilder<'a> {
     /// # Examples
     ///
     /// ```
-    /// use discourse::Question;
+    /// use requestty::Question;
     ///
     /// let raw_select = Question::raw_select("theme")
     ///     .choice("Order a Pizza")
@@ -200,7 +200,7 @@ impl<'a> RawSelectBuilder<'a> {
     /// # Examples
     ///
     /// ```
-    /// use discourse::Question;
+    /// use requestty::Question;
     ///
     /// let raw_select = Question::raw_select("theme")
     ///     .separator("-- custom separator text --")
@@ -224,7 +224,7 @@ impl<'a> RawSelectBuilder<'a> {
     /// # Examples
     ///
     /// ```
-    /// use discourse::Question;
+    /// use requestty::Question;
     ///
     /// let raw_select = Question::raw_select("theme")
     ///     .default_separator()
@@ -248,7 +248,7 @@ impl<'a> RawSelectBuilder<'a> {
     /// # Examples
     ///
     /// ```
-    /// use discourse::{Question, DefaultSeparator};
+    /// use requestty::{Question, DefaultSeparator};
     ///
     /// let raw_select = Question::raw_select("theme")
     ///     .choices(vec![
@@ -284,7 +284,7 @@ impl<'a> RawSelectBuilder<'a> {
     /// # Examples
     ///
     /// ```
-    /// use discourse::Question;
+    /// use requestty::Question;
     ///
     /// let raw_select = Question::raw_select("theme")
     ///     .transform(|choice, previous_answers, backend| {

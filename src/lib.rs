@@ -1,4 +1,4 @@
-//! `discourse` is an easy-to-use collection of interactive cli prompts inspired by [Inquirer.js].
+//! `requestty` is an easy-to-use collection of interactive cli prompts inspired by [Inquirer.js].
 //!
 //! [Inquirer.js]: https://github.com/SBoudrias/Inquirer.js/
 //!
@@ -12,7 +12,7 @@
 //! ### Using builders
 //!
 //! ```
-//! use discourse::{Question, Answers};
+//! use requestty::{Question, Answers};
 //!
 //! let question = Question::expand("toppings")
 //!     .message("What toppings do you want?")
@@ -30,7 +30,7 @@
 //! Unlike the builder api, the macros can only be used to create a list of questions.
 //!
 //! ```
-//! use discourse::{questions, Answers};
+//! use requestty::{questions, Answers};
 //!
 //! let questions = questions! [
 //!     Expand {
@@ -46,7 +46,7 @@
 //! ];
 //! ```
 //!
-//! See [`questions!`] and [`prompt_module!`] for more information on the macros.
+//! See [`questions`] and [`prompt_module`](prompt_module!) for more information on the macros.
 //!
 //! ### Prompting
 //!
@@ -58,20 +58,20 @@
 //!       // Declare the questions you want to ask
 //!   ];
 //!
-//!   let answers = discourse::prompt(questions)?;
-//!   # Result::<_, discourse::ErrorKind>::Ok(())
+//!   let answers = requestty::prompt(questions)?;
+//!   # Result::<_, requestty::ErrorKind>::Ok(())
 //!   ```
 //!
 //! - Using [`PromptModule`]
 //!   ```no_run
-//!   use discourse::PromptModule;
+//!   use requestty::PromptModule;
 //!
 //!   let questions = PromptModule::new(vec![
 //!       // Declare the questions you want to ask
 //!   ]);
 //!
 //!   let answers = questions.prompt_all()?;
-//!   # Result::<_, discourse::ErrorKind>::Ok(())
+//!   # Result::<_, requestty::ErrorKind>::Ok(())
 //!   ```
 //!   This is mainly useful if you need more control over prompting the questions, and using
 //!   previous [`Answers`].
@@ -116,23 +116,23 @@
 //! # Examples
 //!
 //! ```no_run
-//! use discourse::Question;
+//! use requestty::Question;
 //!
 //! let password = Question::password("password")
 //!     .message("What is your password?")
 //!     .mask('*')
 //!     .build();
 //!
-//! let answer = discourse::prompt_one(password)?;
+//! let answer = requestty::prompt_one(password)?;
 //!
 //! println!("Your password was: {}", answer.as_string().expect("password returns a string"));
-//! # Result::<_, discourse::ErrorKind>::Ok(())
+//! # Result::<_, requestty::ErrorKind>::Ok(())
 //! ```
 //!
 //! For more examples, see the documentation for the various in-built questions, and the
 //! [`examples`] directory.
 //!
-//! [`examples`]: https://github.com/lutetium-vanadium/discourse/tree/master/examples
+//! [`examples`]: https://github.com/lutetium-vanadium/requestty/tree/master/examples
 #![deny(
     missing_docs,
     missing_debug_implementations,
@@ -160,7 +160,7 @@ use ui::{backend::Backend, events::EventIterator};
 /// # let some_variable = "message";
 /// # let when = true;
 /// # fn get_default() -> bool { true }
-/// use discourse::questions;
+/// use requestty::questions;
 ///
 /// let questions = questions![
 ///     MultiSelect {
@@ -197,7 +197,7 @@ use ui::{backend::Backend, events::EventIterator};
 /// By default, the questions are stored in a [`Vec`]. However, if you wish to store the questions
 /// on the stack, prefix the questions with `inline`:
 /// ```
-/// use discourse::questions;
+/// use requestty::questions;
 ///
 /// let questions = questions! [ inline
 ///     Input {
@@ -208,7 +208,7 @@ use ui::{backend::Backend, events::EventIterator};
 ///
 /// Note that inlining only works for rust version 1.51 onwards. Pre 1.51, a [`Vec`] is still used.
 ///
-/// See also [`prompt_module`].
+/// See also [`prompt_module`](prompt_module!).
 pub use macros::questions;
 
 pub use answer::{Answer, Answers, ExpandItem, ListItem};

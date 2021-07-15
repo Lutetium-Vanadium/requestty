@@ -1,5 +1,5 @@
-use discourse::plugin::style::Stylize;
-use discourse::Question;
+use requestty::plugin::style::Stylize;
+use requestty::Question;
 
 fn map_err<E>(_: E) {}
 
@@ -75,5 +75,5 @@ fn main() {
             .build(),
     ];
 
-    println!("{:#?}", discourse::prompt(questions));
+    println!("{:#?}", requestty::prompt(questions));
 }

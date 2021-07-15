@@ -10,7 +10,7 @@ use crate::question::{Completions, Options};
 /// # Examples
 ///
 /// ```
-/// use discourse::Question;
+/// use requestty::Question;
 ///
 /// let input = Question::input("name")
 ///     .message("What is your name?")
@@ -41,7 +41,7 @@ impl<'a> InputBuilder<'a> {
     /// # Examples
     ///
     /// ```
-    /// use discourse::Question;
+    /// use requestty::Question;
     ///
     /// let input = Question::input("name")
     ///     .message("What is your name?")
@@ -52,7 +52,7 @@ impl<'a> InputBuilder<'a> {
     /// # Examples
     ///
     /// ```
-    /// use discourse::{Question, Answers};
+    /// use requestty::{Question, Answers};
     ///
     /// let input = Question::input("name")
     ///     .when(|previous_answers: &Answers| match previous_answers.get("anonymous") {
@@ -66,7 +66,7 @@ impl<'a> InputBuilder<'a> {
     /// # Examples
     ///
     /// ```
-    /// use discourse::{Question, Answers};
+    /// use requestty::{Question, Answers};
     ///
     /// let input = Question::input("name")
     ///     .ask_if_answered(true)
@@ -84,7 +84,7 @@ impl<'a> InputBuilder<'a> {
     /// # Examples
     ///
     /// ```
-    /// use discourse::Question;
+    /// use requestty::Question;
     ///
     /// let input = Question::input("name")
     ///     .default("John Doe")
@@ -99,7 +99,7 @@ impl<'a> InputBuilder<'a> {
     /// # Examples
     ///
     /// ```
-    /// use discourse::{Question, question::completions};
+    /// use requestty::{Question, question::completions};
     ///
     /// let input = Question::input("name")
     ///     .auto_complete(|name, previous_answers| {
@@ -110,7 +110,7 @@ impl<'a> InputBuilder<'a> {
     ///
     /// For a better example on `auto_complete`, see [`examples/file.rs`]
     ///
-    /// [`examples/file.rs`]: https://github.com/Lutetium-Vanadium/discourse/blob/master/examples/file.rs
+    /// [`examples/file.rs`]: https://github.com/Lutetium-Vanadium/requestty/blob/master/examples/file.rs
     String; input
     }
 
@@ -130,7 +130,7 @@ impl<'a> InputBuilder<'a> {
     /// # Examples
     ///
     /// ```
-    /// use discourse::Question;
+    /// use requestty::Question;
     ///
     /// let input = Question::input("name")
     ///     .page_size(10)
@@ -155,7 +155,7 @@ impl<'a> InputBuilder<'a> {
     /// # Examples
     ///
     /// ```
-    /// use discourse::Question;
+    /// use requestty::Question;
     ///
     /// let input = Question::input("name")
     ///     .should_loop(false)
@@ -170,7 +170,7 @@ impl<'a> InputBuilder<'a> {
     /// # Examples
     ///
     /// ```
-    /// use discourse::Question;
+    /// use requestty::Question;
     ///
     /// let input = Question::input("name")
     ///     .filter(|name, previous_answers| name + "!")
@@ -183,7 +183,7 @@ impl<'a> InputBuilder<'a> {
     /// # Examples
     ///
     /// ```
-    /// use discourse::Question;
+    /// use requestty::Question;
     ///
     /// let input = Question::input("name")
     ///     .validate(|name, previous_answers| if name.split_whitespace().count() >= 2 {
@@ -200,8 +200,8 @@ impl<'a> InputBuilder<'a> {
     /// # Examples
     ///
     /// ```
-    /// use discourse::Question;
-    /// use discourse::plugin::style::Stylize; // for .bold()
+    /// use requestty::Question;
+    /// use requestty::plugin::style::Stylize; // for .bold()
     ///
     /// let input = Question::input("name")
     ///     .transform(|name, previous_answers, backend| {

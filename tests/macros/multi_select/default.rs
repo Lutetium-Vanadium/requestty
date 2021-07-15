@@ -1,3 +1,3 @@
 fn main() {
-    discourse::questions![MultiSelect { default: todo!() }];
+    requestty::questions![MultiSelect { default: todo!() }];
 }

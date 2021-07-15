@@ -1,3 +1,3 @@
 fn main() {
-    let q = discourse::questions![Input { mask: todo!() }];
+    let q = requestty::questions![Input { mask: todo!() }];
 }

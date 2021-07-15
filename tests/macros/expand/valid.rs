@@ -1,5 +1,5 @@
 fn main() {
-    discourse::questions![Expand {
+    requestty::questions![Expand {
         name: "name",
         default: 'c',
         transform: |_, _, _| Ok(()),

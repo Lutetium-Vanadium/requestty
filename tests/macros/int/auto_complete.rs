@@ -1,5 +1,5 @@
 fn main() {
-    discourse::questions![Int {
+    requestty::questions![Int {
         auto_complete: todo!()
     }];
 }

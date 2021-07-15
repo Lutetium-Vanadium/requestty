@@ -1,4 +1,4 @@
-# Discourse
+# Requestty
 
 WIP rust clone of [Inquirer.js](https://github.com/SBoudrias/Inquirer.js)
 

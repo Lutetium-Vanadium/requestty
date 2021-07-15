@@ -1,5 +1,5 @@
 error[E0425]: cannot find value `name` in this scope
  --> $DIR/not_found.rs:2:35
   |
-2 |     discourse::questions![Input { name }];
+2 |     requestty::questions![Input { name }];
   |                                   ^^^^ not found in this scope

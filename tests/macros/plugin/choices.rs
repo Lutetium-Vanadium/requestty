@@ -1,3 +1,3 @@
 fn main() {
-    discourse::questions![Plugin { choices: todo!() }];
+    requestty::questions![Plugin { choices: todo!() }];
 }

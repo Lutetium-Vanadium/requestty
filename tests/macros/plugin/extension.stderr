@@ -1,5 +1,5 @@
 error: option `extension` does not exist for kind `plugin`
  --> $DIR/extension.rs:2:44
   |
-2 |     let q = discourse::questions![Plugin { extension: todo!() }];
+2 |     let q = requestty::questions![Plugin { extension: todo!() }];
   |                                            ^^^^^^^^^

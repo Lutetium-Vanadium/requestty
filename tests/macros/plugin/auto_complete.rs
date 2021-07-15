@@ -1,5 +1,5 @@
 fn main() {
-    discourse::questions![Plugin {
+    requestty::questions![Plugin {
         auto_complete: todo!()
     }];
 }

@@ -1,3 +1,3 @@
 fn main() {
-    discourse::questions![Input {}];
+    requestty::questions![Input {}];
 }

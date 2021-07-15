@@ -1,3 +1,3 @@
 fn main() {
-    let q = discourse::questions![unknown {}];
+    let q = requestty::questions![unknown {}];
 }

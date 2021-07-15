@@ -1,5 +1,5 @@
 fn main() {
-    discourse::questions![Input {
+    requestty::questions![Input {
         name: "name",
         default: "hello world",
         should_loop: true,
@@ -7,6 +7,6 @@ fn main() {
         transform: |_, _, _| Ok(()),
         validate: |_, _| Ok(()),
         filter: |t, _| t,
-        auto_complete: |t, _| discourse::question::completions![t],
+        auto_complete: |t, _| requestty::question::completions![t],
     }];
 }
