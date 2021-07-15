@@ -1,6 +1,6 @@
-use requestty::{question::Choice, Question};
 use rand::prelude::*;
 use rand_chacha::ChaCha12Rng;
+use requestty::{question::Choice, Question};
 use ui::{
     events::{KeyCode, TestEvents},
     style::Color,

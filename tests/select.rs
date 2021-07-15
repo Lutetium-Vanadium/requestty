@@ -1,6 +1,6 @@
-use requestty::question::Choice;
 use rand::prelude::*;
 use rand_chacha::ChaCha12Rng;
+use requestty::question::Choice;
 use ui::events::{KeyCode, KeyEvent, TestEvents};
 
 mod helpers;
