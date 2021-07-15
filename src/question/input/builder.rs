@@ -201,7 +201,7 @@ impl<'a> InputBuilder<'a> {
     ///
     /// ```
     /// use requestty::Question;
-    /// use requestty::plugin::style::Stylize; // for .bold()
+    /// use requestty::prompt::style::Stylize; // for .bold()
     ///
     /// let input = Question::input("name")
     ///     .transform(|name, previous_answers, backend| {

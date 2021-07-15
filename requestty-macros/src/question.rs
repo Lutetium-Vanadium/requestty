@@ -16,7 +16,7 @@ bitflags::bitflags! {
         const CHOICES        = 0b00010_0000;
         const MASK           = 0b00100_0000;
         const EXTENSION      = 0b01000_0000;
-        const PLUGIN         = 0b10000_0000;
+        const PROMPT         = 0b10000_0000;
     }
 }
 
@@ -32,7 +32,7 @@ pub(crate) enum QuestionKind {
     MultiSelect,
     Password,
     Editor,
-    Plugin,
+    Custom,
 }
 
 impl QuestionKind {
@@ -48,7 +48,7 @@ impl QuestionKind {
             QuestionKind::MultiSelect => "multi_select",
             QuestionKind::Password => "password",
             QuestionKind::Editor => "editor",
-            QuestionKind::Plugin => "plugin",
+            QuestionKind::Custom => "custom",
         }
     }
 
@@ -86,7 +86,7 @@ impl QuestionKind {
                     | BuilderMethods::VAL_FIL
                     | BuilderMethods::EXTENSION
             }
-            QuestionKind::Plugin => BuilderMethods::PLUGIN,
+            QuestionKind::Custom => BuilderMethods::PROMPT,
         }
     }
 }
@@ -115,8 +115,8 @@ impl Parse for QuestionKind {
             QuestionKind::Password
         } else if ident == "Editor" {
             QuestionKind::Editor
-        } else if ident == "Plugin" {
-            QuestionKind::Plugin
+        } else if ident == "Custom" {
+            QuestionKind::Custom
         } else {
             return Err(syn::Error::new(
                 ident.span(),
@@ -153,7 +153,7 @@ pub(crate) struct QuestionOpts {
     pub(crate) mask: Option<syn::Expr>,
     pub(crate) extension: Option<syn::Expr>,
 
-    pub(crate) plugin: Option<syn::Expr>,
+    pub(crate) prompt: Option<syn::Expr>,
 }
 
 impl Default for QuestionOpts {
@@ -177,7 +177,7 @@ impl Default for QuestionOpts {
             mask: None,
             extension: None,
 
-            plugin: None,
+            prompt: None,
         }
     }
 }
@@ -204,8 +204,8 @@ fn check_allowed(ident: &syn::Ident, kind: QuestionKind) -> syn::Result<()> {
         BuilderMethods::MASK
     } else if ident == "extension" {
         BuilderMethods::EXTENSION
-    } else if ident == "plugin" {
-        BuilderMethods::PLUGIN
+    } else if ident == "prompt" {
+        BuilderMethods::PROMPT
     } else {
         return Err(syn::Error::new(
             ident.span(),
@@ -276,8 +276,8 @@ impl Parse for Question {
                 insert_non_dup(ident, &mut opts.mask, &content)?;
             } else if ident == "extension" {
                 insert_non_dup(ident, &mut opts.extension, &content)?;
-            } else if ident == "plugin" {
-                insert_non_dup(ident, &mut opts.plugin, &content)?;
+            } else if ident == "prompt" {
+                insert_non_dup(ident, &mut opts.prompt, &content)?;
             } else {
                 unreachable!("check_allowed should have taken care of this case.");
             }
@@ -287,11 +287,11 @@ impl Parse for Question {
             }
         }
 
-        if let QuestionKind::Plugin = kind {
-            if opts.plugin.is_none() {
+        if let QuestionKind::Custom = kind {
+            if opts.prompt.is_none() {
                 return Err(syn::Error::new(
                     brace.span,
-                    "missing required option `plugin`",
+                    "missing required option `prompt`",
                 ));
             }
         }
@@ -325,21 +325,21 @@ impl quote::ToTokens for Question {
     fn to_tokens(&self, tokens: &mut TokenStream) {
         let name = &self.name;
 
-        if let QuestionKind::Plugin = self.kind {
-            let plugin = self
+        if let QuestionKind::Custom = self.kind {
+            let prompt = self
                 .opts
-                .plugin
+                .prompt
                 .as_ref()
-                .expect("Parsing would error if no plugin was there");
-            // If just the name was passed into Question::plugin, type errors associated
+                .expect("Parsing would error if no prompt was there");
+            // If just the name was passed into Question::custom, type errors associated
             // with its conversion to a string would take the span _including_ that of
-            // plugin. Explicitly performing `String::from`, makes the error span due to
+            // prompt. Explicitly performing `String::from`, makes the error span due to
             // the `From` trait will show the span of the name only
             let name = quote_spanned! {
                 name.span() => String::from(#name)
             };
             tokens.extend(quote_spanned! {
-                plugin.span() => ::requestty::Question::plugin(#name, #plugin)
+                prompt.span() => ::requestty::Question::custom(#name, #prompt)
             });
             self.write_main_opts(tokens);
             tokens.extend(quote! { .build() });

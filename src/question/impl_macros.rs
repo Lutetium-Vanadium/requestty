@@ -119,7 +119,7 @@ macro_rules! impl_transform_builder {
         /// It will only be called once the user finishes answering the question.
         ///
         /// [`Answers`]: crate::Answers
-        /// [`Backend`]: crate::plugin::Backend
+        /// [`Backend`]: crate::prompt::Backend
         ///
         ///
         $(#[$meta])*

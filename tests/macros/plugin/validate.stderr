@@ -1,5 +1,0 @@
-error: option `validate` does not exist for kind `plugin`
- --> $DIR/validate.rs:2:44
-  |
-2 |     let q = requestty::questions![Plugin { validate: todo!() }];
-  |                                            ^^^^^^^^

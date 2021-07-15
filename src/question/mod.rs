@@ -12,20 +12,20 @@ mod multi_select;
 mod number;
 #[macro_use]
 mod options;
+mod custom_prompt;
 mod password;
-mod plugin;
 mod raw_select;
 mod select;
 
 pub use choice::Choice;
 pub use confirm::ConfirmBuilder;
+pub use custom_prompt::{CustomPromptBuilder, Prompt};
 pub use editor::EditorBuilder;
 pub use expand::ExpandBuilder;
 pub use input::InputBuilder;
 pub use multi_select::MultiSelectBuilder;
 pub use number::{FloatBuilder, IntBuilder};
 pub use password::PasswordBuilder;
-pub use plugin::{Plugin, PluginBuilder};
 pub use raw_select::RawSelectBuilder;
 pub use select::SelectBuilder;
 
@@ -33,9 +33,9 @@ use ui::{backend::Backend, events::EventIterator};
 
 use crate::{Answer, Answers};
 use choice::{get_sep_str, ChoiceList};
+use custom_prompt::CustomPromptInteral;
 use handler::{AutoComplete, Filter, Transform, TransformByVal, Validate, ValidateByVal};
 use options::Options;
-use plugin::PluginInteral;
 
 /// A `Question` that can be asked.
 ///
@@ -51,7 +51,7 @@ use plugin::PluginInteral;
 /// - [`select`](Question::select)
 /// - [`raw_select`](Question::raw_select)
 /// - [`multi_select`](Question::multi_select)
-/// - [`plugin`](Question::plugin)
+/// - [`custom`](Question::custom)
 ///
 /// Every [`Question`] has 4 common options.
 ///
@@ -428,47 +428,47 @@ impl Question<'static> {
 
     /// Create a [`Question`] from a custom prompt.
     ///
-    /// See [`Plugin`] for more information on writing custom prompts.
+    /// See [`Prompt`] for more information on writing custom prompts.
     ///
     /// # Examples
     ///
     /// ```
-    /// use requestty::{plugin, Question};
+    /// use requestty::{prompt, Question};
     ///
     /// #[derive(Debug)]
-    /// struct MyPlugin { /* ... */ }
+    /// struct MyPrompt { /* ... */ }
     ///
-    /// # impl MyPlugin {
-    /// #     fn new() -> MyPlugin {
-    /// #         MyPlugin {}
+    /// # impl MyPrompt {
+    /// #     fn new() -> MyPrompt {
+    /// #         MyPrompt {}
     /// #     }
     /// # }
     ///
-    /// impl plugin::Plugin for MyPlugin {
+    /// impl prompt::Prompt for MyPrompt {
     ///     fn ask(
     ///         self,
     ///         message: String,
-    ///         answers: &plugin::Answers,
-    ///         backend: &mut dyn plugin::Backend,
-    ///         events: &mut dyn plugin::EventIterator,
-    ///     ) -> requestty::Result<plugin::Answer> {
+    ///         answers: &prompt::Answers,
+    ///         backend: &mut dyn prompt::Backend,
+    ///         events: &mut dyn prompt::EventIterator,
+    ///     ) -> requestty::Result<prompt::Answer> {
     /// #       todo!()
     ///         /* ... */
     ///     }
     /// }
     ///
-    /// let plugin = Question::plugin("my-plugin", MyPlugin::new())
-    ///     .message("Hello from MyPlugin!")
+    /// let prompt = Question::custom("my-prompt", MyPrompt::new())
+    ///     .message("Hello from MyPrompt!")
     ///     .build();
     /// ```
     ///
-    /// [`builder`]: PluginBuilder
-    pub fn plugin<'a, N, P>(name: N, plugin: P) -> PluginBuilder<'a>
+    /// [`builder`]: CustomPromptBuilder
+    pub fn custom<'a, N, P>(name: N, prompt: P) -> CustomPromptBuilder<'a>
     where
         N: Into<String>,
-        P: Plugin + 'a,
+        P: Prompt + 'a,
     {
-        PluginBuilder::new(name.into(), Box::new(Some(plugin)))
+        CustomPromptBuilder::new(name.into(), Box::new(Some(prompt)))
     }
 }
 
@@ -484,7 +484,7 @@ enum QuestionKind<'a> {
     MultiSelect(multi_select::MultiSelect<'a>),
     Password(password::Password<'a>),
     Editor(editor::Editor<'a>),
-    Plugin(Box<dyn PluginInteral + 'a>),
+    Custom(Box<dyn CustomPromptInteral + 'a>),
 }
 
 impl Question<'_> {
@@ -522,7 +522,7 @@ impl Question<'_> {
             QuestionKind::MultiSelect(c) => c.ask(message, answers, b, events)?,
             QuestionKind::Password(p) => p.ask(message, answers, b, events)?,
             QuestionKind::Editor(e) => e.ask(message, answers, b, events)?,
-            QuestionKind::Plugin(ref mut o) => o.ask(message, answers, b, events)?,
+            QuestionKind::Custom(ref mut o) => o.ask(message, answers, b, events)?,
         };
 
         Ok(Some((name, res)))

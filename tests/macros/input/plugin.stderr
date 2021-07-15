@@ -1,5 +1,0 @@
-error: option `plugin` does not exist for kind `input`
- --> $DIR/plugin.rs:2:43
-  |
-2 |     let q = requestty::questions![Input { plugin: todo!() }];
-  |                                           ^^^^^^

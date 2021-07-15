@@ -1,5 +1,0 @@
-error: missing required option `plugin`
- --> $DIR/plugin.rs:2:34
-  |
-2 |     requestty::questions![Plugin { name: "plugin" }];
-  |                                  ^^^^^^^^^^^^^^^^^^

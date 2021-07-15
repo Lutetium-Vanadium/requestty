@@ -4,7 +4,7 @@
 //! trait. It also provides some default widgets available in [`widgets`].
 //!
 //! While this crate was built for the  [`requestty`] crate and other crates which implement the
-//! `Plugin` trait in [`requestty`], it can be used otherwise as well.
+//! `Prompt` trait in [`requestty`], it can be used otherwise as well.
 //!
 //! [`requestty`]: https://github.com/lutetium-vanadium/requestty
 //!

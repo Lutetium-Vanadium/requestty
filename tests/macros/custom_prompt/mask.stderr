@@ -1,0 +1,5 @@
+error: option `mask` does not exist for kind `custom`
+ --> $DIR/mask.rs:2:44
+  |
+2 |     let q = requestty::questions![Custom { mask: todo!() }];
+  |                                            ^^^^

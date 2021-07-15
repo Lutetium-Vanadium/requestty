@@ -1,0 +1,5 @@
+error: option `prompt` does not exist for kind `int`
+ --> $DIR/prompt.rs:2:41
+  |
+2 |     let q = requestty::questions![Int { prompt: todo!() }];
+  |                                         ^^^^^^

@@ -40,7 +40,7 @@ fn test_duplicate() {
     t.compile_fail("should_loop");
     t.compile_fail("mask");
     t.compile_fail("extension");
-    t.compile_fail("plugin");
+    t.compile_fail("prompt");
 }
 
 #[test]
@@ -56,7 +56,7 @@ fn test_unknown() {
 fn test_missing() {
     let t = Runner::new("missing");
     t.compile_fail("name");
-    t.compile_fail("plugin");
+    t.compile_fail("prompt");
 }
 
 #[test]
@@ -79,7 +79,7 @@ fn test_multi_select() {
     t.compile_fail("auto_complete");
     t.compile_fail("mask");
     t.compile_fail("extension");
-    t.compile_fail("plugin");
+    t.compile_fail("prompt");
 }
 
 #[test]
@@ -96,7 +96,7 @@ fn test_confirm() {
     t.compile_fail("page_size");
     t.compile_fail("mask");
     t.compile_fail("extension");
-    t.compile_fail("plugin");
+    t.compile_fail("prompt");
 }
 
 #[test]
@@ -110,7 +110,7 @@ fn test_editor() {
     t.compile_fail("should_loop");
     t.compile_fail("page_size");
     t.compile_fail("mask");
-    t.compile_fail("plugin");
+    t.compile_fail("prompt");
 }
 
 #[test]
@@ -124,7 +124,7 @@ fn test_expand() {
     t.compile_fail("auto_complete");
     t.compile_fail("mask");
     t.compile_fail("extension");
-    t.compile_fail("plugin");
+    t.compile_fail("prompt");
 }
 
 #[test]
@@ -137,7 +137,7 @@ fn test_float() {
     t.compile_fail("choices");
     t.compile_fail("mask");
     t.compile_fail("extension");
-    t.compile_fail("plugin");
+    t.compile_fail("prompt");
 }
 
 #[test]
@@ -149,7 +149,7 @@ fn test_input() {
     t.compile_fail("choices");
     t.compile_fail("mask");
     t.compile_fail("extension");
-    t.compile_fail("plugin");
+    t.compile_fail("prompt");
 }
 
 #[test]
@@ -164,7 +164,7 @@ fn test_int() {
     t.compile_fail("page_size");
     t.compile_fail("mask");
     t.compile_fail("extension");
-    t.compile_fail("plugin");
+    t.compile_fail("prompt");
 }
 
 #[test]
@@ -178,7 +178,7 @@ fn test_select() {
     t.compile_fail("auto_complete");
     t.compile_fail("mask");
     t.compile_fail("extension");
-    t.compile_fail("plugin");
+    t.compile_fail("prompt");
 }
 
 #[test]
@@ -193,13 +193,13 @@ fn test_password() {
     t.compile_fail("should_loop");
     t.compile_fail("page_size");
     t.compile_fail("extension");
-    t.compile_fail("plugin");
+    t.compile_fail("prompt");
 }
 
 #[test]
 #[ignore = "proc-macro test"]
-fn test_plugin() {
-    let t = Runner::new("plugin");
+fn test_custom_prompt() {
+    let t = Runner::new("custom_prompt");
 
     t.pass("valid");
     t.compile_fail("default");
@@ -225,5 +225,5 @@ fn test_raw_select() {
     t.compile_fail("auto_complete");
     t.compile_fail("mask");
     t.compile_fail("extension");
-    t.compile_fail("plugin");
+    t.compile_fail("prompt");
 }

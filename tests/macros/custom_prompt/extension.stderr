@@ -1,0 +1,5 @@
+error: option `extension` does not exist for kind `custom`
+ --> $DIR/extension.rs:2:44
+  |
+2 |     let q = requestty::questions![Custom { extension: todo!() }];
+  |                                            ^^^^^^^^^

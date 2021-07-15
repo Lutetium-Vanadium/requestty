@@ -1,0 +1,5 @@
+error: option `choices` does not exist for kind `custom`
+ --> $DIR/choices.rs:2:36
+  |
+2 |     requestty::questions![Custom { choices: todo!() }];
+  |                                    ^^^^^^^

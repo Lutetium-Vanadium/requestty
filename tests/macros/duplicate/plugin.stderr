@@ -1,5 +1,0 @@
-error: duplicate option `plugin`
- --> $DIR/plugin.rs:4:9
-  |
-4 |         plugin: todo!(),
-  |         ^^^^^^

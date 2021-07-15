@@ -1,0 +1,5 @@
+error: duplicate option `prompt`
+ --> $DIR/prompt.rs:4:9
+  |
+4 |         prompt: todo!(),
+  |         ^^^^^^

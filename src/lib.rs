@@ -5,7 +5,7 @@
 //! # Questions
 //!
 //! This crate is based on creating [`Question`]s, and then prompting them to the user. There are 10
-//! in-built [`Question`]s, but if none of them fit your need, you can [create your own!](#plugins)
+//! in-built [`Question`]s, but if none of them fit your need, you can [create your own!](#custom-prompts)
 //!
 //! There are 2 ways of creating [`Question`]s.
 //!
@@ -91,13 +91,13 @@
 //! - Wider terminal support
 //! - Better event processing (in my experience)
 //!
-//! [`Backend`]: plugin::Backend
-//! [`EventIterator`]: plugin::EventIterator
+//! [`Backend`]: prompt::Backend
+//! [`EventIterator`]: prompt::EventIterator
 //!
-//! # Plugins
+//! # Custom Prompts
 //!
 //! If the crate's in-built prompts does not satisfy your needs, you can build your own custom
-//! prompts using the [`Plugin`](question::Plugin) trait.
+//! prompts using the [`Prompt`](question::Prompt) trait.
 //!
 //! # Optional features
 //!
@@ -216,11 +216,11 @@ pub use prompt_module::PromptModule;
 pub use question::{Choice::Choice, Choice::DefaultSeparator, Choice::Separator, Question};
 pub use ui::{ErrorKind, Result};
 
-/// A module that re-exports all the things required for writing [`Plugin`]s.
+/// A module that re-exports all the things required for writing custom [`Prompt`]s.
 ///
-/// [`Plugin`]: plugin::Plugin
-pub mod plugin {
-    pub use crate::{question::Plugin, Answer, Answers};
+/// [`Prompt`]: prompt::Prompt
+pub mod prompt {
+    pub use crate::{question::Prompt, Answer, Answers};
     pub use ui::{
         backend::{self, Backend},
         events::{self, EventIterator},

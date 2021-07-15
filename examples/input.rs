@@ -1,4 +1,4 @@
-use requestty::plugin::style::Stylize;
+use requestty::prompt::style::Stylize;
 use requestty::Question;
 
 fn map_err<E>(_: E) {}

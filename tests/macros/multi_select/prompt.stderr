@@ -1,0 +1,5 @@
+error: option `prompt` does not exist for kind `multi_select`
+ --> $DIR/prompt.rs:2:49
+  |
+2 |     let q = requestty::questions![MultiSelect { prompt: todo!() }];
+  |                                                 ^^^^^^

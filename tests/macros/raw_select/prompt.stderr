@@ -1,0 +1,5 @@
+error: option `prompt` does not exist for kind `raw_select`
+ --> $DIR/prompt.rs:2:47
+  |
+2 |     let q = requestty::questions![RawSelect { prompt: todo!() }];
+  |                                               ^^^^^^

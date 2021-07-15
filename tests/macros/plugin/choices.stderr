@@ -1,5 +1,0 @@
-error: option `choices` does not exist for kind `plugin`
- --> $DIR/choices.rs:2:36
-  |
-2 |     requestty::questions![Plugin { choices: todo!() }];
-  |                                    ^^^^^^^

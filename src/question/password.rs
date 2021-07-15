@@ -232,7 +232,7 @@ impl<'a> PasswordBuilder<'a> {
     ///
     /// ```
     /// use requestty::Question;
-    /// use requestty::plugin::style::Color;
+    /// use requestty::prompt::style::Color;
     ///
     /// let password = Question::password("password")
     ///     .transform(|password, previous_answers, backend| {
