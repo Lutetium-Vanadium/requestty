@@ -8,13 +8,13 @@ edition = "2018"
 members = [
     ".",
     "requestty-ui",
-    "requestty-macros",
+    "requestty-macro",
 ]
 
 [dependencies]
 tempfile = "3"
 ui = { package = "requestty-ui", path = "./requestty-ui" }
-macros = { package = "requestty-macros", path = "./requestty-macros", optional = true }
+macro = { package = "requestty-macro", path = "./requestty-macro", optional = true }
 
 smallvec = { version = "1.6", optional = true }
 
@@ -32,6 +32,8 @@ fuzzy-matcher = "0.3"   # examples/file_auto_complete.rs
 default = ["crossterm", "smallvec"]
 crossterm = ["ui/crossterm"]
 termion = ["ui/termion"]
+# Hack to get around trybuild not considering 'optional = true' as features
+macros = ["macro"]
 
 [package.metadata.docs.rs]
 all-features = true

@@ -1,4 +1,5 @@
-//! `requestty` is an easy-to-use collection of interactive cli prompts inspired by [Inquirer.js].
+//! `requestty` (request-tty) is an easy-to-use collection of interactive cli prompts inspired by
+//! [Inquirer.js].
 //!
 //! [Inquirer.js]: https://github.com/SBoudrias/Inquirer.js/
 //!
@@ -214,7 +215,7 @@ use ui::{backend::Backend, events::EventIterator};
 /// See also [`prompt_module`](prompt_module!).
 #[cfg(feature = "macros")]
 #[cfg_attr(docsrs, doc(cfg(feature = "macros")))]
-pub use macros::questions;
+pub use r#macro::questions;
 
 pub use answer::{Answer, Answers, ExpandItem, ListItem};
 pub use prompt_module::PromptModule;

@@ -1,5 +1,5 @@
 [package]
-name = "requestty-macros"
+name = "requestty-macro"
 version = "0.0.1"
 authors = ["Lutetium Vanadium"]
 edition = "2018"
