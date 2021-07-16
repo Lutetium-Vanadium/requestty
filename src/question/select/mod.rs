@@ -33,7 +33,7 @@ impl SelectPrompt<'_> {
     fn finish_index(self, index: usize) -> ListItem {
         ListItem {
             index,
-            name: self
+            text: self
                 .select
                 .into_inner()
                 .choices
@@ -138,7 +138,7 @@ impl<'a> Select<'a> {
             answers,
             b,
             b.write_styled(
-                &ans.name
+                &ans.text
                     .lines()
                     .next()
                     .expect("There must be at least one line in a `str`")

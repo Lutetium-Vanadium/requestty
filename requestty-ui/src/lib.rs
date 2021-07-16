@@ -88,6 +88,8 @@ pub mod features {
 /// `$CARGO_MANIFEST_DIR/{crossterm/termion}-snapshots`.
 ///
 /// [`insta::assert_display_snapshot`]: https://docs.rs/insta/1.7.1/insta/macro.assert_display_snapshot.html
+#[cfg(any(feature = "crossterm", feature = "termion"))]
+#[cfg_attr(docsrs, doc(cfg(any(feature = "crossterm", feature = "termion"))))]
 #[macro_export]
 macro_rules! assert_backend_snapshot {
     ($value:expr, @$snapshot:literal) => {

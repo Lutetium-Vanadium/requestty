@@ -70,7 +70,7 @@ macro_rules! impl_options_builder {
         /// Prompt the question even if it is answered.
         ///
         /// By default if an answer with the given `name` already exists, the question will be
-        /// skipped. This can be override by setting `ask_if_answered` is set to `true`.
+        /// skipped. This can be overridden by setting `ask_if_answered` is set to `true`.
         ///
         /// If this is not given, it defaults to `false`.
         ///

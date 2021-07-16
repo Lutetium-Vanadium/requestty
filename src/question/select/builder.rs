@@ -8,6 +8,14 @@ use crate::{
 
 /// The builder for a [`select`] prompt.
 ///
+/// The choices are represented with the [`Choice`] enum. [`Choice::Choice`] can be multi-line,
+/// but [`Choice::Separator`]s can only be single line.
+///
+/// <img
+///   src="https://raw.githubusercontent.com/lutetium-vanadium/requestty/master/assets/select.gif"
+///   style="max-height: 15rem"
+/// />
+///
 /// See the various methods for more details on each available option.
 ///
 /// # Examples
@@ -144,8 +152,6 @@ impl<'a> SelectBuilder<'a> {
 
     /// Whether to wrap around when user gets to the last element.
     ///
-    /// This only applies when the list is scrollable, i.e. page size > total height.
-    ///
     /// If `should_loop` is not set, it will default to `true`.
     ///
     /// # Examples
@@ -162,7 +168,7 @@ impl<'a> SelectBuilder<'a> {
         self
     }
 
-    /// Inserts a [`Choice`].
+    /// Inserts a [`Choice`] with the given text.
     ///
     /// See [`select`] for more information.
     ///
@@ -178,11 +184,11 @@ impl<'a> SelectBuilder<'a> {
     ///     .choice("Order a Pizza")
     ///     .build();
     /// ```
-    pub fn choice<I: Into<String>>(mut self, choice: I) -> Self {
+    pub fn choice<I: Into<String>>(mut self, text: I) -> Self {
         self.select
             .choices
             .choices
-            .push(Choice::Choice(Text::new(choice.into())));
+            .push(Choice::Choice(Text::new(text.into())));
         self
     }
 
@@ -275,7 +281,7 @@ impl<'a> SelectBuilder<'a> {
     ///
     /// let raw_select = Question::raw_select("theme")
     ///     .transform(|choice, previous_answers, backend| {
-    ///         write!(backend, "({}) {}", choice.index, choice.name)
+    ///         write!(backend, "({}) {}", choice.index, choice.text)
     ///     })
     ///     .build();
     /// ```

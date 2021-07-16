@@ -110,6 +110,11 @@ impl<'a> Confirm<'a> {
 
 /// The builder for a [`confirm`] prompt.
 ///
+/// <img
+///   src="https://raw.githubusercontent.com/lutetium-vanadium/requestty/master/assets/confirm.gif"
+///   style="max-height: 11rem"
+/// />
+///
 /// See the various methods for more details on each available option.
 ///
 /// # Examples

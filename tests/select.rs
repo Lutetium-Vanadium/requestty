@@ -29,7 +29,7 @@ fn test_transform() {
     let select = requestty::Question::select("name")
         .transform(|item, _, b| {
             b.set_fg(ui::style::Color::Magenta)?;
-            write!(b, "{}: {}", item.index, item.name)?;
+            write!(b, "{}: {}", item.index, item.text)?;
             b.set_fg(ui::style::Color::Reset)
         })
         .message("select")

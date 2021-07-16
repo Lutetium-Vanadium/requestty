@@ -38,15 +38,19 @@ macro_rules! impl_auto_complete_builder {
         /// [`Answers`], and should return a list of completions.
         ///
         /// There must be at least 1 completion. Returning 0 completions will cause a panic. If
-        /// there are no completions to give, you can simply return the state of the answer passed
-        /// to you.
+        /// there are no completions to give, the `auto_complete` function can simply return the
+        /// state of the answer passed to it.
         ///
-        /// If there is 1 completion, then the state of the answer becomes that completion.
+        /// If 1 completion is returned, then the state of the answer becomes that completion.
         ///
-        /// If there are 2 or more completions, a list of completions is displayed from which the
+        /// If 2 or more completions are returned, a list of completions is displayed from which the
         /// user can pick one completion.
         ///
         /// [`Answers`]: crate::Answers
+        ///
+        /// # Panics
+        ///
+        /// If 0 completions are returned when the function is called, it will panic
         ///
         ///
         $(#[$meta])+

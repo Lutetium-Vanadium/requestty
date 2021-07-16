@@ -5,6 +5,11 @@ use crate::question::{Completions, Options};
 
 /// The builder for an [`input`] prompt.
 ///
+/// <img
+///   src="https://raw.githubusercontent.com/lutetium-vanadium/requestty/master/assets/input.gif"
+///   style="max-height: 11rem"
+/// />
+///
 /// See the various methods for more details on each available option.
 ///
 /// # Examples
@@ -145,8 +150,6 @@ impl<'a> InputBuilder<'a> {
 
     /// Whether to wrap around when user gets to the last element.
     ///
-    /// This only applies when the list is scrollable, i.e. page size > total height.
-    ///
     /// If `should_loop` is not set, it will default to `true`. It will only be used if
     /// [`auto_complete`] is set, and returns more than 1 completions.
     ///
@@ -201,11 +204,10 @@ impl<'a> InputBuilder<'a> {
     ///
     /// ```
     /// use requestty::Question;
-    /// use requestty::prompt::style::Stylize; // for .bold()
     ///
     /// let input = Question::input("name")
     ///     .transform(|name, previous_answers, backend| {
-    ///         backend.write_styled(&name.bold())
+    ///         write!(backend, "Hello, {}!", name)
     ///     })
     ///     .build();
     /// ```

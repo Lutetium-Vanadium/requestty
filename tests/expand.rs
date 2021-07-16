@@ -16,7 +16,7 @@ fn test_tranform() {
         .transform(|ans, _, b| {
             b.set_fg(Color::Magenta)?;
 
-            write!(b, "{}: {}", ans.key, ans.name)?;
+            write!(b, "{}: {}", ans.key, ans.text)?;
 
             b.set_fg(Color::Reset)
         });
@@ -50,7 +50,7 @@ fn test_default() {
         .transform(|ans, _, b| {
             b.set_fg(Color::Magenta)?;
 
-            write!(b, "{}: {}", ans.key, ans.name)?;
+            write!(b, "{}: {}", ans.key, ans.text)?;
 
             b.set_fg(Color::Reset)
         });

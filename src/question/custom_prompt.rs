@@ -13,7 +13,7 @@ use crate::{Answer, Answers};
 /// You can use the `requestty-ui` crate to build the prompts. You can see the implementations of
 /// the in-built questions for examples on how to use it.
 ///
-/// See also [`Question::prompt`]
+/// See also [`Question::custom`]
 pub trait Prompt: std::fmt::Debug {
     /// Prompt the user with the given message, [`Answers`], [`Backend`] and [`EventIterator`]
     fn ask(
@@ -30,7 +30,7 @@ pub trait Prompt: std::fmt::Debug {
 /// This is required since traits with functions that take `self` are not object safe, and so
 /// implementors of the trait would have to use &mut self even though it will only be called once.
 ///
-/// Now instead of QuestionKind::Cusrom having a `dyn Prompt`, it has a `dyn CustomPromptInteral`, which
+/// Now instead of QuestionKind::Custom having a `dyn Prompt`, it has a `dyn CustomPromptInteral`, which
 /// is an `Option<T: Prompt>`.
 pub(super) trait CustomPromptInteral: std::fmt::Debug {
     fn ask(
@@ -56,9 +56,11 @@ impl<T: Prompt> CustomPromptInteral for Option<T> {
     }
 }
 
-/// The builder for custom questions.
+/// The builder for [custom questions].
 ///
 /// See [`Prompt`] for more information on writing custom prompts.
+///
+/// [custom questions]: crate::question::Question::custom
 ///
 /// # Examples
 ///

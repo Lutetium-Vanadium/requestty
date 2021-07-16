@@ -146,18 +146,18 @@ impl<T: Widget> List for ChoiceList<T> {
 pub enum Choice<T> {
     /// The main variant which represents a choice the user can pick from.
     Choice(T),
-    /// A separator is a _single line_ of text that can be used to annotate other lines. It is not
+    /// A separator is a _single line_ of text that can be used to annotate other choices. It is not
     /// selectable and is skipped over when users navigate.
     ///
-    /// If the line more than one line, it will be cut-off.
+    /// If the text is more than one line, it will be cut-off.
     Separator(String),
     /// A separator which prints a line: "──────────────"
     DefaultSeparator,
 }
 
 impl<T> Choice<T> {
-    /// Maps an Choice<T> to Choice<U> by applying a function to the contained [`Choice::Choice`] if
-    /// any.
+    /// Maps an `Choice<T>` to `Choice<U>` by applying a function to the contained
+    /// [`Choice::Choice`] if any.
     pub fn map<U, F: FnOnce(T) -> U>(self, f: F) -> Choice<U> {
         match self {
             Choice::Choice(c) => Choice::Choice(f(c)),
@@ -166,9 +166,14 @@ impl<T> Choice<T> {
         }
     }
 
+    /// Returns `true` if the choice is a [`Choice::Choice`].
+    pub fn is_choice(&self) -> bool {
+        matches!(self, Choice::Choice(_))
+    }
+
     /// Returns `true` if the choice is a separator.
     pub fn is_separator(&self) -> bool {
-        matches!(self, Choice::Separator(_) | Choice::DefaultSeparator)
+        !self.is_choice()
     }
 
     /// Converts `&Choice<T>` to `Choice<&T>`.
@@ -253,17 +258,14 @@ impl<I: Into<String>> From<I> for Choice<String> {
     }
 }
 
-impl<I: Into<String>> From<(char, I)> for Choice<ExpandItem> {
-    fn from((key, name): (char, I)) -> Self {
-        Choice::Choice(ExpandItem {
-            key,
-            name: name.into(),
-        })
+impl<I: Into<ExpandItem>> From<I> for Choice<ExpandItem> {
+    fn from(item: I) -> Self {
+        Choice::Choice(item.into())
     }
 }
 
 impl<I: Into<String>> From<(I, bool)> for Choice<(String, bool)> {
-    fn from((name, checked): (I, bool)) -> Self {
-        Choice::Choice((name.into(), checked))
+    fn from((text, checked): (I, bool)) -> Self {
+        Choice::Choice((text.into(), checked))
     }
 }

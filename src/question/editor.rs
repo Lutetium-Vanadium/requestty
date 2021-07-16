@@ -186,6 +186,11 @@ impl Editor<'_> {
 /// result. The editor to use is determined by the `$VISUAL` or `$EDITOR` environment variables.
 /// If neither of those are present, `vim` (for unix) or `notepad` (for windows) is used.
 ///
+/// <img
+///   src="https://raw.githubusercontent.com/lutetium-vanadium/requestty/master/assets/editor.gif"
+///   style="max-height: 30rem"
+/// />
+///
 /// See the various methods for more details on each available option.
 ///
 /// # Examples

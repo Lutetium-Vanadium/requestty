@@ -10,6 +10,14 @@ use crate::{
 ///
 /// Unlike the other list based prompts, this has a per choice boolean default.
 ///
+/// The choices are represented with the [`Choice`] enum. [`Choice::Choice`] can be multi-line,
+/// but [`Choice::Separator`]s can only be single line.
+///
+/// <img
+///   src="https://raw.githubusercontent.com/lutetium-vanadium/requestty/master/assets/multi-select.gif"
+///   style="max-height: 20rem"
+/// />
+///
 /// See the various methods for more details on each available option.
 ///
 /// # Examples
@@ -108,8 +116,6 @@ impl<'a> MultiSelectBuilder<'a> {
 
     /// Whether to wrap around when user gets to the last element.
     ///
-    /// This only applies when the list is scrollable, i.e. page size > total height.
-    ///
     /// If `should_loop` is not set, it will default to `true`.
     ///
     /// # Examples
@@ -126,7 +132,7 @@ impl<'a> MultiSelectBuilder<'a> {
         self
     }
 
-    /// Inserts a [`Choice`] with its default checked state as `false`.
+    /// Inserts a [`Choice`] with given text and its default checked state as `false`.
     ///
     /// If you want to set the default checked state, use [`choice_with_default`].
     ///
@@ -145,11 +151,11 @@ impl<'a> MultiSelectBuilder<'a> {
     ///     .choice("Cheddar")
     ///     .build();
     /// ```
-    pub fn choice<I: Into<String>>(self, choice: I) -> Self {
-        self.choice_with_default(choice.into(), false)
+    pub fn choice<I: Into<String>>(self, text: I) -> Self {
+        self.choice_with_default(text.into(), false)
     }
 
-    /// Inserts a [`Choice`] with a given default checked state.
+    /// Inserts a [`Choice`] with a given text and default checked state.
     ///
     /// See [`multi_select`] for more information.
     ///
@@ -165,11 +171,11 @@ impl<'a> MultiSelectBuilder<'a> {
     ///     .choice_with_default("Mozzarella", true)
     ///     .build();
     /// ```
-    pub fn choice_with_default<I: Into<String>>(mut self, choice: I, default: bool) -> Self {
+    pub fn choice_with_default<I: Into<String>>(mut self, text: I, default: bool) -> Self {
         self.multi_select
             .choices
             .choices
-            .push(Choice::Choice(Text::new(choice.into())));
+            .push(Choice::Choice(Text::new(text.into())));
         self.multi_select.selected.push(default);
         self
     }
@@ -371,7 +377,7 @@ impl<'a> MultiSelectBuilder<'a> {
     /// let multi_select = Question::multi_select("cheese")
     ///     .transform(|cheeses, previous_answers, backend| {
     ///         for cheese in cheeses {
-    ///             write!(backend, "({}) {}, ", cheese.index, cheese.name)?;
+    ///             write!(backend, "({}) {}, ", cheese.index, cheese.text)?;
     ///         }
     ///         Ok(())
     ///     })

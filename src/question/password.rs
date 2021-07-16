@@ -110,6 +110,20 @@ impl<'p> Password<'p> {
 
 /// The builder for an [`password`] prompt.
 ///
+/// How it looks if you set a mask:
+///
+/// <img
+///   src="https://raw.githubusercontent.com/lutetium-vanadium/requestty/master/assets/password-mask.gif"
+///   style="max-height: 11rem"
+/// />
+///
+/// How it looks if you do not set a mask:
+///
+/// <img
+///   src="https://raw.githubusercontent.com/lutetium-vanadium/requestty/master/assets/password-hidden.gif"
+///   style="max-height: 11rem"
+/// />
+///
 /// See the various methods for more details on each available option.
 ///
 /// # Examples
@@ -202,7 +216,6 @@ impl<'a> PasswordBuilder<'a> {
     /// use requestty::Question;
     ///
     /// # fn encrypt(s: String) -> String { s }
-    ///
     /// let password = Question::password("password")
     ///     .filter(|password, previous_answers| encrypt(password))
     ///     .build();
@@ -220,7 +233,7 @@ impl<'a> PasswordBuilder<'a> {
     ///     .validate(|password, previous_answers| if password.chars().count() >= 5 {
     ///         Ok(())
     ///     } else {
-    ///         Err("Your password be at least 5 characters long".to_owned())
+    ///         Err("Your password must be at least 5 characters long".to_owned())
     ///     })
     ///     .build();
     /// ```

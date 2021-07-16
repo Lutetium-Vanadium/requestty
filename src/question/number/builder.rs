@@ -154,6 +154,11 @@ builder! {
 ///
 /// The number is parsed using [`from_str`].
 ///
+/// <img
+///   src="https://raw.githubusercontent.com/lutetium-vanadium/requestty/master/assets/int.gif"
+///   style="max-height: 11rem"
+/// />
+///
 /// See the various methods for more details on each available option.
 ///
 /// # Examples
@@ -176,7 +181,7 @@ builder! {
 /// [`from_str`]: https://doc.rust-lang.org/std/primitive.i64.html#method.from_str
 /// [`int`]: crate::question::Question::int
 struct IntBuilder: Int -> i64, 10;
-declare  = r#"let question = Question::int("int")"#;
+declare  = r#"let int = Question::int("int")"#;
 default  = "    .default(10)";
 filter   = "    .filter(|n, previous_answers| n + 10)";
 validate = "        if n.is_positive() {";
@@ -186,6 +191,11 @@ builder! {
 /// The builder for a [`float`] prompt.
 ///
 /// The number is parsed using [`from_str`], but cannot be `NaN`.
+///
+/// <img
+///   src="https://raw.githubusercontent.com/lutetium-vanadium/requestty/master/assets/float.gif"
+///   style="max-height: 11rem"
+/// />
 ///
 /// See the various methods for more details on each available option.
 ///
@@ -209,7 +219,7 @@ builder! {
 /// [`float`]: crate::question::Question::float
 /// [`from_str`]: https://doc.rust-lang.org/std/primitive.f64.html#method.from_str
 struct FloatBuilder: Float -> f64, 10.0;
-declare  = r#"let question = Question::float("float")"#;
+declare  = r#"let float = Question::float("float")"#;
 default  = "    .default(10.0)";
 filter   = "    .filter(|n, previous_answers| (n * 10000.0).round() / 10000.0)";
 validate = "        if n.is_sign_positive() {";

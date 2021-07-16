@@ -10,6 +10,17 @@ use crate::{
 
 /// The builder for a [`expand`] prompt.
 ///
+/// The keys are ascii case-insensitive characters. The 'h' option is added by the prompt and
+/// shouldn't be defined.
+///
+/// The choices are represented with the [`Choice`] enum. [`Choice::Choice`] can be multi-line,
+/// but [`Choice::Separator`]s can only be single line.
+///
+/// <img
+///   src="https://raw.githubusercontent.com/lutetium-vanadium/requestty/master/assets/expand.gif"
+///   style="max-height: 15rem"
+/// />
+///
 /// See the various methods for more details on each available option.
 ///
 /// # Examples
@@ -92,7 +103,7 @@ impl<'a> ExpandBuilder<'a> {
     ///
     /// # Panics
     ///
-    /// If the default given is not a key, it will cause a panic on [`build`]
+    /// If the default given is not a key to a choice it will cause a panic on [`build`]
     ///
     /// [`build`]: Self::build
     ///
@@ -140,8 +151,6 @@ impl<'a> ExpandBuilder<'a> {
 
     /// Whether to wrap around when user gets to the last element.
     ///
-    /// This only applies when the list is scrollable, i.e. page size > total height.
-    ///
     /// If `should_loop` is not set, it will default to `true`. It will only be used if the user
     /// expands the prompt.
     ///
@@ -159,7 +168,7 @@ impl<'a> ExpandBuilder<'a> {
         self
     }
 
-    /// Inserts a [`Choice`] with the given key
+    /// Inserts a [`Choice`] with the given key and text
     ///
     /// See [`expand`] for more information.
     ///
@@ -179,7 +188,7 @@ impl<'a> ExpandBuilder<'a> {
     ///     .choice('x', "Abort")
     ///     .build();
     /// ```
-    pub fn choice<I: Into<String>>(mut self, mut key: char, name: I) -> Self {
+    pub fn choice<I: Into<String>>(mut self, mut key: char, text: I) -> Self {
         key = key.to_ascii_lowercase();
 
         if key == 'h' {
@@ -193,7 +202,7 @@ impl<'a> ExpandBuilder<'a> {
 
         self.expand.choices.choices.push(Choice::Choice(ExpandText {
             key,
-            name: Text::new(name.into()),
+            text: Text::new(text.into()),
         }));
 
         self
@@ -280,7 +289,7 @@ impl<'a> ExpandBuilder<'a> {
         } = self;
 
         expand.choices.choices.extend(choices.into_iter().map(|c| {
-            c.into().map(|ExpandItem { name, mut key }| {
+            c.into().map(|ExpandItem { text, mut key }| {
                 key = key.to_ascii_lowercase();
                 if key == 'h' {
                     panic!("Reserved key 'h'");
@@ -291,7 +300,7 @@ impl<'a> ExpandBuilder<'a> {
                 keys.insert(key);
 
                 ExpandText {
-                    name: Text::new(name),
+                    text: Text::new(text),
                     key,
                 }
             })
@@ -308,7 +317,7 @@ impl<'a> ExpandBuilder<'a> {
     ///
     /// let expand = Question::expand("overwrite")
     ///     .transform(|choice, previous_answers, backend| {
-    ///         write!(backend, "({}) {}", choice.key, choice.name)
+    ///         write!(backend, "({}) {}", choice.key, choice.text)
     ///     })
     ///     .build();
     /// ```

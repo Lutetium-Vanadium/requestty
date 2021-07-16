@@ -7,7 +7,7 @@ use crate::{Answer, Answers, Question};
 /// Unlike [`prompt`], this allows you to control how many questions you want to ask, and ask with
 /// previous answers as well.
 ///
-/// [`prompt`]: crate::prompt
+/// [`prompt`]: crate::prompt()
 #[derive(Debug, Clone, PartialEq)]
 pub struct PromptModule<Q> {
     questions: Q,
@@ -38,7 +38,7 @@ where
     /// Prompt a single question with the default [`Backend`] and [`EventIterator`].
     ///
     /// This may or may not actually prompt the question based on what `when` and `ask_if_answered`
-    /// is set to for that particular question.
+    /// returns for that particular question.
     #[cfg(any(feature = "crossterm", feature = "termion"))]
     #[cfg_attr(docsrs, doc(cfg(any(feature = "crossterm", feature = "termion"))))]
     pub fn prompt(&mut self) -> crate::Result<Option<&mut Answer>> {
@@ -51,7 +51,7 @@ where
     /// Prompt a single question with the given [`Backend`] and [`EventIterator`].
     ///
     /// This may or may not actually prompt the question based on what `when` and `ask_if_answered`
-    /// is set to for that particular question.
+    /// returns for that particular question.
     pub fn prompt_with<B, E>(
         &mut self,
         backend: &mut B,
@@ -140,8 +140,7 @@ where
 ///             // default can be set for that choice.
 ///             "Choice 2" default get_default(),
 ///             // The word 'separator' or 'sep' can be used to create separators. If no
-///             // expression is given along with 'separator', it is taken as a
-///             // `DefaultSeparator`.
+///             // expression is given along with 'separator', it is taken as a `DefaultSeparator`.
 ///             separator,
 ///             // Otherwise if there is an expression, it is taken as a `Separator(_)`,
 ///             sep "Separator text!",

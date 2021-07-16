@@ -20,7 +20,7 @@ mod tests;
 #[derive(Debug)]
 struct ExpandText {
     key: char,
-    name: Text<String>,
+    text: Text<String>,
 }
 
 impl Widget for ExpandText {
@@ -29,19 +29,19 @@ impl Widget for ExpandText {
         layout: &mut ui::layout::Layout,
         backend: &mut B,
     ) -> io::Result<()> {
-        self.name.render(layout, backend)
+        self.text.render(layout, backend)
     }
 
     fn height(&mut self, layout: &mut ui::layout::Layout) -> u16 {
-        self.name.height(layout)
+        self.text.height(layout)
     }
 
     fn cursor_pos(&mut self, layout: ui::layout::Layout) -> (u16, u16) {
-        self.name.cursor_pos(layout)
+        self.text.cursor_pos(layout)
     }
 
     fn handle_key(&mut self, key: KeyEvent) -> bool {
-        self.name.handle_key(key)
+        self.text.handle_key(key)
     }
 }
 
@@ -102,7 +102,7 @@ impl<F: Fn(char) -> Option<char>> ExpandPrompt<'_, F> {
             .expect("Validation would fail unless an option was chosen");
 
         ExpandItem {
-            name: item.name.text,
+            text: item.text.text,
             key: item.key,
         }
     }
@@ -365,7 +365,7 @@ impl Expand<'_> {
             answers,
             b,
             b.write_styled(
-                &ans.name
+                &ans.text
                     .lines()
                     .next()
                     .expect("There must be at least one line in a `str`")

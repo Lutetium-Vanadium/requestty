@@ -8,6 +8,14 @@ use crate::{
 
 /// The builder for a [`raw_select`] prompt.
 ///
+/// The choices are represented with the [`Choice`] enum. [`Choice::Choice`] can be multi-line,
+/// but [`Choice::Separator`]s can only be single line.
+///
+/// <img
+///   src="https://raw.githubusercontent.com/lutetium-vanadium/requestty/master/assets/raw-select.gif"
+///   style="max-height: 15rem"
+/// />
+///
 /// See the various methods for more details on each available option.
 ///
 /// # Examples
@@ -147,8 +155,6 @@ impl<'a> RawSelectBuilder<'a> {
 
     /// Whether to wrap around when user gets to the last element.
     ///
-    /// This only applies when the list is scrollable, i.e. page size > total height.
-    ///
     /// If `should_loop` is not set, it will default to `true`.
     ///
     /// # Examples
@@ -165,7 +171,7 @@ impl<'a> RawSelectBuilder<'a> {
         self
     }
 
-    /// Inserts a [`Choice`].
+    /// Inserts a [`Choice`] with the given text.
     ///
     /// See [`raw_select`] for more information.
     ///
@@ -181,16 +187,16 @@ impl<'a> RawSelectBuilder<'a> {
     ///     .choice("Order a Pizza")
     ///     .build();
     /// ```
-    pub fn choice<I: Into<String>>(mut self, choice: I) -> Self {
-        self.raw_select.choices.choices.push(Choice::Choice((
-            self.choice_count,
-            Text::new(choice.into()),
-        )));
+    pub fn choice<I: Into<String>>(mut self, text: I) -> Self {
+        self.raw_select
+            .choices
+            .choices
+            .push(Choice::Choice((self.choice_count, Text::new(text.into()))));
         self.choice_count += 1;
         self
     }
 
-    /// Inserts a [`Separator`] with the given text
+    /// Inserts a [`Separator`] with the given text.
     ///
     /// See [`raw_select`] for more information.
     ///
@@ -214,7 +220,7 @@ impl<'a> RawSelectBuilder<'a> {
         self
     }
 
-    /// Inserts a [`DefaultSeparator`]
+    /// Inserts a [`DefaultSeparator`].
     ///
     /// See [`raw_select`] for more information.
     ///
@@ -238,7 +244,7 @@ impl<'a> RawSelectBuilder<'a> {
         self
     }
 
-    /// Extends the given iterator of [`Choice`]s
+    /// Extends the given iterator of [`Choice`]s.
     ///
     /// See [`raw_select`] for more information.
     ///
@@ -288,7 +294,7 @@ impl<'a> RawSelectBuilder<'a> {
     ///
     /// let raw_select = Question::raw_select("theme")
     ///     .transform(|choice, previous_answers, backend| {
-    ///         write!(backend, "({}) {}", choice.index, choice.name)
+    ///         write!(backend, "({}) {}", choice.index, choice.text)
     ///     })
     ///     .build();
     /// ```

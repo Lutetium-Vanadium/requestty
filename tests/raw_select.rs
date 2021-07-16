@@ -36,7 +36,7 @@ fn test_tranform() {
         .choices(choices(10))
         .transform(|ans, _, b| {
             b.set_fg(Color::Magenta)?;
-            write!(b, "{}: {}", ans.index, ans.name)?;
+            write!(b, "{}: {}", ans.index, ans.text)?;
             b.set_fg(Color::Reset)
         });
 

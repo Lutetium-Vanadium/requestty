@@ -35,7 +35,7 @@ impl RawSelectPrompt<'_> {
     fn finish_index(self, index: usize) -> ListItem {
         ListItem {
             index,
-            name: self
+            text: self
                 .select
                 .into_inner()
                 .choices
@@ -129,7 +129,7 @@ impl widgets::List for RawSelect<'_> {
         b: &mut B,
     ) -> io::Result<()> {
         match &mut self.choices[index] {
-            &mut Choice::Choice((index, ref mut name)) => {
+            &mut Choice::Choice((index, ref mut text)) => {
                 if hovered {
                     b.set_fg(Color::Cyan)?;
                 }
@@ -137,7 +137,7 @@ impl widgets::List for RawSelect<'_> {
                 write!(b, "  {}) ", index)?;
 
                 layout.offset_x += (index as f64).log10() as u16 + 5;
-                name.render(&mut layout, b)?;
+                text.render(&mut layout, b)?;
 
                 if hovered {
                     b.set_fg(Color::Reset)?;
@@ -219,7 +219,7 @@ impl<'a> RawSelect<'a> {
             answers,
             b,
             b.write_styled(
-                &ans.name
+                &ans.text
                     .lines()
                     .next()
                     .expect("There must be at least one line in a `str`")

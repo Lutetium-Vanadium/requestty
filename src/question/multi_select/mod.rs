@@ -47,10 +47,10 @@ fn create_list_items(
         .into_iter()
         .enumerate()
         .zip(choices.choices.into_iter())
-        .filter_map(|((index, is_selected), name)| match (is_selected, name) {
-            (true, Choice::Choice(name)) => Some(ListItem {
+        .filter_map(|((index, is_selected), text)| match (is_selected, text) {
+            (true, Choice::Choice(text)) => Some(ListItem {
                 index,
-                name: name.text,
+                text: text.text,
             }),
             _ => None,
         })
@@ -221,7 +221,7 @@ impl<'c> MultiSelect<'c> {
             b.set_fg(Color::Cyan)?;
             print_comma_separated(
                 ans.iter().map(|item| {
-                    item.name
+                    item.text
                         .lines()
                         .next()
                         .expect("There must be at least one line in a `str`")

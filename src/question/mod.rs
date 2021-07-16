@@ -428,7 +428,8 @@ impl Question<'static> {
 
     /// Create a [`Question`] from a custom prompt.
     ///
-    /// See [`Prompt`] for more information on writing custom prompts.
+    /// See [`Prompt`] for more information on writing custom prompts and the various methods on the
+    /// [`builder`] for more details on each available option.
     ///
     /// # Examples
     ///

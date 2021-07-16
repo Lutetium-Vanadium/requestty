@@ -182,8 +182,7 @@ use ui::{backend::Backend, events::EventIterator};
 ///             // default can be set for that choice.
 ///             "Choice 2" default get_default(),
 ///             // The word 'separator' or 'sep' can be used to create separators. If no
-///             // expression is given along with 'separator', it is taken as a
-///             // `DefaultSeparator`.
+///             // expression is given along with 'separator', it is taken as a `DefaultSeparator`.
 ///             separator,
 ///             // Otherwise if there is an expression, it is taken as a `Separator(_)`,
 ///             sep "Separator text!",

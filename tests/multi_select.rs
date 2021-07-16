@@ -100,7 +100,7 @@ fn test_transform() {
         .transform(|items, _, b| {
             b.set_fg(ui::style::Color::Magenta)?;
             for (i, item) in items.iter().enumerate() {
-                write!(b, "{}: {}", item.index, item.name)?;
+                write!(b, "{}: {}", item.index, item.text)?;
                 if i + 1 != items.len() {
                     write!(b, ", ")?;
                 }

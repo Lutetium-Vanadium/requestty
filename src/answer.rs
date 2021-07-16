@@ -1,6 +1,7 @@
 use std::{
     collections::hash_map::{Entry, HashMap, IntoIter},
     hash::Hash,
+    iter::FromIterator,
     ops::{Deref, DerefMut},
 };
 
@@ -202,13 +203,16 @@ impl Answer {
 pub struct ListItem {
     /// The index of the choice
     pub index: usize,
-    /// The string given to the choice
-    pub name: String,
+    /// The content of the choice -- it is what was displayed to the user
+    pub text: String,
 }
 
-impl From<(usize, String)> for ListItem {
-    fn from((index, name): (usize, String)) -> Self {
-        Self { index, name }
+impl<I: Into<String>> From<(usize, I)> for ListItem {
+    fn from((index, text): (usize, I)) -> Self {
+        Self {
+            index,
+            text: text.into(),
+        }
     }
 }
 
@@ -222,15 +226,15 @@ impl From<(usize, String)> for ListItem {
 pub struct ExpandItem {
     /// The key associated with the choice
     pub key: char,
-    /// The string given to the choice
-    pub name: String,
+    /// The content of the choice -- it is what was displayed to the user
+    pub text: String,
 }
 
 impl<I: Into<String>> From<(char, I)> for ExpandItem {
-    fn from((key, name): (char, I)) -> Self {
+    fn from((key, text): (char, I)) -> Self {
         Self {
             key,
-            name: name.into(),
+            text: text.into(),
         }
     }
 }
@@ -258,6 +262,20 @@ impl Answers {
                 entry
             }
             Entry::Vacant(entry) => entry.insert(answer),
+        }
+    }
+}
+
+impl From<HashMap<String, Answer>> for Answers {
+    fn from(answers: HashMap<String, Answer>) -> Self {
+        Self { answers }
+    }
+}
+
+impl FromIterator<(String, Answer)> for Answers {
+    fn from_iter<T: IntoIterator<Item = (String, Answer)>>(iter: T) -> Self {
+        Self {
+            answers: iter.into_iter().collect(),
         }
     }
 }
