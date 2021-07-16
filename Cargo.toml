@@ -14,7 +14,7 @@ members = [
 [dependencies]
 tempfile = "3"
 ui = { package = "requestty-ui", path = "./requestty-ui" }
-macros = { package = "requestty-macros", path = "./requestty-macros" }
+macros = { package = "requestty-macros", path = "./requestty-macros", optional = true }
 
 smallvec = { version = "1.6", optional = true }
 
@@ -36,3 +36,11 @@ termion = ["ui/termion"]
 [package.metadata.docs.rs]
 all-features = true
 rustc-args = ["--cfg", "docsrs"]
+
+[[example]]
+name = "macros"
+required-features = ["macros"]
+
+[[test]]
+name = "macros"
+required-features = ["macros"]

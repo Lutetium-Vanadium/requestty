@@ -54,14 +54,14 @@ jobs:
 
       # build / doc / test
       - name: build_all
-        run: cargo build --verbose --workspace --no-default-features --features=termion
+        run: cargo build --verbose --workspace --no-default-features --features=termion,macros
 
       # doesn't use --include-ignored as it was unstable in 1.47
       - name: test_regular
-        run: cargo test --workspace --verbose --no-default-features --features=termion
+        run: cargo test --workspace --verbose --no-default-features --features=termion,macros
 
       - name: test_ignored
-        run: cargo test --workspace --verbose --no-default-features --features=termion -- --ignored
+        run: cargo test --workspace --verbose --no-default-features --features=termion,macros -- --ignored
 
   clippy:
     name: clippy
@@ -81,4 +81,4 @@ jobs:
         uses: actions-rs/clippy-check@v1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          args: --no-default-features --features=termion --workspace --bins --examples
+          args: --no-default-features --features=termion,macros --workspace --bins --examples

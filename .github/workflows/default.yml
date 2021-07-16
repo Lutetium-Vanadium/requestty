@@ -67,12 +67,9 @@ jobs:
       - name: build_all
         run: cargo build --verbose --workspace
 
-      # doesn't use --include-ignored as it was unstable in 1.47
+      # Don't test ignored as they require `macros` feature
       - name: test_regular
         run: cargo test --workspace --verbose
-
-      - name: test_ignored
-        run: cargo test --workspace --verbose -- --ignored
 
   rustfmt:
     name: rustfmt

@@ -168,6 +168,8 @@ where
 /// See also [`questions`].
 ///
 /// [`questions`]: crate::questions
+#[cfg(feature = "macros")]
+#[cfg_attr(docsrs, doc(cfg(feature = "macros")))]
 #[macro_export]
 macro_rules! prompt_module {
     ($($tt:tt)*) => {

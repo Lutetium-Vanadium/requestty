@@ -25,11 +25,12 @@
 //!
 //! See [`Question`] for more information on the builders.
 //!
-//! ### Using macros
+//! ### Using macros (only with `macros` feature)
 //!
 //! Unlike the builder api, the macros can only be used to create a list of questions.
 //!
-//! ```
+#![cfg_attr(feature = "macros", doc = "```")]
+#![cfg_attr(not(feature = "macros"), doc = "```ignore")]
 //! use requestty::{questions, Answers};
 //!
 //! let questions = questions! [
@@ -100,6 +101,9 @@
 //! prompts using the [`Prompt`](question::Prompt) trait.
 //!
 //! # Optional features
+//!
+//! - `macros`: Enabling this feature will allow you to use the [`questions`] and
+//!   [`prompt_module`](prompt_module!) macros.
 //!
 //! - `smallvec` (default): Enabling this feature will use [`SmallVec`] instead of [`Vec`] for [auto
 //!   completions]. This allows inlining single completions.
@@ -208,6 +212,8 @@ use ui::{backend::Backend, events::EventIterator};
 /// Note that inlining only works for rust version 1.51 onwards. Pre 1.51, a [`Vec`] is still used.
 ///
 /// See also [`prompt_module`](prompt_module!).
+#[cfg(feature = "macros")]
+#[cfg_attr(docsrs, doc(cfg(feature = "macros")))]
 pub use macros::questions;
 
 pub use answer::{Answer, Answers, ExpandItem, ListItem};
