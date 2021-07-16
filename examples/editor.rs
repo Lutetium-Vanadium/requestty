@@ -1,6 +1,7 @@
 fn main() {
-    let question = requestty::Question::editor("bio")
-        .message("Please write a short bio of at least 3 lines.")
+    let question = requestty::Question::editor("description")
+        .message("Please enter a short description about yourself")
+        .extension(".md")
         .validate(|answer, _| {
             if answer.lines().count() < 3 {
                 Err("Must be at least 3 lines.".into())

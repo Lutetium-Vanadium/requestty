@@ -26,7 +26,7 @@ rand = "0.8"
 rand_chacha = "0.3"
 
 regex = "1.5"           # examples/{prompt_module,macro}.rs
-fuzzy-matcher = "0.3"   # examples/file.rs
+fuzzy-matcher = "0.3"   # examples/file_auto_complete.rs
 
 [features]
 default = ["crossterm", "smallvec"]

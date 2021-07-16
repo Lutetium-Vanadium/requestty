@@ -113,9 +113,9 @@ impl<'a> InputBuilder<'a> {
     ///     .build();
     /// ```
     ///
-    /// For a better example on `auto_complete`, see [`examples/file.rs`]
+    /// For a better example on `auto_complete`, see [`examples/file_auto_complete.rs`]
     ///
-    /// [`examples/file.rs`]: https://github.com/Lutetium-Vanadium/requestty/blob/master/examples/file.rs
+    /// [`examples/file_auto_complete.rs`]: https://github.com/Lutetium-Vanadium/requestty/blob/master/examples/file_auto_complete.rs
     String; input
     }
 
