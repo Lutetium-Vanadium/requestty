@@ -1,8 +1,7 @@
 //! This crate is the declaration of the [`questions!`] macro. It should not be used directly. Use
 //! [`requestty`] instead.
 //!
-//! [`requestty`]: https://github.com/lutetium-vanadium/requestty
-// TODO: [`requestty`]: https://crates.io/crates/requestty
+//! [`requestty`]: https://crates.io/crates/requestty
 
 extern crate proc_macro;
 use proc_macro::TokenStream;

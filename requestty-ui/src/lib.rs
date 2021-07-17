@@ -6,7 +6,7 @@
 //! While this crate was built for the  [`requestty`] crate and other crates which implement the
 //! `Prompt` trait in [`requestty`], it can be used otherwise as well.
 //!
-//! [`requestty`]: https://github.com/lutetium-vanadium/requestty
+//! [`requestty`]: https://crates.io/crates/requestty
 //!
 //! # Backends
 //!
@@ -15,7 +15,6 @@
 //! - [`termion`](https://crates.io/crates/termion)
 //!
 //! The different backends can be enabled using the features of the same name.
-// TODO: [`requestty`]: https://crates.io/crates/requestty
 #![deny(
     missing_docs,
     missing_debug_implementations,

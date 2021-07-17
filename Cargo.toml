@@ -1,8 +1,17 @@
 [package]
 name = "requestty"
-version = "0.0.1"
+version = "0.1.0"
 authors = ["Lutetium Vanadium"]
 edition = "2018"
+description = "An easy-to-use collection of interactive cli prompts"
+homepage="https://github.com/Lutetium-Vanadium/requestty#readme"
+repository = "https://github.com/Lutetium-Vanadium/requestty"
+documentation="https://docs.rs/requestty"
+readme = "README.md"
+license = "MIT"
+keywords = ["interactive", "prompt", "cli", "inquirer", "enquirer"]
+categories = ["command-line-interface", "command-line-utilities"]
+exclude = ["/.github/*", "/assets", "/requestty-ui", "/requestty-macro", "*-snapshots"]
 
 [workspace]
 members = [
@@ -13,8 +22,8 @@ members = [
 
 [dependencies]
 tempfile = "3"
-ui = { package = "requestty-ui", path = "./requestty-ui" }
-macro = { package = "requestty-macro", path = "./requestty-macro", optional = true }
+ui = { package = "requestty-ui", path = "./requestty-ui", version = "=0.1.0" }
+macro = { package = "requestty-macro", path = "./requestty-macro", optional = true, version = "=0.1.0" }
 
 smallvec = { version = "1.6", optional = true }
 
