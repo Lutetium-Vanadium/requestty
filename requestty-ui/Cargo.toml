@@ -1,6 +1,6 @@
 [package]
 name = "requestty-ui"
-version = "0.1.0"
+version = "0.1.1"
 authors = ["Lutetium Vanadium"]
 edition = "2018"
 description = "A widget based terminal ui rendering library."
@@ -8,6 +8,7 @@ homepage="https://github.com/Lutetium-Vanadium/requestty#readme"
 repository = "https://github.com/Lutetium-Vanadium/requestty"
 documentation="https://docs.rs/requestty-ui"
 license = "MIT"
+readme = "README.md"
 keywords = ["interactive", "prompt", "cli", "inquirer", "enquirer"]
 categories = ["command-line-interface", "command-line-utilities"]
 exclude = ["*-snapshots"]
@@ -25,5 +26,5 @@ termion = { version = "1.5", optional = true }
 insta = { version = "1.7.1", default-features = false }
 
 [package.metadata.docs.rs]
+rustdoc-args = ["--cfg", "docsrs"]
 all-features = true
-rustc-args = ["--cfg", "docsrs"]

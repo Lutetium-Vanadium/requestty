@@ -4,9 +4,10 @@
 //! trait. It also provides some default widgets available in [`widgets`].
 //!
 //! While this crate was built for the  [`requestty`] crate and other crates which implement the
-//! `Prompt` trait in [`requestty`], it can be used otherwise as well.
+//! [`Prompt`] trait in [`requestty`], it can be used otherwise as well.
 //!
 //! [`requestty`]: https://crates.io/crates/requestty
+//! [`Prompt`]: https://docs.rs/requestty/0.1.1/requestty/prompt/trait.Prompt.html
 //!
 //! # Backends
 //!

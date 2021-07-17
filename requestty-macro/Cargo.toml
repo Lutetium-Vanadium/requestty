@@ -1,13 +1,13 @@
 [package]
 name = "requestty-macro"
-version = "0.1.0"
+version = "0.1.1"
 authors = ["Lutetium Vanadium"]
 edition = "2018"
 description = "The `questions` macro for `requestty`"
 homepage="https://github.com/Lutetium-Vanadium/requestty#readme"
 repository = "https://github.com/Lutetium-Vanadium/requestty"
 documentation="https://docs.rs/requestty-macro"
-readme = "../README.md"
+readme = "README.md"
 license = "MIT"
 
 [lib]
