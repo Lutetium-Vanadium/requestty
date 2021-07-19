@@ -5,7 +5,7 @@
 ![RustCI](https://github.com/Lutetium-Vanadium/requestty/workflows/Termion/badge.svg)
 [![Crates.io](https://img.shields.io/crates/v/requestty.svg)](https://crates.io/crates/requestty)
 [![License](https://img.shields.io/crates/l/requestty.svg)](./LICENSE)
-[![Documentation](https://docs.rs/requestty.svg)](https://docs.rs/requestty)
+[![Documentation](https://docs.rs/requestty/badge.svg)](https://docs.rs/requestty)
 
 `requestty` (request-tty) is an easy-to-use collection of interactive
 cli prompts inspired by [Inquirer.js](https://github.com/SBoudrias/Inquirer.js).
