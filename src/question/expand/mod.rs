@@ -215,7 +215,9 @@ impl<F: Fn(char) -> Option<char>> ui::Widget for ExpandPrompt<'_, F> {
                 .input
                 .cursor_pos(layout.with_line_offset(ANSWER_PROMPT.len() as u16))
                 .0;
-            (w, self.height(&mut layout) - 1)
+
+            let offset_y = layout.offset_y;
+            (w, self.height(&mut layout) - 1 + offset_y)
         } else {
             self.input
                 .cursor_pos(layout.with_cursor_pos(self.prompt.cursor_pos(layout)))

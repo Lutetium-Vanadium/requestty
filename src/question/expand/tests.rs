@@ -200,5 +200,27 @@ fn test_cursor_pos() {
     assert_eq!(expand.cursor_pos(layout), (10, 9));
 
     assert!(expand.handle_key(KeyCode::Char('c').into()));
-    std::assert_eq!(expand.cursor_pos(layout), (11, 9));
+    assert_eq!(expand.cursor_pos(layout), (11, 9));
+
+    let message = "-".repeat(size.width as usize) + "message";
+    expand!(let mut expand; &*message);
+
+    let keys = [
+        (KeyEvent::from(KeyCode::Char('a')), (27, 1)),
+        (KeyEvent::from(KeyCode::Char('h')), (27, 1)),
+        (KeyEvent::from(KeyCode::Backspace), (26, 1)),
+    ];
+
+    assert_eq!(expand.cursor_pos(layout), (26, 1));
+
+    for &(key, cursor_pos) in keys.iter() {
+        assert!(expand.handle_key(key));
+        assert_eq!(expand.cursor_pos(layout), cursor_pos);
+    }
+
+    assert_eq!(expand.validate(), Ok(Validation::Continue));
+    assert_eq!(expand.cursor_pos(layout), (10, 10));
+
+    assert!(expand.handle_key(KeyCode::Char('c').into()));
+    assert_eq!(expand.cursor_pos(layout), (11, 10));
 }

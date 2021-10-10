@@ -627,7 +627,7 @@ impl<L: List> super::Widget for Select<L> {
     /// Returns the starting location of the layout. It should not be relied upon for a sensible
     /// cursor position.
     fn cursor_pos(&mut self, layout: Layout) -> (u16, u16) {
-        (layout.line_offset, 0)
+        layout.offset_cursor((layout.line_offset, 0))
     }
 
     fn height(&mut self, layout: &mut Layout) -> u16 {

@@ -356,7 +356,7 @@ where
     }
 
     fn cursor_pos(&mut self, layout: Layout) -> (u16, u16) {
-        if self.hide_output {
+        let relative_pos = if self.hide_output {
             // Nothing will be outputted so no need to move the cursor
             (layout.line_offset, 0)
         } else if layout.line_width() > self.at as u16 {
@@ -366,7 +366,9 @@ where
             let at = self.at as u16 - layout.line_width();
 
             (at % layout.width, 1 + at / layout.width)
-        }
+        };
+
+        layout.offset_cursor(relative_pos)
     }
 }
 
@@ -692,5 +694,8 @@ mod tests {
 
         input.set_at(130);
         assert_eq!(input.cursor_pos(layout), (35, 1));
+
+        layout.offset_y = 3;
+        assert_eq!(input.cursor_pos(layout), (35, 4));
     }
 }

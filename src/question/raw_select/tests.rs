@@ -87,7 +87,7 @@ fn test_height() {
 
     for &(key, line_offset) in keys.iter() {
         layout = base_layout;
-        assert!(raw_select.handle_key(dbg!(key)));
+        assert!(raw_select.handle_key(key));
         assert_eq!(raw_select.height(&mut layout), 12);
         assert_eq!(
             layout,
@@ -101,7 +101,7 @@ fn test_cursor_pos() {
     let size = (50, 20).into();
     let layout = Layout::new(5, size);
 
-    let mut raw_select = raw_select("message");
+    let mut select = raw_select("message");
 
     let keys = [
         (KeyEvent::from(KeyCode::Down), 10),
@@ -109,10 +109,20 @@ fn test_cursor_pos() {
         (KeyEvent::from(KeyCode::Char('6')), 11),
     ];
 
-    assert_eq!(raw_select.cursor_pos(layout), (10, 11));
+    assert_eq!(select.cursor_pos(layout), (10, 11));
 
     for &(key, line_offset) in keys.iter() {
-        assert!(raw_select.handle_key(key));
-        assert_eq!(raw_select.cursor_pos(layout), (line_offset, 11));
+        assert!(select.handle_key(key));
+        assert_eq!(select.cursor_pos(layout), (line_offset, 11));
+    }
+
+    let message = "-".repeat(size.width as usize) + "message";
+    let mut select = raw_select(&message);
+
+    assert_eq!(select.cursor_pos(layout), (10, 12));
+
+    for &(key, line_offset) in keys.iter() {
+        assert!(select.handle_key(key));
+        assert_eq!(select.cursor_pos(layout), (line_offset, 12));
     }
 }

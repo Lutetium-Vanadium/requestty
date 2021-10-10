@@ -325,16 +325,23 @@ mod tests {
 
     #[test]
     fn test_cursor_pos() {
-        let mut confirms = [
-            confirm(None, "message"),
-            confirm(Some(true), "message"),
-            confirm(Some(false), "message"),
-        ];
-
         let size = (50, 20).into();
         let layout = Layout::new(5, size);
 
-        for confirm in confirms.iter_mut() {
+        let message = "-".repeat(size.width as usize) + "message";
+
+        let mut confirms = [
+            (confirm(None, "message"), 0),
+            (confirm(Some(true), "message"), 0),
+            (confirm(Some(false), "message"), 0),
+            (confirm(None, &message), 1),
+            (confirm(Some(true), &message), 1),
+            (confirm(Some(false), &message), 1),
+        ];
+
+        for (confirm, offset_y) in confirms.iter_mut() {
+            let offset_y = *offset_y;
+
             let offsets = [21, 22, 22];
             let keys = [
                 KeyEvent::from(KeyCode::Char('y')),
@@ -343,11 +350,11 @@ mod tests {
             ];
 
             for (&line_offset, &key) in offsets.iter().zip(keys.iter()) {
-                assert_eq!(confirm.cursor_pos(layout), (line_offset, 0));
+                assert_eq!(confirm.cursor_pos(layout), (line_offset, offset_y));
                 confirm.handle_key(key);
             }
 
-            assert_eq!(confirm.cursor_pos(layout), (21, 0));
+            assert_eq!(confirm.cursor_pos(layout), (21, offset_y));
         }
     }
 }

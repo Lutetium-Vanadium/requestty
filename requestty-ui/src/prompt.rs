@@ -143,13 +143,15 @@ impl<M: AsRef<str>, H: AsRef<str>> Prompt<M, H> {
 
     fn cursor_pos_impl(&self, layout: Layout) -> (u16, u16) {
         let mut width = self.width();
-        if width > layout.line_width() {
+        let relative_pos = if width > layout.line_width() {
             width -= layout.line_width();
 
             (width % layout.width, 1 + width / layout.width)
         } else {
             (layout.line_offset + width, 0)
-        }
+        };
+
+        layout.offset_cursor(relative_pos)
     }
 }
 
@@ -190,9 +192,13 @@ impl<M: AsRef<str>, H: AsRef<str>> Widget for Prompt<M, H> {
     }
 
     fn height(&mut self, layout: &mut Layout) -> u16 {
+        // preserve the old offset since `cursor_pos` is absolute.
+        let offset_y = layout.offset_y;
+
         let cursor_pos = self.cursor_pos_impl(*layout);
         *layout = layout.with_cursor_pos(cursor_pos);
-        cursor_pos.1 + 1
+
+        cursor_pos.1 + 1 - offset_y
     }
 
     fn cursor_pos(&mut self, layout: Layout) -> (u16, u16) {
@@ -340,6 +346,13 @@ mod tests {
                 .with_hint(UNICODE)
                 .cursor_pos_impl(layout),
             (51, 9)
+        );
+
+        assert_eq!(
+            Prompt::new(LOREM)
+                .with_hint(UNICODE)
+                .cursor_pos_impl(layout.with_offset(0, 3)),
+            (51, 12)
         );
     }
 }

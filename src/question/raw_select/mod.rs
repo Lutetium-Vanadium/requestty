@@ -116,7 +116,9 @@ impl Widget for RawSelectPrompt<'_> {
             .input
             .cursor_pos(layout.with_line_offset(ANSWER_PROMPT.len() as u16))
             .0;
-        (w, self.height(&mut layout) - 1)
+
+        let offset_y = layout.offset_y;
+        (w, self.height(&mut layout) - 1 + offset_y)
     }
 }
 

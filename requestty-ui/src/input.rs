@@ -117,8 +117,8 @@ impl<P: Prompt, B: Backend> Input<P, B> {
 
     fn flush(&mut self) -> io::Result<()> {
         if !self.backend.hide_cursor {
-            let (dcw, dch) = self.prompt.cursor_pos(self.layout());
-            self.backend.move_cursor_to(dcw, self.base_row + dch)?;
+            let (x, y) = self.prompt.cursor_pos(self.layout());
+            self.backend.move_cursor_to(x, y)?;
         }
         self.backend.flush()
     }
@@ -157,8 +157,8 @@ impl<P: Prompt, B: Backend> Input<P, B> {
         self.backend.write_all(b" ")?;
 
         let mut layout = Layout::new(2, self.size).with_offset(0, self.base_row + height);
+        self.base_row = self.adjust_scrollback(height + e.height(&mut layout.clone()))?;
 
-        self.adjust_scrollback(height + e.height(&mut layout.clone()))?;
         e.render(&mut layout, &mut *self.backend)?;
 
         self.flush()
@@ -296,8 +296,8 @@ mod tests {
             self.height
         }
 
-        fn cursor_pos(&mut self, _: Layout) -> (u16, u16) {
-            (0, self.height)
+        fn cursor_pos(&mut self, layout: Layout) -> (u16, u16) {
+            layout.offset_cursor((0, self.height))
         }
 
         fn handle_key(&mut self, key: crate::events::KeyEvent) -> bool {

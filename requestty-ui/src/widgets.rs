@@ -53,7 +53,11 @@ pub trait Widget {
     fn height(&mut self, layout: &mut Layout) -> u16;
 
     /// The position of the cursor to be placed at after render. The returned value should be in the
-    /// form of (x, y), with (0, 0) being the start position of the root widget.
+    /// form of (x, y), with (0, 0) being the top left of the screen.
+    ///
+    /// For example, if you want the cursor to be at the first character that could be printed,
+    /// `cursor_pos` would be `(layout.offset_x + layout.line_offset, layout.offset_y)`. Also see
+    /// [`Layout::offset_cursor`].
     fn cursor_pos(&mut self, layout: Layout) -> (u16, u16);
 
     /// Handle a key input. It should return whether key was handled.
@@ -116,7 +120,7 @@ impl<T: std::ops::Deref<Target = str>> Widget for T {
 
     /// Returns the location of the first character
     fn cursor_pos(&mut self, layout: Layout) -> (u16, u16) {
-        (layout.line_offset, 0)
+        layout.offset_cursor((layout.line_offset, 0))
     }
 
     /// This widget does not handle any events

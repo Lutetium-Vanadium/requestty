@@ -95,7 +95,7 @@ where
 
     /// Returns the position right after the character if any.
     fn cursor_pos(&mut self, layout: Layout) -> (u16, u16) {
-        (layout.line_offset + self.value.is_some() as u16, 0)
+        layout.offset_cursor((layout.line_offset + self.value.is_some() as u16, 0))
     }
 }
 
@@ -118,10 +118,22 @@ mod tests {
         assert_eq!(input.cursor_pos(layout), (0, 0));
         assert_eq!(input.cursor_pos(layout.with_line_offset(5)), (5, 0));
 
+        assert_eq!(input.cursor_pos(layout.with_offset(0, 3)), (0, 3));
+        assert_eq!(
+            input.cursor_pos(layout.with_offset(0, 3).with_line_offset(5)),
+            (5, 3)
+        );
+
         input.set_value('c');
 
         assert_eq!(input.cursor_pos(layout), (1, 0));
         assert_eq!(input.cursor_pos(layout.with_line_offset(5)), (6, 0));
+
+        assert_eq!(input.cursor_pos(layout.with_offset(0, 3)), (1, 3));
+        assert_eq!(
+            input.cursor_pos(layout.with_offset(0, 3).with_line_offset(5)),
+            (6, 3)
+        );
     }
 
     #[test]

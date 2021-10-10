@@ -110,7 +110,7 @@ impl<S: AsRef<str>> Widget for Text<S> {
 
     /// Returns the location of the first character
     fn cursor_pos(&mut self, layout: Layout) -> (u16, u16) {
-        (layout.line_offset, 0)
+        layout.offset_cursor((layout.line_offset, 0))
     }
 
     /// This widget does not handle any events

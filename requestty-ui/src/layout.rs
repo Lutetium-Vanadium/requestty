@@ -137,8 +137,7 @@ impl Layout {
     /// relative to `offset_x` and `offset_y`.
     pub fn with_cursor_pos(mut self, cursor_pos: (u16, u16)) -> Self {
         self.line_offset = cursor_pos.0;
-        // TODO: change to `=` if cursor_pos becomes absolute value
-        self.offset_y += cursor_pos.1;
+        self.offset_y = cursor_pos.1;
         self
     }
 
@@ -146,6 +145,11 @@ impl Layout {
     pub fn set_size(&mut self, terminal_size: crate::backend::Size) {
         self.width = terminal_size.width;
         self.height = terminal_size.height;
+    }
+
+    /// Converts a `cursor_pos` relative to (`offset_x`, `offset_y`) to be relative to (0, 0)
+    pub fn offset_cursor(&self, cursor_pos: (u16, u16)) -> (u16, u16) {
+        (self.offset_x + cursor_pos.0, self.offset_y + cursor_pos.1)
     }
 
     /// Gets the width of renderable space on the first line.
