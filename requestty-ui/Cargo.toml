@@ -1,6 +1,6 @@
 [package]
 name = "requestty-ui"
-version = "0.2.0"
+version = "0.2.1"
 authors = ["Lutetium Vanadium"]
 edition = "2018"
 description = "A widget based terminal ui rendering library."
@@ -18,7 +18,7 @@ bitflags = "1.2"
 textwrap = "0.14"
 unicode-segmentation = "1.7"
 
-crossterm = { version = "0.21", optional = true }
+crossterm = { version = "0.22", optional = true }
 termion = { version = "1.5", optional = true }
 
 [dev-dependencies]

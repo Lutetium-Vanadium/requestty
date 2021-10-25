@@ -139,10 +139,12 @@ fn test_selectable() {
     let list = select.into_inner().with_should_loop(false);
 
     let mut select = Select::new(list);
+    select.set_at(2);
+
     select.maybe_update_heights(Layout::new(0, (100, 20).into()));
     select.init_page();
 
-    assert_eq!(select.get_at(), 1);
+    assert_eq!(select.get_at(), 2);
     select.set_at(0);
     assert_eq!(select.prev_selectable(), 1);
     select.set_at(1);

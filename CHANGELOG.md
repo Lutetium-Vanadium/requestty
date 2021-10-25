@@ -1,5 +1,14 @@
 # Changelog
 
+## `0.1.3`
+
+- `requestty`
+
+  - Fix #3
+
+- `requestty-ui`
+  - Update crossterm dependency
+
 ## `0.1.2`
 
 - `requestty`

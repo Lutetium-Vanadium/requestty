@@ -140,7 +140,7 @@ impl<L: List> Select<L> {
         if self.is_paginating() {
             if at >= self.list.len() {
                 self.init_page();
-            } else {
+            } else if self.heights.is_some() {
                 self.maybe_adjust_page(dir);
             }
         }
