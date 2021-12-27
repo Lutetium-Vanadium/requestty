@@ -1,0 +1,5 @@
+error: option `validate_on_key` does not exist for kind `multi_select`
+ --> tests/macros/multi_select/validate_on_key.rs:2:41
+  |
+2 |     requestty::questions![MultiSelect { validate_on_key: todo!() }];
+  |                                         ^^^^^^^^^^^^^^^

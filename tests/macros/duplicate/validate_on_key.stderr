@@ -1,0 +1,5 @@
+error: duplicate option `validate_on_key`
+ --> tests/macros/duplicate/validate_on_key.rs:4:9
+  |
+4 |         validate_on_key: todo!(),
+  |         ^^^^^^^^^^^^^^^

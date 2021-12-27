@@ -7,7 +7,7 @@ use ui::{
     widgets, Validation, Widget,
 };
 
-use super::{Filter, Options, Transform, Validate};
+use super::{Filter, Options, Transform, Validate, ValidateOnKey};
 use crate::{Answer, Answers};
 
 #[derive(Debug, Default)]
@@ -15,6 +15,7 @@ pub(super) struct Password<'a> {
     mask: Option<char>,
     filter: Filter<'a, String>,
     validate: Validate<'a, str>,
+    validate_on_key: ValidateOnKey<'a, str>,
     transform: Transform<'a, str>,
 }
 
@@ -22,6 +23,7 @@ struct PasswordPrompt<'a, 'p> {
     prompt: widgets::Prompt<&'a str>,
     password: Password<'p>,
     input: widgets::StringInput,
+    is_valid: bool,
     answers: &'a Answers,
 }
 
@@ -51,7 +53,18 @@ impl ui::Prompt for PasswordPrompt<'_, '_> {
 impl Widget for PasswordPrompt<'_, '_> {
     fn render<B: Backend>(&mut self, layout: &mut ui::layout::Layout, b: &mut B) -> io::Result<()> {
         self.prompt.render(layout, b)?;
-        self.input.render(layout, b)
+
+        // if the current input does not satisfy the on key validation, then we show its wrong by
+        // using the red colour
+        if !self.is_valid {
+            b.set_fg(ui::style::Color::Red)?;
+        }
+        self.input.render(layout, b)?;
+        if !self.is_valid {
+            b.set_fg(ui::style::Color::Reset)?;
+        }
+
+        Ok(())
     }
 
     fn height(&mut self, layout: &mut ui::layout::Layout) -> u16 {
@@ -59,7 +72,16 @@ impl Widget for PasswordPrompt<'_, '_> {
     }
 
     fn handle_key(&mut self, key: KeyEvent) -> bool {
-        self.input.handle_key(key)
+        let handled = self.input.handle_key(key);
+
+        match self.password.validate_on_key {
+            ValidateOnKey::Sync(ref mut validate) if handled => {
+                self.is_valid = validate(self.input.value(), self.answers);
+            }
+            _ => {}
+        }
+
+        handled
     }
 
     fn cursor_pos(&mut self, layout: ui::layout::Layout) -> (u16, u16) {
@@ -79,6 +101,7 @@ impl<'p> Password<'p> {
                     None
                 }),
             input: widgets::StringInput::default().password(self.mask),
+            is_valid: true,
             password: self,
             answers,
         }
@@ -230,6 +253,25 @@ impl<'a> PasswordBuilder<'a> {
     /// use requestty::Question;
     ///
     /// let password = Question::password("password")
+    ///     .validate(|password, previous_answers| if password.chars().count() >= 5 {
+    ///         Ok(())
+    ///     } else {
+    ///         Err("Your password must be at least 5 characters long".to_owned())
+    ///     })
+    ///     .build();
+    /// ```
+    str; password
+    }
+
+    crate::impl_validate_on_key_builder! {
+    /// # Examples
+    ///
+    /// ```
+    /// use requestty::Question;
+    ///
+    /// let password = Question::password("password")
+    ///     .validate_on_key(|password, previous_answers| password.chars().count() >= 5)
+    ///     // Still required as this is the final validation and validate_on_key is purely cosmetic
     ///     .validate(|password, previous_answers| if password.chars().count() >= 5 {
     ///         Ok(())
     ///     } else {

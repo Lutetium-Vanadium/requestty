@@ -31,6 +31,33 @@ fn test_validate() {
 }
 
 #[test]
+fn test_validate_on_key() {
+    let prompt = Question::input("name")
+        .message("message")
+        .validate_on_key(|s, _| s.len() > 2)
+        .validate(|s, _| {
+            if s.len() > 2 {
+                Ok(())
+            } else {
+                Err("The string must be more than 2 characters long".into())
+            }
+        });
+
+    let mut backend = helpers::SnapshotOnFlushBackend::new((50, 20).into());
+    let mut events = TestEvents::new(vec![
+        KeyCode::Char('t').into(),
+        KeyCode::Char('r').into(),
+        KeyCode::Enter.into(),
+        KeyCode::Home.into(),
+        KeyCode::Char('s').into(),
+        KeyCode::Enter.into(),
+    ]);
+
+    let ans = requestty::prompt_one_with(prompt, &mut backend, &mut events).unwrap();
+    assert_eq!(ans, Answer::String("str".into()));
+}
+
+#[test]
 fn test_filter() {
     let prompt = Question::input("name")
         .message("message")

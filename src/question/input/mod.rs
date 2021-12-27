@@ -7,7 +7,7 @@ use ui::{
     widgets, Prompt, Validation, Widget,
 };
 
-use super::{AutoComplete, ChoiceList, Filter, Transform, Validate};
+use super::{AutoComplete, ChoiceList, Filter, Transform, Validate, ValidateOnKey};
 use crate::{Answer, Answers};
 
 pub use builder::InputBuilder;
@@ -22,6 +22,7 @@ pub(super) struct Input<'a> {
     default: Option<String>,
     filter: Filter<'a, String>,
     validate: Validate<'a, str>,
+    validate_on_key: ValidateOnKey<'a, str>,
     transform: Transform<'a, str>,
     auto_complete: AutoComplete<'a, String>,
     page_size: usize,
@@ -34,6 +35,7 @@ impl<'a> Default for Input<'a> {
             default: None,
             filter: Filter::None,
             validate: Validate::None,
+            validate_on_key: ValidateOnKey::None,
             transform: Transform::None,
             auto_complete: AutoComplete::None,
             page_size: 15,
@@ -52,6 +54,7 @@ struct InputPrompt<'i, 'a> {
     /// auto complete options. The select must not be used directly, and instead by used
     /// through `select`. See `select_op`s documentation for more.
     select: Option<CompletionSelector>,
+    is_valid: bool,
     answers: &'a Answers,
 }
 
@@ -83,7 +86,17 @@ impl InputPrompt<'_, '_> {
 impl Widget for InputPrompt<'_, '_> {
     fn render<B: Backend>(&mut self, layout: &mut ui::layout::Layout, b: &mut B) -> io::Result<()> {
         self.prompt.render(layout, b)?;
+
+        // if the current input does not satisfy the on key validation, then we show its wrong by
+        // using the red colour
+        if !self.is_valid {
+            b.set_fg(ui::style::Color::Red)?;
+        }
         self.input.render(layout, b)?;
+        if !self.is_valid {
+            b.set_fg(ui::style::Color::Reset)?;
+        }
+
         self.maybe_select_op(|select| select.render(layout, b))
             .transpose()?;
         Ok(())
@@ -140,6 +153,10 @@ impl Widget for InputPrompt<'_, '_> {
         }
 
         if input.handle_key(key) {
+            if let ValidateOnKey::Sync(ref mut validate) = self.input_opts.validate_on_key {
+                self.is_valid = validate(self.input.value(), self.answers);
+            }
+
             *select = None;
             return true;
         }
@@ -201,6 +218,7 @@ impl<'i> Input<'i> {
             input_opts: self,
             input: widgets::StringInput::default(),
             select: None,
+            is_valid: true,
             answers,
         }
     }

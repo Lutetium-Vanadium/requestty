@@ -1,0 +1,5 @@
+error: option `validate_on_key` does not exist for kind `editor`
+ --> tests/macros/editor/validate_on_key.rs:2:36
+  |
+2 |     requestty::questions![Editor { validate_on_key: todo!() }];
+  |                                    ^^^^^^^^^^^^^^^

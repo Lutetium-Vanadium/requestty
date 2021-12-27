@@ -199,6 +199,31 @@ impl<'a> InputBuilder<'a> {
     str; input
     }
 
+    crate::impl_validate_on_key_builder! {
+    /// Note, this method will have no visual effect if the password is hidden instead of masked.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use requestty::Question;
+    ///
+    /// fn validate(name: &str, previous_answers: &requestty::Answers) -> bool {
+    ///     name.split_whitespace().count() >= 2
+    /// }
+    ///
+    /// let input = Question::input("name")
+    ///     .validate_on_key(validate)
+    ///     // Still required as this is the final validation and validate_on_key is purely cosmetic
+    ///     .validate(|name, previous_answers| if validate(name, previous_answers){
+    ///         Ok(())
+    ///     } else {
+    ///         Err("Please enter your first and last name".to_owned())
+    ///     })
+    ///     .build();
+    /// ```
+    str; input
+    }
+
     crate::impl_transform_builder! {
     /// # Examples
     ///

@@ -8,15 +8,16 @@ use crate::helpers::*;
 
 bitflags::bitflags! {
     pub struct BuilderMethods: u16 {
-        const DEFAULT        = 0b00000_0001;
-        const TRANSFORM      = 0b00000_0010;
-        const VAL_FIL        = 0b00000_0100;
-        const AUTO_COMPLETE  = 0b00000_1000;
-        const LOOP_PAGE_SIZE = 0b00001_0000;
-        const CHOICES        = 0b00010_0000;
-        const MASK           = 0b00100_0000;
-        const EXTENSION      = 0b01000_0000;
-        const PROMPT         = 0b10000_0000;
+        const DEFAULT        = 0b00_0000_0001;
+        const TRANSFORM      = 0b00_0000_0010;
+        const VAL_FIL        = 0b00_0000_0100;
+        const VAL_KEY        = 0b00_0000_1000;
+        const AUTO_COMPLETE  = 0b00_0001_0000;
+        const LOOP_PAGE_SIZE = 0b00_0010_0000;
+        const CHOICES        = 0b00_0100_0000;
+        const MASK           = 0b00_1000_0000;
+        const EXTENSION      = 0b01_0000_0000;
+        const PROMPT         = 0b10_0000_0000;
     }
 }
 
@@ -58,11 +59,15 @@ impl QuestionKind {
                 BuilderMethods::DEFAULT
                     | BuilderMethods::TRANSFORM
                     | BuilderMethods::VAL_FIL
+                    | BuilderMethods::VAL_KEY
                     | BuilderMethods::AUTO_COMPLETE
                     | BuilderMethods::LOOP_PAGE_SIZE
             }
             QuestionKind::Int | QuestionKind::Float => {
-                BuilderMethods::DEFAULT | BuilderMethods::TRANSFORM | BuilderMethods::VAL_FIL
+                BuilderMethods::DEFAULT
+                    | BuilderMethods::TRANSFORM
+                    | BuilderMethods::VAL_FIL
+                    | BuilderMethods::VAL_KEY
             }
             QuestionKind::Confirm => BuilderMethods::DEFAULT | BuilderMethods::TRANSFORM,
             QuestionKind::Select | QuestionKind::RawSelect | QuestionKind::Expand => {
@@ -78,7 +83,10 @@ impl QuestionKind {
                     | BuilderMethods::CHOICES
             }
             QuestionKind::Password => {
-                BuilderMethods::TRANSFORM | BuilderMethods::VAL_FIL | BuilderMethods::MASK
+                BuilderMethods::TRANSFORM
+                    | BuilderMethods::VAL_FIL
+                    | BuilderMethods::VAL_KEY
+                    | BuilderMethods::MASK
             }
             QuestionKind::Editor => {
                 BuilderMethods::DEFAULT
@@ -142,6 +150,7 @@ pub(crate) struct QuestionOpts {
     pub(crate) default: Option<syn::Expr>,
 
     pub(crate) validate: Option<syn::Expr>,
+    pub(crate) validate_on_key: Option<syn::Expr>,
     pub(crate) filter: Option<syn::Expr>,
     pub(crate) transform: Option<syn::Expr>,
     pub(crate) auto_complete: Option<syn::Expr>,
@@ -166,6 +175,7 @@ impl Default for QuestionOpts {
             default: None,
 
             validate: None,
+            validate_on_key: None,
             filter: None,
             transform: None,
             auto_complete: None,
@@ -194,6 +204,8 @@ fn check_allowed(ident: &syn::Ident, kind: QuestionKind) -> syn::Result<()> {
         BuilderMethods::TRANSFORM
     } else if ident == "validate" || ident == "filter" {
         BuilderMethods::VAL_FIL
+    } else if ident == "validate_on_key" {
+        BuilderMethods::VAL_KEY
     } else if ident == "auto_complete" {
         BuilderMethods::AUTO_COMPLETE
     } else if ident == "choices" {
@@ -255,6 +267,8 @@ impl Parse for Question {
                 insert_non_dup(ident, &mut opts.default, &content)?;
             } else if ident == "validate" {
                 insert_non_dup(ident, &mut opts.validate, &content)?;
+            } else if ident == "validate_on_key" {
+                insert_non_dup(ident, &mut opts.validate_on_key, &content)?;
             } else if ident == "filter" {
                 insert_non_dup(ident, &mut opts.filter, &content)?;
             } else if ident == "transform" {
@@ -358,6 +372,11 @@ impl quote::ToTokens for Question {
         }
         if let Some(ref validate) = self.opts.validate {
             tokens.extend(quote_spanned! { validate.span() => .validate(#validate) });
+        }
+        if let Some(ref validate_on_key) = self.opts.validate_on_key {
+            tokens.extend(
+                quote_spanned! { validate_on_key.span() => .validate_on_key(#validate_on_key) },
+            );
         }
         if let Some(ref filter) = self.opts.filter {
             tokens.extend(quote_spanned! { filter.span() => .filter(#filter) });

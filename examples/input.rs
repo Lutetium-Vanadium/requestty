@@ -62,6 +62,7 @@ fn main() {
             .build(),
         Question::input("fav_color")
             .message("What's your favourite colour")
+            .validate_on_key(|ans, _| parse_col(ans).is_ok())
             .validate(|ans, _| match parse_col(ans) {
                 Ok(_) => Ok(()),
                 Err(_) => Err("Please provide a valid css colour".into()),

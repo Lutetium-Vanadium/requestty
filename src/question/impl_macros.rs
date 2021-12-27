@@ -103,6 +103,46 @@ macro_rules! impl_validate_builder {
 
 #[doc(hidden)]
 #[macro_export]
+macro_rules! impl_validate_on_key_builder {
+    ($(#[$meta:meta])+ $t:ty; $inner:ident) => {
+        crate::impl_validate_on_key_builder!($(#[$meta])* impl &$t; $inner ValidateOnKey);
+    };
+
+    ($(#[$meta:meta])+ by val $t:ty; $inner:ident) => {
+        crate::impl_validate_on_key_builder!($(#[$meta])* impl $t; $inner ValidateOnKeyByVal);
+    };
+
+    // NOTE: the 2 extra lines at the end of each doc comment is intentional -- it makes sure that
+    // other docs that come from the macro invocation have appropriate spacing
+    ($(#[$meta:meta])+ impl $t:ty; $inner:ident $handler:ident) => {
+        /// Function to validate the value on every key press. If the validation fails, the text is
+        /// displayed in red.
+        ///
+        /// It is a [`FnMut`] that is given the answer and the previous [`Answers`], and should
+        /// return `true` if it is valid.
+        ///
+        /// This will be called after every change in state. Note that this validation is purely
+        /// cosmetic. If the user presses `Enter`, this function is **not** called. Instead, the one
+        /// supplied to [`validate`](Self::validate) (if any) is the only validation that can
+        /// prevent a user submission. This is required since final validation needs to return an
+        /// error message to show the user.
+        ///
+        /// [`Answers`]: crate::Answers
+        ///
+        ///
+        $(#[$meta])*
+        pub fn validate_on_key<F>(mut self, filter: F) -> Self
+        where
+            F: FnMut($t, &crate::Answers) -> bool + 'a,
+        {
+            self.$inner.validate_on_key = crate::question::$handler::Sync(Box::new(filter));
+            self
+        }
+    };
+}
+
+#[doc(hidden)]
+#[macro_export]
 macro_rules! impl_transform_builder {
     ($(#[$meta:meta])+ $t:ty; $inner:ident) => {
         crate::impl_transform_builder!($(#[$meta])* impl &$t; $inner Transform);

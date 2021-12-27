@@ -7,7 +7,10 @@ use ui::{
     widgets, Prompt, Validation, Widget,
 };
 
-use super::{Filter, TransformByVal as Transform, ValidateByVal as Validate};
+use super::{
+    Filter, TransformByVal as Transform, ValidateByVal as Validate,
+    ValidateOnKeyByVal as ValidateOnKey,
+};
 use crate::{Answer, Answers};
 
 // This is not actually unreachable, it is re-exported in crate::question
@@ -24,6 +27,7 @@ pub(super) struct Float<'a> {
     default: Option<f64>,
     filter: Filter<'a, f64>,
     validate: Validate<'a, f64>,
+    validate_on_key: ValidateOnKey<'a, f64>,
     transform: Transform<'a, f64>,
 }
 
@@ -32,6 +36,7 @@ pub(super) struct Int<'a> {
     default: Option<i64>,
     filter: Filter<'a, i64>,
     validate: Validate<'a, i64>,
+    validate_on_key: ValidateOnKey<'a, i64>,
     transform: Transform<'a, i64>,
 }
 
@@ -85,6 +90,7 @@ macro_rules! impl_number_prompt {
             prompt: widgets::Prompt<&'a str, String>,
             number: $type<'n>,
             input: widgets::StringInput,
+            is_valid: bool,
             answers: &'a Answers,
         }
 
@@ -95,6 +101,14 @@ macro_rules! impl_number_prompt {
                     .parse::<$inner_ty>()
                     .map_err(|e| e.to_string())
             }
+
+            fn validate_on_key(&mut self, n: $inner_ty) {
+                if let ValidateOnKey::Sync(ref mut validate) = self.number.validate_on_key {
+                    self.is_valid = validate(n, self.answers);
+                } else {
+                    self.is_valid = true;
+                }
+            }
         }
 
         impl Widget for $prompt_name<'_, '_> {
@@ -104,7 +118,18 @@ macro_rules! impl_number_prompt {
                 b: &mut B,
             ) -> io::Result<()> {
                 self.prompt.render(layout, b)?;
-                self.input.render(layout, b)
+
+                // if the current input does not satisfy the on key validation, then we show its wrong by
+                // using the red colour
+                if !self.is_valid {
+                    b.set_fg(ui::style::Color::Red)?;
+                }
+                self.input.render(layout, b)?;
+                if !self.is_valid {
+                    b.set_fg(ui::style::Color::Reset)?;
+                }
+
+                Ok(())
             }
 
             fn height(&mut self, layout: &mut ui::layout::Layout) -> u16 {
@@ -113,6 +138,11 @@ macro_rules! impl_number_prompt {
 
             fn handle_key(&mut self, key: KeyEvent) -> bool {
                 if self.input.handle_key(key) {
+                    match self.parse() {
+                        Ok(n) => self.validate_on_key(n),
+                        Err(_) => self.is_valid = false,
+                    }
+
                     return true;
                 }
 
@@ -129,6 +159,9 @@ macro_rules! impl_number_prompt {
                     write!(s, "{}", n).expect("Failed to write number to the string");
                     s
                 });
+
+                self.validate_on_key(n);
+
                 true
             }
 
@@ -187,6 +220,7 @@ macro_rules! impl_ask {
                     prompt: widgets::Prompt::new(message)
                         .with_optional_hint(self.default.as_ref().map(ToString::to_string)),
                     input: widgets::StringInput::with_filter_map(Self::filter_map),
+                    is_valid: true,
                     number: self,
                     answers,
                 }

@@ -1,0 +1,5 @@
+error: option `validate_on_key` does not exist for kind `raw_select`
+ --> tests/macros/raw_select/validate_on_key.rs:2:47
+  |
+2 |     let q = requestty::questions![RawSelect { validate_on_key: todo!() }];
+  |                                               ^^^^^^^^^^^^^^^

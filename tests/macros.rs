@@ -32,6 +32,7 @@ fn test_duplicate() {
     t.compile_fail("ask_if_answered");
     t.compile_fail("default");
     t.compile_fail("validate");
+    t.compile_fail("validate_on_key");
     t.compile_fail("filter");
     t.compile_fail("transform");
     t.compile_fail("auto_complete");
@@ -76,6 +77,7 @@ fn test_multi_select() {
     t.pass("valid");
     t.compile_fail("default");
     t.compile_fail("default_with_sep");
+    t.compile_fail("validate_on_key");
     t.compile_fail("auto_complete");
     t.compile_fail("mask");
     t.compile_fail("extension");
@@ -90,6 +92,7 @@ fn test_confirm() {
     t.pass("valid");
     t.compile_fail("filter");
     t.compile_fail("validate");
+    t.compile_fail("validate_on_key");
     t.compile_fail("auto_complete");
     t.compile_fail("choices");
     t.compile_fail("should_loop");
@@ -105,6 +108,7 @@ fn test_editor() {
     let t = Runner::new("editor");
 
     t.pass("valid");
+    t.compile_fail("validate_on_key");
     t.compile_fail("auto_complete");
     t.compile_fail("choices");
     t.compile_fail("should_loop");
@@ -121,6 +125,7 @@ fn test_expand() {
     t.pass("valid");
     t.compile_fail("filter");
     t.compile_fail("validate");
+    t.compile_fail("validate_on_key");
     t.compile_fail("auto_complete");
     t.compile_fail("mask");
     t.compile_fail("extension");
@@ -175,6 +180,7 @@ fn test_select() {
     t.pass("valid");
     t.compile_fail("filter");
     t.compile_fail("validate");
+    t.compile_fail("validate_on_key");
     t.compile_fail("auto_complete");
     t.compile_fail("mask");
     t.compile_fail("extension");
@@ -206,6 +212,7 @@ fn test_custom_prompt() {
     t.compile_fail("transform");
     t.compile_fail("filter");
     t.compile_fail("validate");
+    t.compile_fail("validate_on_key");
     t.compile_fail("auto_complete");
     t.compile_fail("choices");
     t.compile_fail("should_loop");
@@ -222,6 +229,7 @@ fn test_raw_select() {
     t.pass("valid");
     t.compile_fail("filter");
     t.compile_fail("validate");
+    t.compile_fail("validate_on_key");
     t.compile_fail("auto_complete");
     t.compile_fail("mask");
     t.compile_fail("extension");

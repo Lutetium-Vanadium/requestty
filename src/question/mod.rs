@@ -34,7 +34,10 @@ use ui::{backend::Backend, events::EventIterator};
 use crate::{Answer, Answers};
 use choice::{get_sep_str, ChoiceList};
 use custom_prompt::CustomPromptInteral;
-use handler::{AutoComplete, Filter, Transform, TransformByVal, Validate, ValidateByVal};
+use handler::{
+    AutoComplete, Filter, Transform, TransformByVal, Validate, ValidateByVal, ValidateOnKey,
+    ValidateOnKeyByVal,
+};
 use options::Options;
 
 /// A `Question` that can be asked.

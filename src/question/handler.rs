@@ -70,6 +70,8 @@ handler!(Filter, FnOnce(T, &Answers) -> T);
 handler!(AutoComplete, FnMut(T, &Answers) -> Completions<T>);
 handler!(Validate, ?Sized FnMut(&T, &Answers) -> Result<(), String>);
 handler!(ValidateByVal, FnMut(T, &Answers) -> Result<(), String>);
+handler!(ValidateOnKey, ?Sized FnMut(&T, &Answers) -> bool);
+handler!(ValidateOnKeyByVal, FnMut(T, &Answers) -> bool);
 handler!(Transform, ?Sized FnOnce(&T, &Answers, &mut dyn Backend) -> std::io::Result<()>);
 handler!(
     TransformByVal,

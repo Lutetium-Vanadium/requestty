@@ -9,6 +9,7 @@ macro_rules! builder {
      default = $default:expr;
      filter = $filter:expr;
      validate = $validate:expr;
+     validate_on_key = $validate_on_key:expr;
      ) => {
         $(#[$meta])*
         #[derive(Debug)]
@@ -115,6 +116,27 @@ macro_rules! builder {
             by val $inner_ty; inner
             }
 
+            crate::impl_validate_on_key_builder! {
+            /// # Examples
+            ///
+            /// ```
+            /// use requestty::Question;
+            ///
+            #[doc = $declare]
+            #[doc = $validate_on_key]
+            ///     // Still required as this is the final validation and validate_on_key is purely cosmetic
+            ///     .validate(|n, previous_answers| {
+            #[doc = $validate]
+            ///             Ok(())
+            ///         } else {
+            ///             Err("Please enter a positive number".to_owned())
+            ///         }
+            ///     })
+            ///     .build();
+            /// ```
+            by val $inner_ty; inner
+            }
+
             crate::impl_transform_builder! {
             /// # Examples
             ///
@@ -185,6 +207,7 @@ declare  = r#"let int = Question::int("int")"#;
 default  = "    .default(10)";
 filter   = "    .filter(|n, previous_answers| n + 10)";
 validate = "        if n.is_positive() {";
+validate_on_key = "     .validate_on_key(|n, previous_answers| n.is_positive())";
 }
 
 builder! {
@@ -223,4 +246,5 @@ declare  = r#"let float = Question::float("float")"#;
 default  = "    .default(10.0)";
 filter   = "    .filter(|n, previous_answers| (n * 10000.0).round() / 10000.0)";
 validate = "        if n.is_sign_positive() {";
+validate_on_key = "     .validate_on_key(|n, previous_answers| n.is_sign_positive())";
 }
