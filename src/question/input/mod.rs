@@ -19,7 +19,7 @@ mod tests;
 
 #[derive(Debug)]
 pub(super) struct Input<'a> {
-    default: Option<String>,
+    default: Option<(String, usize)>,
     filter: Filter<'a, String>,
     validate: Validate<'a, str>,
     validate_on_key: ValidateOnKey<'a, str>,
@@ -81,10 +81,25 @@ impl InputPrompt<'_, '_> {
 
         res
     }
+
+    /// Returns the remaining default text if the current input is a substring of it
+    fn get_remaining_default(&self) -> Option<&str> {
+        if self.select.is_none() {
+            if let Some((ref default, _)) = self.input_opts.default {
+                let input = self.input.value();
+                if default.starts_with(self.input.value()) {
+                    return Some(&default[input.len()..]);
+                }
+            }
+        }
+
+        None
+    }
 }
 
 impl Widget for InputPrompt<'_, '_> {
     fn render<B: Backend>(&mut self, layout: &mut ui::layout::Layout, b: &mut B) -> io::Result<()> {
+        let mut original_layout = *layout;
         self.prompt.render(layout, b)?;
 
         // if the current input does not satisfy the on key validation, then we show its wrong by
@@ -97,13 +112,43 @@ impl Widget for InputPrompt<'_, '_> {
             b.set_fg(ui::style::Color::Reset)?;
         }
 
-        self.maybe_select_op(|select| select.render(layout, b))
-            .transpose()?;
+        if let Some(default) = self.get_remaining_default() {
+            b.set_fg(ui::style::Color::DarkGrey)?;
+            write!(b, "{}", default)?;
+            b.set_fg(ui::style::Color::Reset)?;
+            // We need to update the layout to reflect the rest of the hint that is rendered.
+            // Instead of doing the math to compute where the cursor ends after rendering, we use
+            // the height function which already calculates it.
+            self.height(&mut original_layout);
+            *layout = original_layout;
+        } else {
+            self.maybe_select_op(|select| select.render(layout, b))
+                .transpose()?;
+        }
+
         Ok(())
     }
 
     fn height(&mut self, layout: &mut ui::layout::Layout) -> u16 {
-        let mut height = self.prompt.height(layout) + self.input.height(layout) - 1;
+        let mut height = self.prompt.height(layout) - 1;
+
+        if self.get_remaining_default().is_some() {
+            let mut width = self.input_opts.default.as_ref().unwrap().1 as u16;
+
+            if width > layout.line_width() {
+                width -= layout.line_width();
+
+                layout.line_offset = width % layout.width;
+                layout.offset_y += 1 + width / layout.width;
+
+                height += 2 + width / layout.width;
+            } else {
+                layout.line_offset += width;
+                height += 1;
+            }
+        } else {
+            height = self.input.height(layout);
+        }
 
         if let Some(picker_height) = self.maybe_select_op(|select| select.height(layout)) {
             height += picker_height - 1;
@@ -112,21 +157,20 @@ impl Widget for InputPrompt<'_, '_> {
     }
 
     fn handle_key(&mut self, mut key: KeyEvent) -> bool {
-        let Self {
-            answers,
-            input_opts,
-            input,
-            select,
-            ..
-        } = self;
-
-        match input_opts.auto_complete {
-            AutoComplete::Sync(ref mut ac) if key.code == KeyCode::Tab => {
-                if select.is_some() {
+        if key.code == KeyCode::Tab {
+            if let AutoComplete::Sync(ref mut ac) = self.input_opts.auto_complete {
+                if self.select.is_some() {
                     key.code = KeyCode::Down;
                 } else {
-                    let page_size = input_opts.page_size;
-                    let should_loop = input_opts.should_loop;
+                    let page_size = self.input_opts.page_size;
+                    let should_loop = self.input_opts.should_loop;
+
+                    let Self {
+                        input,
+                        answers,
+                        select,
+                        ..
+                    } = self;
 
                     input.replace_with(|s| {
                         let mut completions = ac(s, answers);
@@ -148,16 +192,21 @@ impl Widget for InputPrompt<'_, '_> {
                     });
                     return true;
                 }
+            } else if self.get_remaining_default().is_some() {
+                let (default, default_len) = self.input_opts.default.as_ref().unwrap();
+                self.input.set_value(default.clone());
+                self.input.set_at(*default_len);
+                self.is_valid = true;
+                return true;
             }
-            _ => {}
         }
 
-        if input.handle_key(key) {
+        if self.input.handle_key(key) {
             if let ValidateOnKey::Sync(ref mut validate) = self.input_opts.validate_on_key {
                 self.is_valid = validate(self.input.value(), self.answers);
             }
 
-            *select = None;
+            self.select = None;
             return true;
         }
 
@@ -208,13 +257,9 @@ impl Prompt for InputPrompt<'_, '_> {
 }
 
 impl<'i> Input<'i> {
-    fn into_input_prompt<'a>(
-        mut self,
-        message: &'a str,
-        answers: &'a Answers,
-    ) -> InputPrompt<'i, 'a> {
+    fn into_input_prompt<'a>(self, message: &'a str, answers: &'a Answers) -> InputPrompt<'i, 'a> {
         InputPrompt {
-            prompt: widgets::Prompt::new(message).with_optional_hint(self.default.take()),
+            prompt: widgets::Prompt::new(message),
             input_opts: self,
             input: widgets::StringInput::default(),
             select: None,

@@ -24,7 +24,7 @@ mod tests;
 
 #[derive(Debug, Default)]
 pub(super) struct Float<'a> {
-    default: Option<f64>,
+    default: Option<(f64, String)>,
     filter: Filter<'a, f64>,
     validate: Validate<'a, f64>,
     validate_on_key: ValidateOnKey<'a, f64>,
@@ -33,7 +33,7 @@ pub(super) struct Float<'a> {
 
 #[derive(Debug, Default)]
 pub(super) struct Int<'a> {
-    default: Option<i64>,
+    default: Option<(i64, String)>,
     filter: Filter<'a, i64>,
     validate: Validate<'a, i64>,
     validate_on_key: ValidateOnKey<'a, i64>,
@@ -102,6 +102,17 @@ macro_rules! impl_number_prompt {
                     .map_err(|e| e.to_string())
             }
 
+            fn get_remaining_default(&self) -> Option<&str> {
+                if let Some((_, ref default)) = self.number.default {
+                    let input = self.input.value();
+                    if default.starts_with(self.input.value()) {
+                        return Some(&default[input.len()..]);
+                    }
+                }
+
+                None
+            }
+
             fn validate_on_key(&mut self, n: $inner_ty) {
                 if let ValidateOnKey::Sync(ref mut validate) = self.number.validate_on_key {
                     self.is_valid = validate(n, self.answers);
@@ -117,6 +128,7 @@ macro_rules! impl_number_prompt {
                 layout: &mut ui::layout::Layout,
                 b: &mut B,
             ) -> io::Result<()> {
+                let mut original_layout = *layout;
                 self.prompt.render(layout, b)?;
 
                 // if the current input does not satisfy the on key validation, then we show its wrong by
@@ -129,14 +141,53 @@ macro_rules! impl_number_prompt {
                     b.set_fg(ui::style::Color::Reset)?;
                 }
 
+                if let Some(default) = self.get_remaining_default() {
+                    b.set_fg(ui::style::Color::DarkGrey)?;
+                    write!(b, "{}", default)?;
+                    b.set_fg(ui::style::Color::Reset)?;
+                    // We need to update the layout to reflect the rest of the hint that is
+                    // rendered. Instead of doing the math to compute where the cursor ends after
+                    // rendering, we use the height function which already calculates it.
+                    self.height(&mut original_layout);
+                    *layout = original_layout;
+                }
+
                 Ok(())
             }
 
             fn height(&mut self, layout: &mut ui::layout::Layout) -> u16 {
-                self.prompt.height(layout) + self.input.height(layout) - 1
+                let mut height = self.prompt.height(layout) - 1;
+
+                if self.get_remaining_default().is_some() {
+                    let mut width = self.number.default.as_ref().unwrap().1.len() as u16;
+
+                    if width > layout.line_width() {
+                        width -= layout.line_width();
+
+                        layout.line_offset = width % layout.width;
+                        layout.offset_y += 1 + width / layout.width;
+
+                        height += 2 + width / layout.width;
+                    } else {
+                        layout.line_offset += width;
+                        height += 1;
+                    }
+                } else {
+                    height = self.input.height(layout);
+                }
+
+                height
             }
 
             fn handle_key(&mut self, key: KeyEvent) -> bool {
+                if self.get_remaining_default().is_some() && key.code == KeyCode::Tab {
+                    let default = &self.number.default.as_ref().unwrap().1;
+                    self.input.set_value(default.clone());
+                    self.input.set_at(default.len());
+                    self.is_valid = true;
+                    return true;
+                }
+
                 if self.input.handle_key(key) {
                     match self.parse() {
                         Ok(n) => self.validate_on_key(n),
@@ -190,7 +241,7 @@ macro_rules! impl_number_prompt {
 
             fn finish(self) -> Self::Output {
                 let n = match self.number.default {
-                    Some(default) if self.input.value().is_empty() => default,
+                    Some((default, _)) if self.input.value().is_empty() => default,
                     _ => self
                         .parse()
                         .expect("Validation would fail if number cannot be parsed"),
@@ -217,8 +268,7 @@ macro_rules! impl_ask {
                 answers: &'a Answers,
             ) -> $prompt_name<'n, 'a> {
                 $prompt_name {
-                    prompt: widgets::Prompt::new(message)
-                        .with_optional_hint(self.default.as_ref().map(ToString::to_string)),
+                    prompt: widgets::Prompt::new(message),
                     input: widgets::StringInput::with_filter_map(Self::filter_map),
                     is_valid: true,
                     number: self,

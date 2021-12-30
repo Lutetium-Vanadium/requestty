@@ -64,7 +64,7 @@ pub trait Widget {
     fn handle_key(&mut self, key: KeyEvent) -> bool;
 }
 
-impl<T: std::ops::Deref<Target = str>> Widget for T {
+impl<T: std::ops::Deref<Target = str> + ?Sized> Widget for T {
     /// Does not allow multi-line strings. If the string requires more than a single line, it adds
     /// cuts it short and adds '...' to the end.
     ///

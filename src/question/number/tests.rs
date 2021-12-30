@@ -14,13 +14,13 @@ macro_rules! test_numbers {
                 let base_layout = Layout::new(5, size);
                 let answers = Answers::default();
 
-                let defaults = [(None, 17), (Some($default), 21)];
+                let defaults = [(None, 17), (Some($default), 20)];
 
                 let mut backend = TestBackend::new_with_layout(size, base_layout);
 
                 for &(default, line_offset) in defaults.iter() {
                     let mut prompt = $prompt_name {
-                        default,
+                        default: default.map(|n| (n, n.to_string())),
                         ..Default::default()
                     }
                     .into_prompt("message", &answers);
@@ -38,10 +38,7 @@ macro_rules! test_numbers {
                     layout = base_layout;
                     backend.reset_with_layout(layout);
                     assert!(prompt.render(&mut layout, &mut backend).is_ok());
-                    assert_eq!(
-                        layout,
-                        base_layout.with_offset(0, 1).with_line_offset(line_offset)
-                    );
+                    assert_eq!(layout, base_layout.with_offset(0, 1).with_line_offset(17));
                     ui::assert_backend_snapshot!(format!("{}-2", base_name), backend);
                 }
             }
@@ -52,11 +49,11 @@ macro_rules! test_numbers {
                 let base_layout = Layout::new(5, size);
                 let answers = Answers::default();
 
-                let defaults = [(None, 17), (Some($default), 21)];
+                let defaults = [(None, 17), (Some($default), 20)];
 
                 for &(default, line_offset) in defaults.iter() {
                     let mut prompt = $prompt_name {
-                        default,
+                        default: default.map(|n| (n, n.to_string())),
                         ..Default::default()
                     }
                     .into_prompt("message", &answers);
@@ -69,10 +66,7 @@ macro_rules! test_numbers {
 
                     prompt.input.set_value("3".repeat(50));
                     assert_eq!(prompt.height(&mut layout), 2);
-                    assert_eq!(
-                        layout,
-                        base_layout.with_offset(0, 1).with_line_offset(line_offset)
-                    );
+                    assert_eq!(layout, base_layout.with_offset(0, 1).with_line_offset(17));
                 }
             }
 
@@ -82,20 +76,20 @@ macro_rules! test_numbers {
                 let layout = Layout::new(5, size);
                 let answers = Answers::default();
 
-                let defaults = [(None, 17), (Some($default), 21)];
+                let defaults = [None, Some($default)];
 
-                for &(default, line_offset) in defaults.iter() {
+                for default in defaults {
                     let mut prompt = $prompt_name {
-                        default,
+                        default: default.map(|n| (n, n.to_string())),
                         ..Default::default()
                     }
                     .into_prompt("message", &answers);
 
-                    assert_eq!(prompt.cursor_pos(layout), (line_offset, 0));
+                    assert_eq!(prompt.cursor_pos(layout), (17, 0));
 
                     prompt.input.set_value("3".repeat(50));
                     prompt.input.set_at(50);
-                    assert_eq!(prompt.cursor_pos(layout), (line_offset, 1));
+                    assert_eq!(prompt.cursor_pos(layout), (17, 1));
                 }
             }
         }

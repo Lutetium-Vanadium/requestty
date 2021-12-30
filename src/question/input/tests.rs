@@ -12,11 +12,11 @@ fn inputs(answers: &Answers) -> [(InputPrompt<'static, '_>, u16); NINPUTS] {
         (Input::default().into_input_prompt("message", &answers), 17),
         (
             Input {
-                default: Some("default".into()),
+                default: Some(("default".into(), 7)),
                 ..Input::default()
             }
             .into_input_prompt("message", &answers),
-            25,
+            24,
         ),
         (
             Input {
@@ -54,18 +54,15 @@ fn test_render() {
         let mut layout = base_layout;
         backend.reset_with_layout(layout);
         assert!(prompt.render(&mut layout, &mut backend).is_ok());
-        assert_eq!(layout, base_layout.with_line_offset(line_offset));
         ui::assert_backend_snapshot!(format!("{}-1", INPUT_IDS[i]), backend);
+        assert_eq!(layout, base_layout.with_line_offset(line_offset));
 
         prompt.input.set_value("input".repeat(10));
 
         layout = base_layout;
         backend.reset_with_layout(layout);
         assert!(prompt.render(&mut layout, &mut backend).is_ok());
-        assert_eq!(
-            layout,
-            base_layout.with_offset(0, 1).with_line_offset(line_offset)
-        );
+        assert_eq!(layout, base_layout.with_offset(0, 1).with_line_offset(17));
         ui::assert_backend_snapshot!(format!("{}-2", INPUT_IDS[i]), backend);
     }
 
@@ -117,10 +114,7 @@ fn test_height() {
 
         layout = base_layout;
         assert_eq!(prompt.height(&mut layout), 2);
-        assert_eq!(
-            layout,
-            base_layout.with_offset(0, 1).with_line_offset(line_offset)
-        );
+        assert_eq!(layout, base_layout.with_offset(0, 1).with_line_offset(17));
     }
 
     let prompt = &mut inputs[AUTO_COMPLETE_IDX].0;
@@ -156,13 +150,11 @@ fn test_cursor_pos() {
 
     let mut inputs = inputs(&answers);
 
-    for (prompt, line_offset) in inputs.iter_mut() {
-        let line_offset = *line_offset;
-
-        assert_eq!(prompt.cursor_pos(layout), (line_offset, 0));
+    for (prompt, _) in inputs.iter_mut() {
+        assert_eq!(prompt.cursor_pos(layout), (17, 0));
         prompt.input.set_value("input".repeat(10));
         prompt.input.set_at(50);
-        assert_eq!(prompt.cursor_pos(layout), (line_offset, 1));
+        assert_eq!(prompt.cursor_pos(layout), (17, 1));
     }
 
     let prompt = &mut inputs[AUTO_COMPLETE_IDX].0;

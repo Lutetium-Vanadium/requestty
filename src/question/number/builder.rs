@@ -80,7 +80,9 @@ macro_rules! builder {
             ///     .build();
             /// ```
             pub fn default(mut self, default: $inner_ty) -> Self {
-                self.inner.default = Some(default);
+                let default_str = default.to_string();
+                assert!(default_str.is_ascii());
+                self.inner.default = Some((default, default_str));
                 self
             }
 

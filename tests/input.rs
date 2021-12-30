@@ -121,6 +121,16 @@ fn test_default() {
     let mut events = TestEvents::new(Some(KeyCode::Enter.into()));
 
     let ans = requestty::prompt_one_with(prompt, &mut backend, &mut events).unwrap();
+    assert_eq!(ans, Answer::String("".into()));
+
+    let prompt = Question::input("name")
+        .message("message")
+        .default("default");
+
+    let mut backend = helpers::SnapshotOnFlushBackend::new((50, 20).into());
+    let mut events = TestEvents::new([KeyCode::Tab.into(), KeyCode::Enter.into()]);
+
+    let ans = requestty::prompt_one_with(prompt, &mut backend, &mut events).unwrap();
     assert_eq!(ans, Answer::String("default".into()));
 }
 

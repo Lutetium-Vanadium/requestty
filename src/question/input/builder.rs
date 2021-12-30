@@ -96,7 +96,9 @@ impl<'a> InputBuilder<'a> {
     ///     .build();
     /// ```
     pub fn default<I: Into<String>>(mut self, default: I) -> Self {
-        self.input.default = Some(default.into());
+        let default = default.into();
+        let len = default.chars().count();
+        self.input.default = Some((default, len));
         self
     }
 
