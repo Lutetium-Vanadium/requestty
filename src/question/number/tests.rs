@@ -78,7 +78,7 @@ macro_rules! test_numbers {
 
                 let defaults = [None, Some($default)];
 
-                for default in defaults {
+                for &default in defaults.iter() {
                     let mut prompt = $prompt_name {
                         default: default.map(|n| (n, n.to_string())),
                         ..Default::default()
