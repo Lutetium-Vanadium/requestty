@@ -202,8 +202,6 @@ impl<'a> InputBuilder<'a> {
     }
 
     crate::impl_validate_on_key_builder! {
-    /// Note, this method will have no visual effect if the password is hidden instead of masked.
-    ///
     /// # Examples
     ///
     /// ```

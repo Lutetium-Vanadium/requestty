@@ -119,6 +119,9 @@ macro_rules! builder {
             }
 
             crate::impl_validate_on_key_builder! {
+            /// Note, the input will be showed in red if the number cannot be parsed even if this
+            /// function is not supplied.
+            ///
             /// # Examples
             ///
             /// ```
