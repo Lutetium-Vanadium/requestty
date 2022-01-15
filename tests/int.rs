@@ -118,4 +118,20 @@ fn test_default() {
 
     let ans = requestty::prompt_one_with(prompt, &mut backend, &mut events).unwrap();
     assert_eq!(ans, Answer::Int(32));
+
+    let prompt = Question::int("name").message("message").default(32);
+
+    let mut backend = helpers::SnapshotOnFlushBackend::new((50, 20).into());
+    let mut events = TestEvents::new(vec![KeyCode::Tab.into(), KeyCode::Enter.into()]);
+
+    let ans = requestty::prompt_one_with(prompt, &mut backend, &mut events).unwrap();
+    assert_eq!(ans, Answer::Int(32));
+
+    let prompt = Question::int("name").message("message").default(32);
+
+    let mut backend = helpers::SnapshotOnFlushBackend::new((50, 20).into());
+    let mut events = TestEvents::new(vec![KeyCode::Right.into(), KeyCode::Enter.into()]);
+
+    let ans = requestty::prompt_one_with(prompt, &mut backend, &mut events).unwrap();
+    assert_eq!(ans, Answer::Int(32));
 }

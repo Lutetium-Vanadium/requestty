@@ -95,6 +95,19 @@ impl InputPrompt<'_, '_> {
 
         None
     }
+
+    fn check_complete_default(&mut self) -> bool {
+        if self.get_remaining_default().is_some() {
+            let (default, default_len) = self.input_opts.default.as_ref().unwrap();
+            self.input.set_value(default.clone());
+            self.input.set_at(*default_len);
+            self.is_valid = true;
+
+            true
+        } else {
+            false
+        }
+    }
 }
 
 impl Widget for InputPrompt<'_, '_> {
@@ -192,11 +205,7 @@ impl Widget for InputPrompt<'_, '_> {
                     });
                     return true;
                 }
-            } else if self.get_remaining_default().is_some() {
-                let (default, default_len) = self.input_opts.default.as_ref().unwrap();
-                self.input.set_value(default.clone());
-                self.input.set_at(*default_len);
-                self.is_valid = true;
+            } else if self.check_complete_default() {
                 return true;
             }
         }
@@ -207,6 +216,8 @@ impl Widget for InputPrompt<'_, '_> {
             }
 
             self.select = None;
+            return true;
+        } else if key.code == KeyCode::Right && self.check_complete_default() {
             return true;
         }
 

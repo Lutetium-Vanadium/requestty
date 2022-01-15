@@ -113,6 +113,19 @@ macro_rules! impl_number_prompt {
                 None
             }
 
+            fn check_complete_default(&mut self) -> bool {
+                if self.get_remaining_default().is_some() {
+                    let default = &self.number.default.as_ref().unwrap().1;
+                    self.input.set_value(default.clone());
+                    self.input.set_at(default.len());
+                    self.is_valid = true;
+
+                    true
+                } else {
+                    false
+                }
+            }
+
             fn validate_on_key(&mut self, n: $inner_ty) {
                 if let ValidateOnKey::Sync(ref mut validate) = self.number.validate_on_key {
                     self.is_valid = validate(n, self.answers);
@@ -180,14 +193,6 @@ macro_rules! impl_number_prompt {
             }
 
             fn handle_key(&mut self, key: KeyEvent) -> bool {
-                if self.get_remaining_default().is_some() && key.code == KeyCode::Tab {
-                    let default = &self.number.default.as_ref().unwrap().1;
-                    self.input.set_value(default.clone());
-                    self.input.set_at(default.len());
-                    self.is_valid = true;
-                    return true;
-                }
-
                 if self.input.handle_key(key) {
                     match self.parse() {
                         Ok(n) => self.validate_on_key(n),
@@ -195,6 +200,8 @@ macro_rules! impl_number_prompt {
                     }
 
                     return true;
+                } else if key.code == KeyCode::Tab || key.code == KeyCode::Right {
+                    return self.check_complete_default();
                 }
 
                 let n = match (key.code, self.parse()) {
