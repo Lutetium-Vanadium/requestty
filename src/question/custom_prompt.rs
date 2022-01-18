@@ -22,7 +22,7 @@ pub trait Prompt: std::fmt::Debug {
         answers: &Answers,
         backend: &mut dyn Backend,
         events: &mut dyn EventIterator,
-    ) -> ui::Result<Answer>;
+    ) -> ui::Result<Option<Answer>>;
 }
 
 /// The same trait as `Prompt`, except it take `&mut self` instead of `self`.
@@ -39,7 +39,7 @@ pub(super) trait CustomPromptInteral: std::fmt::Debug {
         answers: &Answers,
         backend: &mut dyn Backend,
         events: &mut dyn EventIterator,
-    ) -> ui::Result<Answer>;
+    ) -> ui::Result<Option<Answer>>;
 }
 
 impl<T: Prompt> CustomPromptInteral for Option<T> {
@@ -49,7 +49,7 @@ impl<T: Prompt> CustomPromptInteral for Option<T> {
         answers: &Answers,
         backend: &mut dyn Backend,
         events: &mut dyn EventIterator,
-    ) -> ui::Result<Answer> {
+    ) -> ui::Result<Option<Answer>> {
         self.take()
             .expect("Prompt::ask called twice")
             .ask(message, answers, backend, events)
@@ -83,7 +83,7 @@ impl<T: Prompt> CustomPromptInteral for Option<T> {
 ///         answers: &prompt::Answers,
 ///         backend: &mut dyn prompt::Backend,
 ///         events: &mut dyn prompt::EventIterator,
-///     ) -> requestty::Result<prompt::Answer> {
+///     ) -> requestty::Result<Option<prompt::Answer>> {
 ///         // ...
 /// #         todo!()
 ///     }
@@ -130,7 +130,7 @@ impl<'a> CustomPromptBuilder<'a> {
     ///         answers: &prompt::Answers,
     ///         backend: &mut dyn prompt::Backend,
     ///         events: &mut dyn prompt::EventIterator,
-    ///     ) -> requestty::Result<prompt::Answer> {
+    ///     ) -> requestty::Result<Option<prompt::Answer>> {
     ///         // ...
     /// #         todo!()
     ///     }
@@ -163,7 +163,7 @@ impl<'a> CustomPromptBuilder<'a> {
     ///         answers: &prompt::Answers,
     ///         backend: &mut dyn prompt::Backend,
     ///         events: &mut dyn prompt::EventIterator,
-    ///     ) -> requestty::Result<prompt::Answer> {
+    ///     ) -> requestty::Result<Option<prompt::Answer>> {
     ///         // ...
     /// #         todo!()
     ///     }
@@ -199,7 +199,7 @@ impl<'a> CustomPromptBuilder<'a> {
     ///         answers: &prompt::Answers,
     ///         backend: &mut dyn prompt::Backend,
     ///         events: &mut dyn prompt::EventIterator,
-    ///     ) -> requestty::Result<prompt::Answer> {
+    ///     ) -> requestty::Result<Option<prompt::Answer>> {
     ///         // ...
     /// #         todo!()
     ///     }

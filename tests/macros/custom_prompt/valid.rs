@@ -10,8 +10,8 @@ impl Prompt for TestPrompt {
         _answers: &Answers,
         _backend: &mut dyn Backend,
         _events: &mut dyn EventIterator,
-    ) -> requestty::Result<Answer> {
-        Ok(Answer::Int(0))
+    ) -> requestty::Result<Option<Answer>> {
+        Ok(Some(Answer::Int(0)))
     }
 }
 

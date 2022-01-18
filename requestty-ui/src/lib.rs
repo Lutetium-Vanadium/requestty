@@ -26,7 +26,7 @@
 #![cfg_attr(docsrs, feature(doc_cfg))]
 
 pub use error::{ErrorKind, Result};
-pub use input::{Input, Prompt, Validation};
+pub use input::{Input, OnEsc, Prompt, Validation};
 pub use widgets::Widget;
 
 pub mod backend;

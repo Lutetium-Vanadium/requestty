@@ -5,6 +5,7 @@ fn main() {
     requestty::questions! [
         MultiSelect {
             name: "name",
+            on_esc: requestty::OnEsc::Terminate,
             transform: |_, _, _| Ok(()),
             validate: |_, _| Ok(()),
             filter: |t, _| t,

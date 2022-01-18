@@ -123,3 +123,40 @@ fn test_hidden() {
     let ans = requestty::prompt_one_with(prompt, &mut backend, &mut events).unwrap();
     assert_eq!(ans, Answer::String("password".into()));
 }
+
+#[test]
+fn test_on_esc() {
+    let size = (50, 20).into();
+    let mut backend = helpers::SnapshotOnFlushBackend::new(size);
+    let mut events = TestEvents::new(Some(KeyCode::Esc.into()));
+
+    let res = requestty::prompt_one_with(
+        Question::password("name")
+            .message("message")
+            .mask('*')
+            .on_esc(requestty::OnEsc::Terminate),
+        &mut backend,
+        &mut events,
+    );
+
+    assert!(matches!(res, Err(requestty::ErrorKind::Aborted)));
+
+    let size = (50, 20).into();
+    let mut backend = helpers::SnapshotOnFlushBackend::new(size);
+    let mut events = TestEvents::new(Some(KeyCode::Esc.into()));
+
+    let res = requestty::prompt_with(
+        Some(
+            Question::password("name")
+                .message("message")
+                .mask('*')
+                .on_esc(requestty::OnEsc::SkipQuestion)
+                .build(),
+        ),
+        &mut backend,
+        &mut events,
+    )
+    .unwrap();
+
+    assert!(res.is_empty());
+}

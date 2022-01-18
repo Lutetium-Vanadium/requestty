@@ -86,6 +86,17 @@ impl<'a> MultiSelectBuilder<'a> {
     ///     .ask_if_answered(true)
     ///     .build();
     /// ```
+
+    on_esc
+    /// # Examples
+    ///
+    /// ```
+    /// use requestty::{Answers, Question, OnEsc};
+    ///
+    /// let multi_select = Question::multi_select("cheese")
+    ///     .on_esc(OnEsc::Terminate)
+    ///     .build();
+    /// ```
     }
 
     /// The maximum height that can be taken by the list

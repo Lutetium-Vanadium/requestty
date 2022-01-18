@@ -12,27 +12,15 @@ pub enum ErrorKind {
     Interrupted,
     /// This occurs when `Null` is received in [`Input`](crate::Input).
     Eof,
-}
-
-impl ErrorKind {
-    /// Maps `ErrorKind::Interrupted` or `ErrorKind::Eof` to `std::io::Error`.
-    ///
-    /// The function is passed `true` if it was Interrupted and `false` if EOF was received.
-    pub fn map_terminated<F: FnOnce(bool) -> io::Error>(self, f: F) -> io::Error {
-        match self {
-            ErrorKind::IoError(e) => e,
-            ErrorKind::Interrupted => f(true),
-            ErrorKind::Eof => f(false),
-        }
-    }
+    /// The user aborted the question with `Esc`
+    Aborted,
 }
 
 impl std::error::Error for ErrorKind {
     fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
         match self {
             ErrorKind::IoError(e) => Some(e),
-            ErrorKind::Interrupted => None,
-            ErrorKind::Eof => None,
+            ErrorKind::Interrupted | ErrorKind::Eof | ErrorKind::Aborted => None,
         }
     }
 }
@@ -42,6 +30,7 @@ impl fmt::Display for ErrorKind {
         match self {
             ErrorKind::IoError(e) => write!(fmt, "IoError: {}", e),
             ErrorKind::Interrupted => write!(fmt, "CTRL+C"),
+            ErrorKind::Aborted => write!(fmt, "ESC"),
             ErrorKind::Eof => write!(fmt, "EOF"),
         }
     }

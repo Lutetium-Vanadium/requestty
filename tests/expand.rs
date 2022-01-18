@@ -84,3 +84,44 @@ fn test_default() {
 
     assert_eq!(ans.key, 'd');
 }
+
+#[test]
+fn test_on_esc() {
+    let size = (50, 20).into();
+    let mut backend = helpers::SnapshotOnFlushBackend::new(size);
+    let mut events = TestEvents::new(Some(KeyCode::Esc.into()));
+
+    let res = requestty::prompt_one_with(
+        Question::expand("name")
+            .message("message")
+            .default('d')
+            .choices(('a'..='g').map(|key| (key, format!("Choice {}", key.to_ascii_uppercase()))))
+            .on_esc(requestty::OnEsc::Terminate),
+        &mut backend,
+        &mut events,
+    );
+
+    assert!(matches!(res, Err(requestty::ErrorKind::Aborted)));
+
+    let size = (50, 20).into();
+    let mut backend = helpers::SnapshotOnFlushBackend::new(size);
+    let mut events = TestEvents::new(Some(KeyCode::Esc.into()));
+
+    let res = requestty::prompt_with(
+        Some(
+            Question::expand("name")
+                .message("message")
+                .default('d')
+                .choices(
+                    ('a'..='g').map(|key| (key, format!("Choice {}", key.to_ascii_uppercase()))),
+                )
+                .on_esc(requestty::OnEsc::SkipQuestion)
+                .build(),
+        ),
+        &mut backend,
+        &mut events,
+    )
+    .unwrap();
+
+    assert!(res.is_empty());
+}

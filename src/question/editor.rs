@@ -130,10 +130,11 @@ impl Editor<'_> {
     pub(crate) fn ask<B: Backend, E: EventIterator>(
         mut self,
         message: String,
+        on_esc: ui::OnEsc,
         answers: &Answers,
         b: &mut B,
         events: &mut E,
-    ) -> ui::Result<Answer> {
+    ) -> ui::Result<Option<Answer>> {
         let mut builder = tempfile::Builder::new();
 
         if let Some(ref extension) = self.extension {
@@ -165,18 +166,11 @@ impl Editor<'_> {
             },
             b,
         )
+        .on_esc(on_esc)
         .run(events)?;
 
-        crate::write_final!(
-            transform,
-            message,
-            &ans,
-            answers,
-            b,
-            b.write_styled(&"Received".dark_grey())?
-        );
-
-        Ok(Answer::String(ans))
+        crate::write_final!(transform, message, ans [ref], answers, b, |_ans| b
+            .write_styled(&"Received".dark_grey())?)
     }
 }
 
@@ -253,6 +247,17 @@ impl<'a> EditorBuilder<'a> {
     ///
     /// let editor = Question::editor("description")
     ///     .ask_if_answered(true)
+    ///     .build();
+    /// ```
+
+    on_esc
+    /// # Examples
+    ///
+    /// ```
+    /// use requestty::{Question, Answers, OnEsc};
+    ///
+    /// let editor = Question::editor("description")
+    ///     .on_esc(OnEsc::Terminate)
     ///     .build();
     /// ```
     }

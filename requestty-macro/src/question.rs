@@ -8,16 +8,17 @@ use crate::helpers::*;
 
 bitflags::bitflags! {
     pub struct BuilderMethods: u16 {
-        const DEFAULT        = 0b00_0000_0001;
-        const TRANSFORM      = 0b00_0000_0010;
-        const VAL_FIL        = 0b00_0000_0100;
-        const VAL_KEY        = 0b00_0000_1000;
-        const AUTO_COMPLETE  = 0b00_0001_0000;
-        const LOOP_PAGE_SIZE = 0b00_0010_0000;
-        const CHOICES        = 0b00_0100_0000;
-        const MASK           = 0b00_1000_0000;
-        const EXTENSION      = 0b01_0000_0000;
-        const PROMPT         = 0b10_0000_0000;
+        const DEFAULT        = 0b000_0000_0001;
+        const TRANSFORM      = 0b000_0000_0010;
+        const VAL_FIL        = 0b000_0000_0100;
+        const VAL_KEY        = 0b000_0000_1000;
+        const AUTO_COMPLETE  = 0b000_0001_0000;
+        const LOOP_PAGE_SIZE = 0b000_0010_0000;
+        const CHOICES        = 0b000_0100_0000;
+        const MASK           = 0b000_1000_0000;
+        const EXTENSION      = 0b001_0000_0000;
+        const ON_ESC         = 0b010_0000_0000;
+        const PROMPT         = 0b100_0000_0000;
     }
 }
 
@@ -62,37 +63,45 @@ impl QuestionKind {
                     | BuilderMethods::VAL_KEY
                     | BuilderMethods::AUTO_COMPLETE
                     | BuilderMethods::LOOP_PAGE_SIZE
+                    | BuilderMethods::ON_ESC
             }
             QuestionKind::Int | QuestionKind::Float => {
                 BuilderMethods::DEFAULT
                     | BuilderMethods::TRANSFORM
                     | BuilderMethods::VAL_FIL
                     | BuilderMethods::VAL_KEY
+                    | BuilderMethods::ON_ESC
             }
-            QuestionKind::Confirm => BuilderMethods::DEFAULT | BuilderMethods::TRANSFORM,
+            QuestionKind::Confirm => {
+                BuilderMethods::DEFAULT | BuilderMethods::TRANSFORM | BuilderMethods::ON_ESC
+            }
             QuestionKind::Select | QuestionKind::RawSelect | QuestionKind::Expand => {
                 BuilderMethods::DEFAULT
                     | BuilderMethods::TRANSFORM
                     | BuilderMethods::LOOP_PAGE_SIZE
                     | BuilderMethods::CHOICES
+                    | BuilderMethods::ON_ESC
             }
             QuestionKind::MultiSelect => {
                 BuilderMethods::TRANSFORM
                     | BuilderMethods::VAL_FIL
                     | BuilderMethods::LOOP_PAGE_SIZE
                     | BuilderMethods::CHOICES
+                    | BuilderMethods::ON_ESC
             }
             QuestionKind::Password => {
                 BuilderMethods::TRANSFORM
                     | BuilderMethods::VAL_FIL
                     | BuilderMethods::VAL_KEY
                     | BuilderMethods::MASK
+                    | BuilderMethods::ON_ESC
             }
             QuestionKind::Editor => {
                 BuilderMethods::DEFAULT
                     | BuilderMethods::TRANSFORM
                     | BuilderMethods::VAL_FIL
                     | BuilderMethods::EXTENSION
+                    | BuilderMethods::ON_ESC
             }
             QuestionKind::Custom => BuilderMethods::PROMPT,
         }
@@ -146,6 +155,7 @@ pub(crate) struct QuestionOpts {
     pub(crate) message: Option<syn::Expr>,
     pub(crate) when: Option<syn::Expr>,
     pub(crate) ask_if_answered: Option<syn::Expr>,
+    pub(crate) on_esc: Option<syn::Expr>,
 
     pub(crate) default: Option<syn::Expr>,
 
@@ -171,6 +181,7 @@ impl Default for QuestionOpts {
             message: None,
             when: None,
             ask_if_answered: None,
+            on_esc: None,
 
             default: None,
 
@@ -216,6 +227,8 @@ fn check_allowed(ident: &syn::Ident, kind: QuestionKind) -> syn::Result<()> {
         BuilderMethods::MASK
     } else if ident == "extension" {
         BuilderMethods::EXTENSION
+    } else if ident == "on_esc" {
+        BuilderMethods::ON_ESC
     } else if ident == "prompt" {
         BuilderMethods::PROMPT
     } else {
@@ -290,6 +303,8 @@ impl Parse for Question {
                 insert_non_dup(ident, &mut opts.mask, &content)?;
             } else if ident == "extension" {
                 insert_non_dup(ident, &mut opts.extension, &content)?;
+            } else if ident == "on_esc" {
+                insert_non_dup(ident, &mut opts.on_esc, &content)?;
             } else if ident == "prompt" {
                 insert_non_dup(ident, &mut opts.prompt, &content)?;
             } else {
@@ -407,6 +422,9 @@ impl quote::ToTokens for Question {
         }
         if let Some(ref extension) = self.opts.extension {
             tokens.extend(quote_spanned! { extension.span() => .extension(#extension) });
+        }
+        if let Some(ref on_esc) = self.opts.on_esc {
+            tokens.extend(quote_spanned! { on_esc.span() => .on_esc(#on_esc) });
         }
         tokens.extend(quote! { .build() });
     }

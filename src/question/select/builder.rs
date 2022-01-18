@@ -87,6 +87,17 @@ impl<'a> SelectBuilder<'a> {
     ///     .ask_if_answered(true)
     ///     .build();
     /// ```
+
+    on_esc
+    /// # Examples
+    ///
+    /// ```
+    /// use requestty::{Question, Answers, OnEsc};
+    ///
+    /// let select = Question::select("theme")
+    ///     .on_esc(OnEsc::Terminate)
+    ///     .build();
+    /// ```
     }
 
     /// Set a default index for the select

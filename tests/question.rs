@@ -13,11 +13,11 @@ impl Prompt for Validate<'_> {
         _: &Answers,
         _: &mut dyn Backend,
         _: &mut dyn EventIterator,
-    ) -> requestty::Result<Answer> {
+    ) -> requestty::Result<Option<Answer>> {
         assert_eq!(message, self.message);
         *self.prompted = true;
 
-        Ok(Answer::Int(0))
+        Ok(Some(Answer::Int(0)))
     }
 }
 

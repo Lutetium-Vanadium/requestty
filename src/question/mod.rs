@@ -455,7 +455,7 @@ impl Question<'static> {
     ///         answers: &prompt::Answers,
     ///         backend: &mut dyn prompt::Backend,
     ///         events: &mut dyn prompt::EventIterator,
-    ///     ) -> requestty::Result<prompt::Answer> {
+    ///     ) -> requestty::Result<Option<prompt::Answer>> {
     /// #       todo!()
     ///         /* ... */
     ///     }
@@ -493,7 +493,7 @@ enum QuestionKind<'a> {
 
 impl Question<'_> {
     pub(crate) fn ask<B: Backend, I: EventIterator>(
-        mut self,
+        self,
         answers: &Answers,
         b: &mut B,
         events: &mut I,
@@ -514,22 +514,23 @@ impl Question<'_> {
             .message
             .map(|message| message.get(answers))
             .unwrap_or_else(|| name.clone() + ":");
+        let on_esc = self.opts.on_esc.get(answers);
 
         let res = match self.kind {
-            QuestionKind::Input(i) => i.ask(message, answers, b, events)?,
-            QuestionKind::Int(i) => i.ask(message, answers, b, events)?,
-            QuestionKind::Float(f) => f.ask(message, answers, b, events)?,
-            QuestionKind::Confirm(c) => c.ask(message, answers, b, events)?,
-            QuestionKind::Select(l) => l.ask(message, answers, b, events)?,
-            QuestionKind::RawSelect(r) => r.ask(message, answers, b, events)?,
-            QuestionKind::Expand(e) => e.ask(message, answers, b, events)?,
-            QuestionKind::MultiSelect(c) => c.ask(message, answers, b, events)?,
-            QuestionKind::Password(p) => p.ask(message, answers, b, events)?,
-            QuestionKind::Editor(e) => e.ask(message, answers, b, events)?,
-            QuestionKind::Custom(ref mut o) => o.ask(message, answers, b, events)?,
+            QuestionKind::Input(i) => i.ask(message, on_esc, answers, b, events)?,
+            QuestionKind::Int(i) => i.ask(message, on_esc, answers, b, events)?,
+            QuestionKind::Float(f) => f.ask(message, on_esc, answers, b, events)?,
+            QuestionKind::Confirm(c) => c.ask(message, on_esc, answers, b, events)?,
+            QuestionKind::Select(l) => l.ask(message, on_esc, answers, b, events)?,
+            QuestionKind::RawSelect(r) => r.ask(message, on_esc, answers, b, events)?,
+            QuestionKind::Expand(e) => e.ask(message, on_esc, answers, b, events)?,
+            QuestionKind::MultiSelect(c) => c.ask(message, on_esc, answers, b, events)?,
+            QuestionKind::Password(p) => p.ask(message, on_esc, answers, b, events)?,
+            QuestionKind::Editor(e) => e.ask(message, on_esc, answers, b, events)?,
+            QuestionKind::Custom(mut o) => o.ask(message, answers, b, events)?,
         };
 
-        Ok(Some((name, res)))
+        Ok(res.map(|res| (name, res)))
     }
 }
 

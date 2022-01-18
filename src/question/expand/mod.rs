@@ -322,10 +322,11 @@ impl Expand<'_> {
     pub(crate) fn ask<B: Backend, E: EventIterator>(
         mut self,
         message: String,
+        on_esc: ui::OnEsc,
         answers: &Answers,
         b: &mut B,
         events: &mut E,
-    ) -> ui::Result<Answer> {
+    ) -> ui::Result<Option<Answer>> {
         let help_key = if self.default == 'h' { 'H' } else { 'h' };
 
         let hint: String = self
@@ -358,23 +359,15 @@ impl Expand<'_> {
             },
             b,
         )
+        .on_esc(on_esc)
         .run(events)?;
 
-        crate::write_final!(
-            transform,
-            message,
-            &ans,
-            answers,
-            b,
-            b.write_styled(
-                &ans.text
-                    .lines()
-                    .next()
-                    .expect("There must be at least one line in a `str`")
-                    .cyan()
-            )?
-        );
-
-        Ok(Answer::ExpandItem(ans))
+        crate::write_final!(transform, message, ans [ref], answers, b, |ans| b.write_styled(
+            &ans.text
+                .lines()
+                .next()
+                .expect("There must be at least one line in a `str`")
+                .cyan()
+        )?)
     }
 }

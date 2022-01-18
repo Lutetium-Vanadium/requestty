@@ -209,6 +209,7 @@ fn test_custom_prompt() {
 
     t.pass("valid");
     t.compile_fail("default");
+    t.compile_fail("on_esc");
     t.compile_fail("transform");
     t.compile_fail("filter");
     t.compile_fail("validate");

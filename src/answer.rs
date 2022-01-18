@@ -192,6 +192,24 @@ impl Answer {
     }
 }
 
+macro_rules! impl_from {
+    ($from:ty => $storage:ident) => {
+        impl From<$from> for Answer {
+            fn from(ans: $from) -> Self {
+                Self::$storage(ans)
+            }
+        }
+    };
+}
+
+impl_from!(String => String);
+impl_from!(i64 => Int);
+impl_from!(f64 => Float);
+impl_from!(bool => Bool);
+impl_from!(ExpandItem => ExpandItem);
+impl_from!(ListItem => ListItem);
+impl_from!(Vec<ListItem> => ListItems);
+
 /// A representation of a [`Choice`] at a particular index.
 ///
 /// It will be returned by [`select`] and [`raw_select`].

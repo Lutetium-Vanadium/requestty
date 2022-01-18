@@ -93,6 +93,17 @@ impl<'a> ExpandBuilder<'a> {
     ///     .ask_if_answered(true)
     ///     .build();
     /// ```
+
+    on_esc
+    /// # Examples
+    ///
+    /// ```
+    /// use requestty::{Question, OnEsc};
+    ///
+    /// let expand = Question::expand("overwrite")
+    ///     .on_esc(OnEsc::Terminate)
+    ///     .build();
+    /// ```
     }
 
     /// Set a default key for the expand

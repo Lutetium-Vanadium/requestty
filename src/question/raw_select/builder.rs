@@ -90,6 +90,17 @@ impl<'a> RawSelectBuilder<'a> {
     ///     .ask_if_answered(true)
     ///     .build();
     /// ```
+
+    on_esc
+    /// # Examples
+    ///
+    /// ```
+    /// use requestty::{Question, Answers, OnEsc};
+    ///
+    /// let raw_select = Question::raw_select("theme")
+    ///     .on_esc(OnEsc::Terminate)
+    ///     .build();
+    /// ```
     }
 
     /// Set a default index for the select

@@ -3,5 +3,6 @@ fn main() {
         name: "name",
         default: true,
         transform: |_, _, _| Ok(()),
+        on_esc: requestty::OnEsc::Terminate,
     }];
 }

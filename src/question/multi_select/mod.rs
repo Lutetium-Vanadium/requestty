@@ -207,17 +207,19 @@ impl<'c> MultiSelect<'c> {
     pub(crate) fn ask<B: Backend, E: EventIterator>(
         mut self,
         message: String,
+        on_esc: ui::OnEsc,
         answers: &Answers,
         b: &mut B,
         events: &mut E,
-    ) -> ui::Result<Answer> {
+    ) -> ui::Result<Option<Answer>> {
         let transform = self.transform.take();
 
         let ans = ui::Input::new(self.into_multi_select_prompt(&message, answers), b)
             .hide_cursor()
+            .on_esc(on_esc)
             .run(events)?;
 
-        crate::write_final!(transform, message, &ans, answers, b, {
+        crate::write_final!(transform, message, ans [ref], answers, b, |ans| {
             b.set_fg(Color::Cyan)?;
             print_comma_separated(
                 ans.iter().map(|item| {
@@ -229,9 +231,7 @@ impl<'c> MultiSelect<'c> {
                 b,
             )?;
             b.set_fg(Color::Reset)?;
-        });
-
-        Ok(Answer::ListItems(ans))
+        })
     }
 }
 

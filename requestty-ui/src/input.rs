@@ -26,6 +26,19 @@ pub enum Validation {
     Continue,
 }
 
+/// What to do after receiving `Esc`
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum OnEsc {
+    /// Stop asking the `PromptModule`. Similar effect to `Ctrl+C` except it can be distinguished in
+    /// case different behaviour is needed
+    Terminate,
+    /// Skip the current question and move on to the next question. The question will not be asked
+    /// again.
+    SkipQuestion,
+    /// Pressing `Esc` will not do anything, and will be ignored. This is the default behaviour.
+    Ignore,
+}
+
 /// This trait should be implemented by all 'root' widgets.
 ///
 /// It provides the functionality required only by the main controlling widget. For the trait
@@ -62,6 +75,7 @@ pub trait Prompt: Widget {
 #[derive(Debug)]
 pub struct Input<P, B: Backend> {
     prompt: P,
+    on_esc: OnEsc,
     backend: TerminalState<B>,
     base_row: u16,
     size: Size,
@@ -76,6 +90,7 @@ impl<P, B: Backend> Input<P, B> {
         // once the Input has been dropped, it can be used again
         Input {
             prompt,
+            on_esc: OnEsc::Ignore,
             backend: TerminalState::new(backend, false),
             base_row: 0,
             size: Size::default(),
@@ -85,6 +100,18 @@ impl<P, B: Backend> Input<P, B> {
     /// Hides the cursor while running the input. This won't do anything until it is [run](Input::run).
     pub fn hide_cursor(mut self) -> Self {
         self.backend.hide_cursor = true;
+        self
+    }
+
+    /// What to do after receiving a `Esc`.
+    ///
+    /// For [`OnEsc::Terminate`] - an [`Error::Aborted`](error::Error::Aborted) will be returned.
+    /// For [`OnEsc::SkipQuestion`] - the currently shown prompt will be cleared, and `Ok(None)`
+    /// will be returned.
+    /// For [`OnEsc::Ignore`] - no special behaviour will be applied to the `Esc` key. Like other
+    /// keys, the `Esc` key will be passed to the prompt to handle.
+    pub fn on_esc(mut self, on_esc: OnEsc) -> Self {
+        self.on_esc = on_esc;
         self
     }
 }
@@ -174,7 +201,7 @@ impl<P: Prompt, B: Backend> Input<P, B> {
     /// Display the prompt and process events until the user presses `Enter`.
     ///
     /// After the user presses `Enter`, [`validate`](Prompt::validate) will be called.
-    pub fn run<E>(mut self, events: &mut E) -> error::Result<P::Output>
+    pub fn run<E>(mut self, events: &mut E) -> error::Result<Option<P::Output>>
     where
         E: EventIterator,
     {
@@ -192,12 +219,22 @@ impl<P: Prompt, B: Backend> Input<P, B> {
                     self.exit()?;
                     return Err(error::ErrorKind::Eof);
                 }
+                KeyCode::Esc if self.on_esc == OnEsc::Terminate => {
+                    self.exit()?;
+                    return Err(error::ErrorKind::Aborted);
+                }
+                KeyCode::Esc if self.on_esc == OnEsc::SkipQuestion => {
+                    self.clear()?;
+                    self.backend.reset()?;
+
+                    return Ok(None);
+                }
                 KeyCode::Enter => match self.prompt.validate() {
                     Ok(Validation::Finish) => {
                         self.clear()?;
                         self.backend.reset()?;
 
-                        return Ok(self.prompt.finish());
+                        return Ok(Some(self.prompt.finish()));
                     }
                     Ok(Validation::Continue) => true,
                     Err(e) => {
@@ -336,6 +373,7 @@ mod tests {
         assert_eq!(
             Input {
                 prompt,
+                on_esc: OnEsc::Ignore,
                 backend: TerminalState::new(&mut backend, false),
                 base_row: 14,
                 size,
@@ -350,6 +388,7 @@ mod tests {
         assert_eq!(
             Input {
                 prompt,
+                on_esc: OnEsc::Ignore,
                 backend: TerminalState::new(&mut backend, false),
                 base_row: 14,
                 size,
@@ -363,6 +402,7 @@ mod tests {
         assert_eq!(
             Input {
                 prompt,
+                on_esc: OnEsc::Ignore,
                 backend: TerminalState::new(&mut backend, false),
                 base_row: 14,
                 size,
@@ -383,6 +423,7 @@ mod tests {
 
         assert!(Input {
             prompt,
+            on_esc: OnEsc::Ignore,
             backend: TerminalState::new(&mut backend, false),
             size,
             base_row: 5,
@@ -401,6 +442,7 @@ mod tests {
 
         let mut input = Input {
             prompt: TestPrompt::default(),
+            on_esc: OnEsc::Ignore,
             backend: TerminalState::new(&mut backend, false),
             size,
             base_row: 15,
@@ -421,6 +463,7 @@ mod tests {
 
         assert!(Input {
             prompt: TestPrompt { height: 5 },
+            on_esc: OnEsc::Ignore,
             backend: TerminalState::new(&mut backend, true),
             base_row: 0,
             size,

@@ -2,6 +2,7 @@ fn main() {
     requestty::questions![Input {
         name: "name",
         default: "hello world",
+        on_esc: requestty::OnEsc::Terminate,
         should_loop: true,
         page_size: 10,
         transform: |_, _, _| Ok(()),

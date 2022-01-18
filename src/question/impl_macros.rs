@@ -180,15 +180,22 @@ macro_rules! impl_transform_builder {
 #[doc(hidden)]
 #[macro_export]
 macro_rules! write_final {
-    ($transform:expr, $message:expr, $ans:expr, $answers:expr, $backend:expr, $custom:expr) => {{
-        ui::widgets::Prompt::write_finished_message(&$message, $backend)?;
+    ($transform:expr, $message:expr, $ans:ident $([$tt:tt])?, $answers:expr, $backend:expr, |$ident:ident| $custom:expr) => {{
+        ui::widgets::Prompt::write_finished_message(&$message, $ans.is_none(), $backend)?;
 
-        match $transform {
-            Transform::Sync(transform) => transform($ans, $answers, $backend)?,
-            _ => $custom,
+        // Weird reborrowing trick to make sure ans is not moved when $tt is ref, but is copied when
+        // $tt is not there
+        match (&$ans, $transform) {
+            (&Some($($tt)? ans), Transform::Sync(transform)) => transform(ans, $answers, $backend)?,
+            (&Some($($tt)? $ident), _) => $custom,
+            (None, _) => {
+                $backend.write_styled(&ui::style::Stylize::dark_grey("Skipped"))?;
+            }
         }
 
         $backend.write_all(b"\n")?;
         $backend.flush()?;
+
+        Ok($ans.map($crate::answer::Answer::from))
     }};
 }

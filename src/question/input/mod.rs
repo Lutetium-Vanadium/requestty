@@ -282,23 +282,18 @@ impl<'i> Input<'i> {
     pub(crate) fn ask<B: Backend, E: EventIterator>(
         mut self,
         message: String,
+        on_esc: ui::OnEsc,
         answers: &Answers,
         b: &mut B,
         events: &mut E,
-    ) -> ui::Result<Answer> {
+    ) -> ui::Result<Option<Answer>> {
         let transform = self.transform.take();
 
-        let ans = ui::Input::new(self.into_input_prompt(&message, answers), b).run(events)?;
+        let ans = ui::Input::new(self.into_input_prompt(&message, answers), b)
+            .on_esc(on_esc)
+            .run(events)?;
 
-        crate::write_final!(
-            transform,
-            message,
-            &ans,
-            answers,
-            b,
-            b.write_styled(&ans.as_str().cyan())?
-        );
-
-        Ok(Answer::String(ans))
+        crate::write_final!(transform, message, ans [ref], answers, b, |ans| b
+            .write_styled(&ans.as_str().cyan())?)
     }
 }

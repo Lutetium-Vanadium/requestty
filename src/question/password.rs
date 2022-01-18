@@ -110,24 +110,25 @@ impl<'p> Password<'p> {
     pub(crate) fn ask<B: Backend, E: EventIterator>(
         mut self,
         message: String,
+        on_esc: ui::OnEsc,
         answers: &Answers,
         b: &mut B,
         events: &mut E,
-    ) -> ui::Result<Answer> {
+    ) -> ui::Result<Option<Answer>> {
         let transform = self.transform.take();
 
-        let ans = ui::Input::new(self.into_prompt(&message, answers), b).run(events)?;
+        let ans = ui::Input::new(self.into_prompt(&message, answers), b)
+            .on_esc(on_esc)
+            .run(events)?;
 
         crate::write_final!(
             transform,
             message,
-            &ans,
+            ans [ref],
             answers,
             b,
-            b.write_styled(&"[hidden]".dark_grey())?
-        );
-
-        Ok(Answer::String(ans))
+            |_ans| b.write_styled(&"[hidden]".dark_grey())?
+        )
     }
 }
 
@@ -209,6 +210,17 @@ impl<'a> PasswordBuilder<'a> {
     ///
     /// let password = Question::password("password")
     ///     .ask_if_answered(true)
+    ///     .build();
+    /// ```
+
+    on_esc
+    /// # Examples
+    ///
+    /// ```
+    /// use requestty::{Question, OnEsc};
+    ///
+    /// let password = Question::password("password")
+    ///     .on_esc(OnEsc::Terminate)
     ///     .build();
     /// ```
     }

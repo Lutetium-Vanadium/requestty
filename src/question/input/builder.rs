@@ -77,6 +77,17 @@ impl<'a> InputBuilder<'a> {
     ///     .ask_if_answered(true)
     ///     .build();
     /// ```
+
+    on_esc
+    /// # Examples
+    ///
+    /// ```
+    /// use requestty::{Question, Answers, OnEsc};
+    ///
+    /// let input = Question::input("name")
+    ///     .on_esc(OnEsc::Terminate)
+    ///     .build();
+    /// ```
     }
 
     /// Set a default value for the input

@@ -157,8 +157,16 @@ impl<M: AsRef<str>, H: AsRef<str>> Prompt<M, H> {
 
 impl<M: AsRef<str>> Prompt<M, &'static str> {
     /// The end prompt to be printed once the question is answered.
-    pub fn write_finished_message<B: Backend>(message: &M, backend: &mut B) -> io::Result<()> {
-        backend.write_styled(&crate::symbols::TICK.light_green())?;
+    pub fn write_finished_message<B: Backend>(
+        message: &M,
+        skipped: bool,
+        backend: &mut B,
+    ) -> io::Result<()> {
+        if skipped {
+            backend.write_styled(&crate::symbols::CROSS.yellow())?;
+        } else {
+            backend.write_styled(&crate::symbols::TICK.light_green())?;
+        }
         backend.write_all(b" ")?;
         backend.write_styled(&message.as_ref().bold())?;
         backend.write_all(b" ")?;

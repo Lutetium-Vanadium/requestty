@@ -104,3 +104,40 @@ fn test_validate() {
 
     assert_eq!(ans.index, 8);
 }
+
+#[test]
+fn test_on_esc() {
+    let size = (50, 20).into();
+    let mut backend = helpers::SnapshotOnFlushBackend::new(size);
+    let mut events = TestEvents::new(Some(KeyCode::Esc.into()));
+
+    let res = requestty::prompt_one_with(
+        Question::raw_select("name")
+            .message("message")
+            .choices(choices(10))
+            .on_esc(requestty::OnEsc::Terminate),
+        &mut backend,
+        &mut events,
+    );
+
+    assert!(matches!(res, Err(requestty::ErrorKind::Aborted)));
+
+    let size = (50, 20).into();
+    let mut backend = helpers::SnapshotOnFlushBackend::new(size);
+    let mut events = TestEvents::new(Some(KeyCode::Esc.into()));
+
+    let res = requestty::prompt_with(
+        Some(
+            Question::raw_select("name")
+                .message("message")
+                .choices(choices(10))
+                .on_esc(requestty::OnEsc::SkipQuestion)
+                .build(),
+        ),
+        &mut backend,
+        &mut events,
+    )
+    .unwrap();
+
+    assert!(res.is_empty());
+}

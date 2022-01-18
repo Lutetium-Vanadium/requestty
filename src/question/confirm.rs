@@ -91,20 +91,21 @@ impl<'a> Confirm<'a> {
     pub(crate) fn ask<B: Backend, E: EventIterator>(
         mut self,
         message: String,
+        on_esc: ui::OnEsc,
         answers: &Answers,
         b: &mut B,
         events: &mut E,
-    ) -> ui::Result<Answer> {
+    ) -> ui::Result<Option<Answer>> {
         let transform = self.transform.take();
 
-        let ans = ui::Input::new(self.into_confirm_prompt(&message), b).run(events)?;
+        let ans = ui::Input::new(self.into_confirm_prompt(&message), b)
+            .on_esc(on_esc)
+            .run(events)?;
 
-        crate::write_final!(transform, message, ans, answers, b, {
+        crate::write_final!(transform, message, ans, answers, b, |ans| {
             let ans = if ans { "Yes" } else { "No" };
             b.write_styled(&ans.cyan())?;
-        });
-
-        Ok(Answer::Bool(ans))
+        })
     }
 }
 
@@ -176,6 +177,17 @@ impl<'a> ConfirmBuilder<'a> {
     ///
     /// let confirm = Question::confirm("anonymous")
     ///     .ask_if_answered(true)
+    ///     .build();
+    /// ```
+
+    on_esc
+    /// # Examples
+    ///
+    /// ```
+    /// use requestty::{Question, OnEsc};
+    ///
+    /// let confirm = Question::confirm("anonymous")
+    ///     .on_esc(OnEsc::Terminate)
     ///     .build();
     /// ```
     }

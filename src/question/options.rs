@@ -1,5 +1,7 @@
 use std::fmt;
 
+use ui::OnEsc;
+
 use crate::Answers;
 
 #[derive(Debug)]
@@ -8,6 +10,7 @@ pub(crate) struct Options<'a> {
     pub(crate) message: Option<Getter<'a, String>>,
     pub(crate) when: Getter<'a, bool>,
     pub(crate) ask_if_answered: bool,
+    pub(crate) on_esc: Getter<'a, OnEsc>,
 }
 
 impl<'a> Options<'a> {
@@ -17,6 +20,7 @@ impl<'a> Options<'a> {
             message: None,
             when: true.into(),
             ask_if_answered: false,
+            on_esc: OnEsc::Ignore.into(),
         }
     }
 }
@@ -26,7 +30,10 @@ impl<'a> Options<'a> {
 macro_rules! impl_options_builder {
     // NOTE: the 2 extra lines at the end of each doc comment is intentional -- it makes sure that
     // other docs that come from the macro invocation have appropriate spacing
-    (message $(#[$message_meta:meta])+  when $(#[$when_meta:meta])+ ask_if_answered $(#[$ask_if_answered_meta:meta])+) => {
+    (message $(#[$message_meta:meta])*
+     when $(#[$when_meta:meta])*
+     ask_if_answered $(#[$ask_if_answered_meta:meta])*
+     $(on_esc $(#[$on_esc_meta:meta])*)?) => {
         /// The message to display when the prompt is rendered in the terminal.
         ///
         /// It can be either a [`String`] or a [`FnOnce`] that returns a [`String`]. If it is a
@@ -85,6 +92,26 @@ macro_rules! impl_options_builder {
             self.opts.ask_if_answered = ask_if_answered;
             self
         }
+
+        $(
+        /// Configure what to do when the user presses the `Esc` key.
+        ///
+        /// It can be either a [`OnEsc`] or a [`FnOnce`] that returns a [`OnEsc`]. If it is a
+        /// function, it is passed all the previous [`Answers`], and will be called right before the
+        /// question is prompted to the user.
+        ///
+        /// If it is not given, it defaults to [`OnEsc::Ignore`].
+        ///
+        ///
+        $(#[$on_esc_meta])*
+        pub fn on_esc<T>(mut self, on_esc: T) -> Self
+        where
+            T: Into<crate::question::options::Getter<'a, ui::OnEsc>>,
+        {
+            self.opts.on_esc = on_esc.into();
+            self
+        }
+        )?
     };
 }
 
@@ -152,6 +179,16 @@ impl_getter_from_val!(bool, bool);
 impl<'a, F> From<F> for Getter<'a, bool>
 where
     F: FnOnce(&Answers) -> bool + 'a,
+{
+    fn from(f: F) -> Self {
+        Getter::Function(Box::new(f))
+    }
+}
+
+impl_getter_from_val!(OnEsc, OnEsc);
+impl<'a, F> From<F> for Getter<'a, OnEsc>
+where
+    F: FnOnce(&Answers) -> OnEsc + 'a,
 {
     fn from(f: F) -> Self {
         Getter::Function(Box::new(f))

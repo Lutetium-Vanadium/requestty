@@ -62,6 +62,17 @@ macro_rules! builder {
             ///     .ask_if_answered(true)
             ///     .build();
             /// ```
+
+            on_esc
+            /// # Examples
+            ///
+            /// ```
+            /// use requestty::{Question, Answers, OnEsc};
+            ///
+            #[doc = $declare]
+            ///     .on_esc(OnEsc::Terminate)
+            ///     .build();
+            /// ```
             }
 
             /// Set a default value
