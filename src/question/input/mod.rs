@@ -236,11 +236,13 @@ impl Prompt for InputPrompt<'_, '_> {
     type Output = String;
 
     fn finish(self) -> Self::Output {
-        let prompt = self.prompt;
-        let mut ans = self
-            .input
-            .finish()
-            .unwrap_or_else(|| prompt.into_hint().unwrap_or_else(String::new));
+        let mut ans = self.input.finish();
+
+        if ans.is_empty() {
+            if let Some((default, _)) = self.input_opts.default {
+                ans = default;
+            }
+        }
 
         if let Filter::Sync(filter) = self.input_opts.filter {
             ans = filter(ans, self.answers);
@@ -255,7 +257,7 @@ impl Prompt for InputPrompt<'_, '_> {
             return Ok(Validation::Continue);
         }
 
-        if !self.input.has_value() && self.prompt.hint().is_some() {
+        if self.input.value().is_empty() && self.input_opts.default.is_some() {
             return Ok(Validation::Finish);
         }
 

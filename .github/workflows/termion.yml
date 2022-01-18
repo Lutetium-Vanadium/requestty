@@ -17,7 +17,7 @@ jobs:
           # pinned (MSRV) rust version :: ubuntu
           - build: msrv
             os: ubuntu-18.04
-            rust: 1.47.0
+            rust: 1.49.0
 
           # latest rust stable :: ubuntu
           - build: stable
@@ -56,7 +56,7 @@ jobs:
       - name: build_all
         run: cargo build --verbose --workspace --no-default-features --features=termion,macros
 
-      # doesn't use --include-ignored as it was unstable in 1.47
+      # doesn't use --include-ignored as it was unstable in 1.49
       - name: test_regular
         run: cargo test --workspace --verbose --no-default-features --features=termion,macros
 

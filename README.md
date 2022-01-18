@@ -32,7 +32,7 @@ Add this to your `Cargo.toml`
 
 ```toml
 [dependencies]
-requestty = "0.1.0"
+requestty = "0.3.0"
 ```
 
 ```rust
@@ -147,4 +147,4 @@ There are 10 in-built prompts:
 ## Minimum Supported Rust Version (MSRV)
 
 Minimum supported rust version (as per
-[cargo-msrv](https://crates.io/crates/cargo-msrv)) is `1.47`
+[cargo-msrv](https://crates.io/crates/cargo-msrv)) is `1.49`

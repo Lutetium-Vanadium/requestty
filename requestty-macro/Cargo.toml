@@ -1,6 +1,6 @@
 [package]
 name = "requestty-macro"
-version = "0.2.1"
+version = "0.3.0"
 authors = ["Lutetium Vanadium"]
 edition = "2018"
 description = "The `questions` macro for `requestty`"

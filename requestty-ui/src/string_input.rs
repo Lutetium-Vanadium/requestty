@@ -109,24 +109,9 @@ impl<F> StringInput<F> {
         }
     }
 
-    /// Check whether any character has come to the input.
-    ///
-    /// This does not check if the string is empty. So a character is added, and then deleted, it
-    /// `has_value` will return `true`.
-    pub fn has_value(&self) -> bool {
-        self.value.capacity() > 0
-    }
-
-    /// Returns `None` if no characters have been inputted, otherwise returns `Some(_)`.
-    ///
-    /// It can return `Some("")`, if a character was added and then deleted. It will only return
-    /// `None` when no character was ever received.
-    pub fn finish(self) -> Option<String> {
-        if self.has_value() {
-            Some(self.value)
-        } else {
-            None
-        }
+    /// Returns the inputted string
+    pub fn finish(self) -> String {
+        self.value
     }
 
     /// Gets the byte index of a given char index

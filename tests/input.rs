@@ -111,7 +111,7 @@ fn test_default() {
     ]);
 
     let ans = requestty::prompt_one_with(prompt, &mut backend, &mut events).unwrap();
-    assert_eq!(ans, Answer::String("".into()));
+    assert_eq!(ans, Answer::String("default".into()));
 
     let prompt = Question::input("name")
         .message("message")
@@ -121,7 +121,7 @@ fn test_default() {
     let mut events = TestEvents::new(Some(KeyCode::Enter.into()));
 
     let ans = requestty::prompt_one_with(prompt, &mut backend, &mut events).unwrap();
-    assert_eq!(ans, Answer::String("".into()));
+    assert_eq!(ans, Answer::String("default".into()));
 
     let prompt = Question::input("name")
         .message("message")

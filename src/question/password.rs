@@ -40,7 +40,7 @@ impl ui::Prompt for PasswordPrompt<'_, '_> {
     }
 
     fn finish(self) -> Self::Output {
-        let mut ans = self.input.finish().unwrap_or_else(String::new);
+        let mut ans = self.input.finish();
 
         if let Filter::Sync(filter) = self.password.filter {
             ans = filter(ans, self.answers)

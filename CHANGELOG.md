@@ -1,5 +1,44 @@
 # Changelog
 
+## `0.3.0`
+
+- `requestty`
+
+  - Allow using the Right Arrow key to auto-complete default
+
+  - Implement #6 - Add support for handling abort with `Esc`
+
+    Earlier, when the user pressed the `Esc` key, nothing would happen as
+    `ui::Input` would just pass the event on to the prompt. Now 2 other
+    actions can be specified.
+
+    `OnEsc::Terminate`: returns an `Err` which will propagate upwards,
+    essentially cancelling the `PromptModule`
+
+    `OnEsc::SkipQuestion`: returns `None`, showing that the question has
+    been skipped
+
+  - Fix #7 - input returns empty string even if default was given
+
+- `requestty-ui`
+
+  - Added `OnEsc` to configure behaviour on `Esc` for `Input`s
+
+  - Added the `skipped` parameter to `Prompt::write_finished_message`
+
+  - Added `ErrorKind::Aborted`
+
+  - Removed `ErrorKind::map_terminated` - this was a temporary code that
+    came about while implementing a feature, but was never deleted.
+
+  - Removed `StringInput::has_value` - this was used to get the capacity
+    of the underlying string buffer due to a weird implementation of
+    `Question::input`
+
+  - Changed `StringInput::finish` to return `String` instead of
+    `Option<String>` - it used `has_value` to choose `Some` or `None`.
+    Again, due to a weird implementation of `Question::input`
+
 ## `0.2.1`
 
 - `requestty`
