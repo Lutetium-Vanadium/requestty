@@ -115,7 +115,7 @@
 //! - `termion`: Enabling this feature will use the [`termion`](https://crates.io/crates/termion)
 //!   library for terminal interactions such as drawing and receiving events.
 //!
-//! [`SmallVec`]: https://docs.rs/smallvec/1.6.1/smallvec/struct.SmallVec.html
+//! [`SmallVec`]: https://docs.rs/smallvec/latest/smallvec/struct.SmallVec.html
 //! [auto completions]: crate::question::InputBuilder::auto_complete
 //!
 //! # Examples

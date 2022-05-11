@@ -7,7 +7,7 @@
 //! [`Prompt`] trait in [`requestty`], it can be used otherwise as well.
 //!
 //! [`requestty`]: https://crates.io/crates/requestty
-//! [`Prompt`]: https://docs.rs/requestty/0.1.1/requestty/prompt/trait.Prompt.html
+//! [`Prompt`]: https://docs.rs/requestty/latest/requestty/prompt/trait.Prompt.html
 //!
 //! # Backends
 //!
@@ -87,7 +87,7 @@ pub mod features {
 /// It is a simple wrapper around [`insta::assert_display_snapshot`] which puts the snapshots in
 /// `$CARGO_MANIFEST_DIR/{crossterm/termion}-snapshots`.
 ///
-/// [`insta::assert_display_snapshot`]: https://docs.rs/insta/1.7.1/insta/macro.assert_display_snapshot.html
+/// [`insta::assert_display_snapshot`]: https://docs.rs/insta/1.11.0/insta/macro.assert_display_snapshot.html
 #[cfg(any(feature = "crossterm", feature = "termion"))]
 #[cfg_attr(docsrs, doc(cfg(any(feature = "crossterm", feature = "termion"))))]
 #[macro_export]

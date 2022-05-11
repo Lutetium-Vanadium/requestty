@@ -132,7 +132,7 @@ There are 10 in-built prompts:
   and `prompt_module` macros.
 
 - `smallvec` (default): Enabling this feature will use
-  [`SmallVec`](https://docs.rs/smallvec/1.6.1/smallvec/struct.SmallVec.html)
+  [`SmallVec`](https://docs.rs/smallvec/latest/smallvec/struct.SmallVec.html)
   instead of `Vec` for auto completions. This allows inlining single
   completions.
 
