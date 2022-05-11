@@ -2,7 +2,7 @@
 
 use std::io;
 
-use textwrap::{core::Fragment, word_separators::WordSeparator};
+use textwrap::{core::Fragment, WordSeparator};
 
 use crate::{backend::Backend, events::KeyEvent, layout::Layout};
 
@@ -84,8 +84,8 @@ impl<T: std::ops::Deref<Target = str> + ?Sized> Widget for T {
             let mut prev_whitespace_len = 0;
             let max_width = max_width - 3; // leave space for the '...'
 
-            for word in textwrap::word_separators::UnicodeBreakProperties.find_words(self) {
-                width += word.width() + prev_whitespace_len;
+            for word in WordSeparator::UnicodeBreakProperties.find_words(self) {
+                width += word.width() as usize + prev_whitespace_len;
                 if width > max_width {
                     break;
                 }
@@ -96,7 +96,7 @@ impl<T: std::ops::Deref<Target = str> + ?Sized> Widget for T {
                 }
                 backend.write_all(word.as_bytes())?;
 
-                prev_whitespace_len = word.whitespace_width();
+                prev_whitespace_len = word.whitespace_width() as usize;
             }
 
             backend.write_all(b"...")?;
