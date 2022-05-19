@@ -306,8 +306,8 @@ impl<'a> EditorBuilder<'a> {
     ///
     /// # Examples
     ///
-    /// ```
-    /// use std::command::Command;
+    /// ```no_run
+    /// use std::process::Command;
     /// use requestty::Question;
     ///
     /// # fn get_preffered_editor() -> Command { todo!() }
