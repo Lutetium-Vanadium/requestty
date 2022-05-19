@@ -170,8 +170,9 @@ impl Question<'static> {
     /// Prompt that takes launches the users preferred editor on a temporary file
     ///
     /// Once the user exits their editor, the contents of the temporary file are read in as the
-    /// result. The editor to use is determined by the `$VISUAL` or `$EDITOR` environment variables.
-    /// If neither of those are present, `vim` (for unix) or `notepad` (for windows) is used.
+    /// result. The editor to use can be specified by the [`editor`] method. If unspecified, the
+    /// editor is determined by the `$VISUAL` or `$EDITOR` environment variables. If neither of
+    /// those are present, `vim` (for unix) or `notepad` (for windows) is used.
     ///
     /// <img
     ///   src="https://raw.githubusercontent.com/lutetium-vanadium/requestty/master/assets/editor.gif"
@@ -192,6 +193,7 @@ impl Question<'static> {
     /// ```
     ///
     /// [`builder`]: EditorBuilder
+    /// [`editor`]: EditorBuilder::editor
     pub fn editor<N: Into<String>>(name: N) -> EditorBuilder<'static> {
         EditorBuilder::new(name.into())
     }

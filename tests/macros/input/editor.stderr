@@ -1,0 +1,5 @@
+error: option `editor` does not exist for kind `input`
+ --> tests/macros/input/editor.rs:2:43
+  |
+2 |     let q = requestty::questions![Input { editor: todo!() }];
+  |                                           ^^^^^^

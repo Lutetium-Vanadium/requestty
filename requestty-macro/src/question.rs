@@ -16,7 +16,7 @@ bitflags::bitflags! {
         const LOOP_PAGE_SIZE = 0b000_0010_0000;
         const CHOICES        = 0b000_0100_0000;
         const MASK           = 0b000_1000_0000;
-        const EXTENSION      = 0b001_0000_0000;
+        const EDITOR         = 0b001_0000_0000;
         const ON_ESC         = 0b010_0000_0000;
         const PROMPT         = 0b100_0000_0000;
     }
@@ -100,7 +100,7 @@ impl QuestionKind {
                 BuilderMethods::DEFAULT
                     | BuilderMethods::TRANSFORM
                     | BuilderMethods::VAL_FIL
-                    | BuilderMethods::EXTENSION
+                    | BuilderMethods::EDITOR
                     | BuilderMethods::ON_ESC
             }
             QuestionKind::Custom => BuilderMethods::PROMPT,
@@ -151,6 +151,7 @@ impl fmt::Display for QuestionKind {
     }
 }
 
+#[derive(Default)]
 pub(crate) struct QuestionOpts {
     pub(crate) message: Option<syn::Expr>,
     pub(crate) when: Option<syn::Expr>,
@@ -170,37 +171,10 @@ pub(crate) struct QuestionOpts {
     pub(crate) should_loop: Option<syn::Expr>,
 
     pub(crate) mask: Option<syn::Expr>,
+    pub(crate) editor: Option<syn::Expr>,
     pub(crate) extension: Option<syn::Expr>,
 
     pub(crate) prompt: Option<syn::Expr>,
-}
-
-impl Default for QuestionOpts {
-    fn default() -> Self {
-        Self {
-            message: None,
-            when: None,
-            ask_if_answered: None,
-            on_esc: None,
-
-            default: None,
-
-            validate: None,
-            validate_on_key: None,
-            filter: None,
-            transform: None,
-            auto_complete: None,
-
-            choices: None,
-            page_size: None,
-            should_loop: None,
-
-            mask: None,
-            extension: None,
-
-            prompt: None,
-        }
-    }
 }
 
 fn check_allowed(ident: &syn::Ident, kind: QuestionKind) -> syn::Result<()> {
@@ -225,8 +199,8 @@ fn check_allowed(ident: &syn::Ident, kind: QuestionKind) -> syn::Result<()> {
         BuilderMethods::LOOP_PAGE_SIZE
     } else if ident == "mask" {
         BuilderMethods::MASK
-    } else if ident == "extension" {
-        BuilderMethods::EXTENSION
+    } else if ident == "editor" || ident == "extension" {
+        BuilderMethods::EDITOR
     } else if ident == "on_esc" {
         BuilderMethods::ON_ESC
     } else if ident == "prompt" {
@@ -301,6 +275,8 @@ impl Parse for Question {
                 insert_non_dup(ident, &mut opts.should_loop, &content)?;
             } else if ident == "mask" {
                 insert_non_dup(ident, &mut opts.mask, &content)?;
+            } else if ident == "editor" {
+                insert_non_dup(ident, &mut opts.editor, &content)?;
             } else if ident == "extension" {
                 insert_non_dup(ident, &mut opts.extension, &content)?;
             } else if ident == "on_esc" {
@@ -419,6 +395,9 @@ impl quote::ToTokens for Question {
         }
         if let Some(ref mask) = self.opts.mask {
             tokens.extend(quote_spanned! { mask.span() => .mask(#mask) });
+        }
+        if let Some(ref editor) = self.opts.editor {
+            tokens.extend(quote_spanned! { editor.span() => .editor(#editor) });
         }
         if let Some(ref extension) = self.opts.extension {
             tokens.extend(quote_spanned! { extension.span() => .extension(#extension) });

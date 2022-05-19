@@ -41,6 +41,7 @@ fn test_duplicate() {
     t.compile_fail("should_loop");
     t.compile_fail("mask");
     t.compile_fail("extension");
+    t.compile_fail("editor");
     t.compile_fail("prompt");
 }
 
@@ -81,6 +82,7 @@ fn test_multi_select() {
     t.compile_fail("auto_complete");
     t.compile_fail("mask");
     t.compile_fail("extension");
+    t.compile_fail("editor");
     t.compile_fail("prompt");
 }
 
@@ -99,6 +101,7 @@ fn test_confirm() {
     t.compile_fail("page_size");
     t.compile_fail("mask");
     t.compile_fail("extension");
+    t.compile_fail("editor");
     t.compile_fail("prompt");
 }
 
@@ -129,6 +132,7 @@ fn test_expand() {
     t.compile_fail("auto_complete");
     t.compile_fail("mask");
     t.compile_fail("extension");
+    t.compile_fail("editor");
     t.compile_fail("prompt");
 }
 
@@ -142,6 +146,7 @@ fn test_float() {
     t.compile_fail("choices");
     t.compile_fail("mask");
     t.compile_fail("extension");
+    t.compile_fail("editor");
     t.compile_fail("prompt");
 }
 
@@ -154,6 +159,7 @@ fn test_input() {
     t.compile_fail("choices");
     t.compile_fail("mask");
     t.compile_fail("extension");
+    t.compile_fail("editor");
     t.compile_fail("prompt");
 }
 
@@ -169,6 +175,7 @@ fn test_int() {
     t.compile_fail("page_size");
     t.compile_fail("mask");
     t.compile_fail("extension");
+    t.compile_fail("editor");
     t.compile_fail("prompt");
 }
 
@@ -184,6 +191,7 @@ fn test_select() {
     t.compile_fail("auto_complete");
     t.compile_fail("mask");
     t.compile_fail("extension");
+    t.compile_fail("editor");
     t.compile_fail("prompt");
 }
 
@@ -199,6 +207,7 @@ fn test_password() {
     t.compile_fail("should_loop");
     t.compile_fail("page_size");
     t.compile_fail("extension");
+    t.compile_fail("editor");
     t.compile_fail("prompt");
 }
 
@@ -220,6 +229,7 @@ fn test_custom_prompt() {
     t.compile_fail("page_size");
     t.compile_fail("mask");
     t.compile_fail("extension");
+    t.compile_fail("editor");
 }
 
 #[test]
@@ -234,5 +244,6 @@ fn test_raw_select() {
     t.compile_fail("auto_complete");
     t.compile_fail("mask");
     t.compile_fail("extension");
+    t.compile_fail("editor");
     t.compile_fail("prompt");
 }

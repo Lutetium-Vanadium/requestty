@@ -1,0 +1,5 @@
+error: option `editor` does not exist for kind `multi_select`
+ --> tests/macros/multi_select/editor.rs:2:49
+  |
+2 |     let q = requestty::questions![MultiSelect { editor: todo!() }];
+  |                                                 ^^^^^^

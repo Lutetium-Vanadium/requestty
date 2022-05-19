@@ -1,0 +1,5 @@
+error: option `on_esc` does not exist for kind `custom`
+ --> tests/macros/custom_prompt/on_esc.rs:2:36
+  |
+2 |     requestty::questions![Custom { on_esc: todo!() }];
+  |                                    ^^^^^^

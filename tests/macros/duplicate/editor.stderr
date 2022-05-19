@@ -1,0 +1,5 @@
+error: duplicate option `editor`
+ --> tests/macros/duplicate/editor.rs:4:9
+  |
+4 |         editor: todo!(),
+  |         ^^^^^^

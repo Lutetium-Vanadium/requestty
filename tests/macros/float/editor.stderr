@@ -1,0 +1,5 @@
+error: option `editor` does not exist for kind `float`
+ --> tests/macros/float/editor.rs:2:43
+  |
+2 |     let q = requestty::questions![Float { editor: todo!() }];
+  |                                           ^^^^^^

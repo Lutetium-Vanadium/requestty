@@ -1,0 +1,5 @@
+error: option `editor` does not exist for kind `custom`
+ --> tests/macros/custom_prompt/editor.rs:2:44
+  |
+2 |     let q = requestty::questions![Custom { editor: todo!() }];
+  |                                            ^^^^^^

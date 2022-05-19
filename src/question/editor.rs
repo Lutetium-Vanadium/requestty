@@ -1,23 +1,20 @@
 use std::{
     env,
-    ffi::OsString,
     fs::File,
     io::{self, Read, Seek, SeekFrom, Write},
     process::Command,
 };
 
-use tempfile::TempPath;
-
 use ui::{backend::Backend, events::EventIterator, style::Stylize, widgets, Validation, Widget};
 
 use super::{Filter, Options, Transform, Validate};
-use crate::{Answer, Answers};
+use crate::{Answer, Answers, Question};
 
 #[derive(Debug)]
 pub(super) struct Editor<'a> {
     extension: Option<String>,
     default: Option<String>,
-    editor: OsString,
+    editor: Command,
     filter: Filter<'a, String>,
     validate: Validate<'a, str>,
     transform: Transform<'a, str>,
@@ -36,22 +33,23 @@ impl<'a> Default for Editor<'a> {
     }
 }
 
-fn get_editor() -> OsString {
-    env::var_os("VISUAL")
-        .or_else(|| env::var_os("EDITOR"))
-        .unwrap_or_else(|| {
-            if cfg!(windows) {
-                "notepad".into()
-            } else {
-                "vim".into()
-            }
-        })
+fn get_editor() -> Command {
+    Command::new(
+        env::var_os("VISUAL")
+            .or_else(|| env::var_os("EDITOR"))
+            .unwrap_or_else(|| {
+                if cfg!(windows) {
+                    "notepad".into()
+                } else {
+                    "vim".into()
+                }
+            }),
+    )
 }
 
 struct EditorPrompt<'a, 'e> {
     prompt: widgets::Prompt<&'a str>,
     file: File,
-    path: TempPath,
     ans: String,
     editor: Editor<'e>,
     answers: &'a Answers,
@@ -94,12 +92,7 @@ impl ui::Prompt for EditorPrompt<'_, '_> {
     type Output = String;
 
     fn validate(&mut self) -> Result<Validation, Self::ValidateErr> {
-        if !Command::new(&self.editor.editor)
-            .arg(&self.path)
-            .status()
-            .map_err(map_err)?
-            .success()
-        {
+        if !self.editor.editor.status().map_err(map_err)?.success() {
             return Err(map_err(io::Error::new(
                 io::ErrorKind::Other,
                 "Could not open editor",
@@ -153,6 +146,10 @@ impl Editor<'_> {
 
         let (file, path) = file.into_parts();
 
+        // `path` cannot be passed by ownership as it needs to live until the prompt has finished
+        // asking. On drop, path will delete the file
+        self.editor.arg(&path);
+
         let ans = ui::Input::new(
             EditorPrompt {
                 prompt: widgets::Prompt::new(&*message)
@@ -160,7 +157,6 @@ impl Editor<'_> {
                     .with_delim(widgets::Delimiter::None),
                 editor: self,
                 file,
-                path,
                 ans: String::new(),
                 answers,
             },
@@ -174,11 +170,12 @@ impl Editor<'_> {
     }
 }
 
-/// The builder for the [`editor`] prompt.
+/// The builder for the [`Question::editor`] prompt.
 ///
 /// Once the user exits their editor, the contents of the temporary file are read in as the
-/// result. The editor to use is determined by the `$VISUAL` or `$EDITOR` environment variables.
-/// If neither of those are present, `vim` (for unix) or `notepad` (for windows) is used.
+/// result. The editor to use can be specified by the [`editor`] method. If unspecified, the editor
+/// is determined by the `$VISUAL` or `$EDITOR` environment variables. If neither of those are
+/// present, `vim` (for unix) or `notepad` (for windows) is used.
 ///
 /// <img
 ///   src="https://raw.githubusercontent.com/lutetium-vanadium/requestty/master/assets/editor.gif"
@@ -198,7 +195,7 @@ impl Editor<'_> {
 ///     .build();
 /// ```
 ///
-/// [`editor`]: crate::question::Question::editor
+/// [`editor`]: EditorBuilder::editor
 #[derive(Debug)]
 pub struct EditorBuilder<'a> {
     opts: Options<'a>,
@@ -301,6 +298,29 @@ impl<'a> EditorBuilder<'a> {
         self
     }
 
+    /// Use a specific editor instead of the default editor
+    ///
+    /// If unspecified, the editor is determined by the `$VISUAL` or `$EDITOR` environment
+    /// variables. If neither of those are present, `vim` (for unix) or `notepad` (for windows) is
+    /// used.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use std::command::Command;
+    /// use requestty::Question;
+    ///
+    /// # fn get_preffered_editor() -> Command { todo!() }
+    ///
+    /// let editor = Question::editor("description")
+    ///     .editor(get_preffered_editor())
+    ///     .build();
+    /// ```
+    pub fn editor<E: Into<Command>>(mut self, editor: E) -> Self {
+        self.editor.editor = editor.into();
+        self
+    }
+
     crate::impl_filter_builder! {
     /// # Examples
     ///
@@ -350,12 +370,12 @@ impl<'a> EditorBuilder<'a> {
     /// Consumes the builder returning a [`Question`]
     ///
     /// [`Question`]: crate::question::Question
-    pub fn build(self) -> super::Question<'a> {
-        super::Question::new(self.opts, super::QuestionKind::Editor(self.editor))
+    pub fn build(self) -> Question<'a> {
+        Question::new(self.opts, super::QuestionKind::Editor(self.editor))
     }
 }
 
-impl<'a> From<EditorBuilder<'a>> for super::Question<'a> {
+impl<'a> From<EditorBuilder<'a>> for Question<'a> {
     /// Consumes the builder returning a [`Question`]
     ///
     /// [`Question`]: crate::question::Question

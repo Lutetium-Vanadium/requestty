@@ -9,7 +9,7 @@ use proc_macro::TokenStream;
 #[rustversion::since(1.51)]
 macro_rules! iter {
     ($span:expr => $($tt:tt)*) => {
-        quote::quote_spanned! { $span => ::std::array::IntoIter::new([ $($tt)* ]) }
+        quote::quote_spanned! { $span => [ $($tt)* ] }
     };
 }
 #[rustversion::before(1.51)]
