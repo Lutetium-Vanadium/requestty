@@ -315,8 +315,7 @@ impl<L: List> Select<L> {
             )
             .chain(
                 (2..(max_height as isize))
-                    .map(|i| self.try_get_index(direction * i).map(|i| (i, false)))
-                    .flatten(),
+                    .filter_map(|i| self.try_get_index(direction * i).map(|i| (i, false))),
             );
 
         // these variables have opposite meaning based on the direction, but they store

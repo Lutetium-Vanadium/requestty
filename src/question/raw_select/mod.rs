@@ -199,7 +199,7 @@ impl<'a> RawSelect<'a> {
                 }
             }),
             select,
-            prompt: widgets::Prompt::new(&message),
+            prompt: widgets::Prompt::new(message),
         }
     }
 

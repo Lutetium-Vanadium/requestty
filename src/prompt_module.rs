@@ -61,7 +61,7 @@ where
         B: Backend,
         E: EventIterator,
     {
-        while let Some(question) = self.questions.next() {
+        for question in self.questions.by_ref() {
             if let Some((name, answer)) = question.ask(&self.answers, backend, events)? {
                 return Ok(Some(self.answers.insert(name, answer)));
             }

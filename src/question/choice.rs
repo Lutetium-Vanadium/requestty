@@ -143,6 +143,7 @@ impl<T: Widget> List for ChoiceList<T> {
 
 /// A possible choice in a list.
 #[derive(Debug, Clone)]
+#[allow(clippy::enum_variant_names)]
 pub enum Choice<T> {
     /// The main variant which represents a choice the user can pick from.
     Choice(T),

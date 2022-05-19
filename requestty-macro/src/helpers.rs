@@ -129,6 +129,7 @@ impl ToTokens for Choices {
     }
 }
 
+#[allow(clippy::enum_variant_names)]
 pub(crate) enum Choice {
     Choice(syn::Expr),
     Separator(syn::Expr),

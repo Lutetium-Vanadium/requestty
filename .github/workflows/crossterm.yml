@@ -68,7 +68,7 @@ jobs:
         run: cargo build --verbose --workspace --no-default-features --features=crossterm,macros
 
       - name: test
-        run: cargo test --workspace --verbose --no-default-features --features=crossterm,macros --include-ignored
+        run: cargo test --workspace --verbose --no-default-features --features=crossterm,macros -- --include-ignored
 
   clippy:
     name: clippy
