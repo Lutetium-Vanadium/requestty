@@ -149,11 +149,13 @@ impl TestBackend {
     }
 
     fn move_x(&mut self, x: u16) {
-        self.cursor.x = x.min(self.size.width - 1);
+        // wrapping_sub to allow testing 0 sized terminals
+        self.cursor.x = x.min(self.size.width.wrapping_sub(1));
     }
 
     fn move_y(&mut self, y: u16) {
-        self.cursor.y = y.min(self.size.height - 1);
+        // wrapping_sub to allow testing 0 sized terminals
+        self.cursor.y = y.min(self.size.height.wrapping_sub(1));
     }
 
     fn add_x(&mut self, x: u16) {

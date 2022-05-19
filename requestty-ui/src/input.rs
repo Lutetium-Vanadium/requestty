@@ -121,6 +121,21 @@ impl<P: Prompt, B: Backend> Input<P, B> {
         Layout::new(0, self.size).with_offset(0, self.base_row)
     }
 
+    fn update_size(&mut self) -> io::Result<()> {
+        self.size = dbg!(self.backend.size())?;
+        if self.size.area() == 0 {
+            Err(io::Error::new(
+                io::ErrorKind::Other,
+                format!(
+                    "Invalid terminal {:?}. Both width and height must be larger than 0",
+                    self.size
+                ),
+            ))
+        } else {
+            Ok(())
+        }
+    }
+
     fn init(&mut self) -> io::Result<()> {
         self.backend.init()?;
         self.base_row = self.backend.get_cursor_pos()?.1;
@@ -151,7 +166,7 @@ impl<P: Prompt, B: Backend> Input<P, B> {
     }
 
     fn render(&mut self) -> io::Result<()> {
-        self.size = self.backend.size()?;
+        self.update_size()?;
         let height = self.prompt.height(&mut self.layout());
         self.base_row = self.adjust_scrollback(height)?;
         self.clear()?;
@@ -172,7 +187,7 @@ impl<P: Prompt, B: Backend> Input<P, B> {
     }
 
     fn print_error(&mut self, mut e: P::ValidateErr) -> io::Result<()> {
-        self.size = self.backend.size()?;
+        self.update_size()?;
         let height = self.prompt.height(&mut self.layout());
         self.base_row = self.adjust_scrollback(height + 1)?;
 
@@ -192,7 +207,7 @@ impl<P: Prompt, B: Backend> Input<P, B> {
     }
 
     fn exit(&mut self) -> io::Result<()> {
-        self.size = self.backend.size()?;
+        self.update_size()?;
         let height = self.prompt.height(&mut self.layout());
         self.goto_last_line(height)?;
         self.backend.reset()
@@ -311,7 +326,7 @@ impl<B: Backend> DerefMut for TerminalState<B> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::backend::TestBackend;
+    use crate::{backend::TestBackend, events::TestEvents};
 
     #[derive(Debug, Default, Clone, Copy)]
     struct TestPrompt {
@@ -472,5 +487,40 @@ mod tests {
         .is_ok());
 
         crate::assert_backend_snapshot!(backend);
+    }
+
+    #[test]
+    fn test_zero_size() {
+        let mut backend = TestBackend::new((20, 0).into());
+        let err = Input::new(TestPrompt::default(), &mut backend)
+            .run(&mut TestEvents::new([]))
+            .expect_err("zero size should error");
+
+        let err = match err {
+            crate::ErrorKind::IoError(err) => err,
+            err => panic!("expected io error, got {:?}", err),
+        };
+
+        assert_eq!(err.kind(), io::ErrorKind::Other);
+        assert_eq!(
+            format!("{}", err),
+            "Invalid terminal Size { width: 20, height: 0 }. Both width and height must be larger than 0"
+        );
+
+        let mut backend = TestBackend::new((0, 20).into());
+        let err = Input::new(TestPrompt::default(), &mut backend)
+            .run(&mut TestEvents::new([]))
+            .expect_err("zero size should error");
+
+        let err = match err {
+            crate::ErrorKind::IoError(err) => err,
+            err => panic!("expected io error, got {:?}", err),
+        };
+
+        assert_eq!(err.kind(), io::ErrorKind::Other);
+        assert_eq!(
+            format!("{}", err),
+            "Invalid terminal Size { width: 0, height: 20 }. Both width and height must be larger than 0"
+        );
     }
 }
