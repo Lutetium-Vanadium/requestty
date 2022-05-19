@@ -17,7 +17,7 @@ jobs:
           # pinned (MSRV) rust version :: ubuntu
           - build: msrv
             os: ubuntu-18.04
-            rust: 1.49.0
+            rust: 1.56.0
 
           # latest rust stable :: ubuntu
           - build: stable
@@ -68,7 +68,7 @@ jobs:
         run: cargo build --verbose --workspace
 
       # Don't test ignored as they require `macros` feature
-      - name: test_regular
+      - name: test
         run: cargo test --workspace --verbose
 
   rustfmt:

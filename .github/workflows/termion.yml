@@ -17,7 +17,7 @@ jobs:
           # pinned (MSRV) rust version :: ubuntu
           - build: msrv
             os: ubuntu-18.04
-            rust: 1.49.0
+            rust: 1.56.0
 
           # latest rust stable :: ubuntu
           - build: stable
@@ -56,12 +56,8 @@ jobs:
       - name: build_all
         run: cargo build --verbose --workspace --no-default-features --features=termion,macros
 
-      # doesn't use --include-ignored as it was unstable in 1.49
-      - name: test_regular
-        run: cargo test --workspace --verbose --no-default-features --features=termion,macros
-
-      - name: test_ignored
-        run: cargo test --workspace --verbose --no-default-features --features=termion,macros -- --ignored
+      - name: test
+        run: cargo test --workspace --verbose --no-default-features --features=crossterm,macros --include-ignored
 
   clippy:
     name: clippy
