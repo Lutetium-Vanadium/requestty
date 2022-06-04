@@ -105,7 +105,7 @@ impl<P, B: Backend> Input<P, B> {
 
     /// What to do after receiving a `Esc`.
     ///
-    /// For [`OnEsc::Terminate`] - an [`Error::Aborted`](error::Error::Aborted) will be returned.
+    /// For [`OnEsc::Terminate`] - an [`Error::Aborted`](error::ErrorKind::Aborted) will be returned.
     /// For [`OnEsc::SkipQuestion`] - the currently shown prompt will be cleared, and `Ok(None)`
     /// will be returned.
     /// For [`OnEsc::Ignore`] - no special behaviour will be applied to the `Esc` key. Like other

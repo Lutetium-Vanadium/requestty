@@ -2,7 +2,7 @@
 //!
 //! There are 2 default [`SymbolSet`]s -- [`UNICODE`] and [`ASCII`]. If a particular [`SymbolSet`]
 //! is not set, [`UNICODE`] is used. The [`ASCII`] symbol set exists if you want to have larger
-//! compatibility with terminal emulators (such as Windows' `cmd.exe`) as it exclusively used ASCII
+//! compatibility with terminal emulators (such as Windows' `cmd.exe`) which do not support unicode
 //! characters.
 
 use std::sync::Mutex;
@@ -15,15 +15,17 @@ static SET: Lazy<Mutex<SymbolSet>> = Lazy::new(|| Mutex::new(UNICODE));
 ///
 /// If not set, it defaults to the [`UNICODE`] symbol set.
 ///
-/// Also see [`set`].
+/// Also see [`symbols::set`](set).
 ///
 /// # Example
 ///
 /// ```no_run
+/// # #[cfg(feature = "ignore this line for doc test as requestty_ui should be used")]
 /// use requestty::symbols;
+/// # use requestty_ui::symbols;
 ///
 /// let symbol_set = symbols::current();
-/// println!(symbol_set.pointer);
+/// println!("{}", symbol_set.pointer);
 /// ```
 pub fn current() -> SymbolSet {
     SET.lock().expect("symbol set poisoned").clone()
@@ -31,20 +33,23 @@ pub fn current() -> SymbolSet {
 
 /// Set the current [`SymbolSet`]
 ///
-/// Also see [`current`].
+/// Also see [`symbols::current`](current).
 ///
 /// # Example
 ///
-/// ```no_run
+/// ```
+/// # #[cfg(feature = "ignore this line for doc test as requestty_ui should be used")]
 /// use requestty::symbols;
+/// # use requestty_ui::symbols;
 ///
 /// symbols::set(symbols::ASCII);
+/// assert_eq!(symbols::current(), symbols::ASCII);
 /// ```
 pub fn set(new: SymbolSet) {
     *SET.lock().expect("symbol set poisoned") = new;
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 /// The various special symbols used by the prompts during rendering.
 pub struct SymbolSet {
     /// Used to point to a special item.

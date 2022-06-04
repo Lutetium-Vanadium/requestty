@@ -102,6 +102,9 @@ macro_rules! impl_options_builder {
         ///
         /// If it is not given, it defaults to [`OnEsc::Ignore`].
         ///
+        /// [`OnEsc`]: ui::OnEsc
+        /// [`OnEsc::Ignore`]: ui::OnEsc::Ignore
+        /// [`Answers`]: crate::Answers
         ///
         $(#[$on_esc_meta])*
         pub fn on_esc<T>(mut self, on_esc: T) -> Self
