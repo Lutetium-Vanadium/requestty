@@ -195,7 +195,8 @@ impl<P: Prompt, B: Backend> Input<P, B> {
         self.prompt.render(&mut self.layout(), &mut *self.backend)?;
         self.goto_last_line(height)?;
 
-        self.backend.write_styled(&crate::symbols::CROSS.red())?;
+        self.backend
+            .write_styled(&crate::symbols::current().cross.red())?;
         self.backend.write_all(b" ")?;
 
         let mut layout = Layout::new(2, self.size).with_offset(0, self.base_row + height);

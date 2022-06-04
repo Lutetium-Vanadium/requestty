@@ -39,35 +39,9 @@ mod prompt;
 mod select;
 mod string_input;
 pub mod style;
+pub mod symbols;
 mod text;
 pub mod widgets;
-
-/// Some characters used in the `requestty` crate.
-#[allow(missing_docs)]
-pub mod symbols {
-    /// `'❯' U+276F`
-    pub const ARROW: char = '❯';
-    /// `'›' U+203A`
-    pub const SMALL_ARROW: char = '›';
-    /// `'✔' U+2714`
-    pub const TICK: char = '✔';
-    /// `'·' U+00B7`
-    pub const MIDDLE_DOT: char = '·';
-    /// `'✖' U+2716`
-    pub const CROSS: char = '✖';
-    /// `'┐' U+2510`
-    pub const BOX_LIGHT_TOP_RIGHT: char = '┐';
-    /// `'┌' U+250C`
-    pub const BOX_LIGHT_TOP_LEFT: char = '┌';
-    /// `'┘' U+2518`
-    pub const BOX_LIGHT_BOTTOM_RIGHT: char = '┘';
-    /// `'└' U+2514`
-    pub const BOX_LIGHT_BOTTOM_LEFT: char = '└';
-    /// `'─' U+2500`
-    pub const BOX_LIGHT_HORIZONTAL: char = '─';
-    /// `'│' U+2502`
-    pub const BOX_LIGHT_VERTICAL: char = '│';
-}
 
 #[doc(hidden)]
 pub mod features {

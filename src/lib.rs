@@ -220,7 +220,7 @@ pub use r#macro::questions;
 pub use answer::{Answer, Answers, ExpandItem, ListItem};
 pub use prompt_module::PromptModule;
 pub use question::{Choice::Choice, Choice::DefaultSeparator, Choice::Separator, Question};
-pub use ui::{ErrorKind, OnEsc, Result};
+pub use ui::{symbols, ErrorKind, OnEsc, Result};
 
 /// A module that re-exports all the things required for writing custom [`Prompt`]s.
 ///

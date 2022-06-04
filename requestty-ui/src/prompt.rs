@@ -162,15 +162,16 @@ impl<M: AsRef<str>> Prompt<M, &'static str> {
         skipped: bool,
         backend: &mut B,
     ) -> io::Result<()> {
+        let symbol_set = crate::symbols::current();
         if skipped {
-            backend.write_styled(&crate::symbols::CROSS.yellow())?;
+            backend.write_styled(&symbol_set.cross.yellow())?;
         } else {
-            backend.write_styled(&crate::symbols::TICK.light_green())?;
+            backend.write_styled(&symbol_set.completed.light_green())?;
         }
         backend.write_all(b" ")?;
         backend.write_styled(&message.as_ref().bold())?;
         backend.write_all(b" ")?;
-        backend.write_styled(&crate::symbols::MIDDLE_DOT.dark_grey())?;
+        backend.write_styled(&symbol_set.middle_dot.dark_grey())?;
         backend.write_all(b" ")
     }
 }
@@ -187,7 +188,7 @@ impl<M: AsRef<str>, H: AsRef<str>> Widget for Prompt<M, H> {
             (Some(hint), Some((start, end))) => write!(b, "{}{}{}", start, hint.as_ref(), end)?,
             (Some(hint), None) => write!(b, "{}", hint.as_ref())?,
             (None, _) => {
-                write!(b, "{}", crate::symbols::SMALL_ARROW)?;
+                write!(b, "{}", crate::symbols::current().arrow)?;
             }
         }
 

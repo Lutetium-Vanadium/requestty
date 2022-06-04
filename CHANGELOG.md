@@ -1,5 +1,23 @@
 # Changelog
 
+## `0.4.0`
+
+The msrv has been bumped up to `1.56`
+
+- `requestty`
+
+  - Allow programmatic customisation of `Question::editor`
+
+  - Update `smallvec` version.
+
+- `requestty-ui`
+
+  - Allow customising the symbol set used during rendering.
+
+  - Return error on 0 sized terminal instead of panicking.
+
+  - Update `crossterm` version.
+
 ## `0.3.0`
 
 - `requestty`

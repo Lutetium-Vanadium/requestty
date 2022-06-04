@@ -7,7 +7,6 @@ use super::{Backend, ClearType, MoveDirection, Size};
 use crate::{
     layout::Layout,
     style::{Attributes, Color},
-    symbols,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -438,15 +437,17 @@ impl TestBackend {
 
         let width = self.size.width as usize;
 
-        write!(backend, "{}", symbols::BOX_LIGHT_TOP_LEFT)?;
+        let symbol_set = crate::symbols::current();
+
+        write!(backend, "{}", symbol_set.box_top_left)?;
         for _ in 0..self.size.width {
-            write!(backend, "{}", symbols::BOX_LIGHT_HORIZONTAL)?;
+            write!(backend, "{}", symbol_set.box_horizontal)?;
         }
-        writeln!(backend, "{}", symbols::BOX_LIGHT_TOP_RIGHT)?;
+        writeln!(backend, "{}", symbol_set.box_top_right)?;
 
         for (i, cell) in self.viewport().iter().enumerate() {
             if i % width == 0 {
-                write!(backend, "{}", symbols::BOX_LIGHT_VERTICAL)?;
+                write!(backend, "{}", symbol_set.box_vertical)?;
             }
 
             if cell.attributes != attributes {
@@ -487,15 +488,15 @@ impl TestBackend {
                     bg = Color::Reset;
                     backend.set_bg(bg)?;
                 }
-                writeln!(backend, "{}", symbols::BOX_LIGHT_VERTICAL)?;
+                writeln!(backend, "{}", symbol_set.box_vertical)?;
             }
         }
 
-        write!(backend, "{}", symbols::BOX_LIGHT_BOTTOM_LEFT)?;
+        write!(backend, "{}", symbol_set.box_bottom_left)?;
         for _ in 0..self.size.width {
-            write!(backend, "{}", symbols::BOX_LIGHT_HORIZONTAL)?;
+            write!(backend, "{}", symbol_set.box_horizontal)?;
         }
-        write!(backend, "{}", symbols::BOX_LIGHT_BOTTOM_RIGHT)?;
+        write!(backend, "{}", symbol_set.box_bottom_right)?;
 
         backend.flush()
     }

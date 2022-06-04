@@ -136,9 +136,10 @@ impl widgets::List for MultiSelect<'_> {
         mut layout: ui::layout::Layout,
         b: &mut B,
     ) -> io::Result<()> {
+        let symbol_set = ui::symbols::current();
         if hovered {
             b.set_fg(Color::Cyan)?;
-            write!(b, "{} ", ui::symbols::ARROW)?;
+            write!(b, "{} ", symbol_set.pointer)?;
         } else {
             b.write_all(b"  ")?;
         }
@@ -150,7 +151,7 @@ impl widgets::List for MultiSelect<'_> {
                 b.set_fg(Color::DarkGrey)?;
             }
 
-            write!(b, "{} ", ui::symbols::TICK)?;
+            write!(b, "{} ", symbol_set.completed)?;
 
             if hovered {
                 b.set_fg(Color::Cyan)?;

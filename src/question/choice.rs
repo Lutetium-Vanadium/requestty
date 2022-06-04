@@ -103,7 +103,7 @@ impl<T: Widget> List for ChoiceList<T> {
     ) -> io::Result<()> {
         if hovered {
             b.set_fg(Color::Cyan)?;
-            write!(b, "{} ", ui::symbols::ARROW)?;
+            write!(b, "{} ", ui::symbols::current().pointer)?;
         } else {
             b.write_all(b"  ")?;
 
