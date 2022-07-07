@@ -32,8 +32,10 @@ Add this to your `Cargo.toml`
 
 ```toml
 [dependencies]
-requestty = "0.3.0"
+requestty = "0.4.1"
 ```
+
+To ask a question:
 
 ```rust
 let question = requestty::Question::expand("overwrite")
@@ -49,6 +51,10 @@ let question = requestty::Question::expand("overwrite")
 
 println!("{:#?}", requestty::prompt_one(question));
 ```
+
+More examples are available in the [documentation](https://docs.rs/requestty)
+and the [examples](https://github.com/Lutetium-Vanadium/requestty/tree/master/examples)
+directory.
 
 ## In-built prompts
 
@@ -147,4 +153,4 @@ There are 10 in-built prompts:
 ## Minimum Supported Rust Version (MSRV)
 
 Minimum supported rust version (as per
-[cargo-msrv](https://crates.io/crates/cargo-msrv)) is `1.56`
+[cargo-msrv](https://crates.io/crates/cargo-msrv)) is `1.56.1`
