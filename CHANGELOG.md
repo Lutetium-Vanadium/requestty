@@ -1,6 +1,12 @@
 # Changelog
 
+## `0.4.1`
+
 ## `0.4.0`
+
+- `requestty-ui`
+
+  - Remove `dbg!` in `Input`. Fixes #12
 
 The msrv has been bumped up to `1.56`
 
