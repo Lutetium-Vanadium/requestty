@@ -25,6 +25,7 @@ ui = { package = "requestty-ui", path = "./requestty-ui", version = "=0.4.1" }
 macro = { package = "requestty-macro", path = "./requestty-macro", optional = true, version = "=0.4.1" }
 
 tempfile = "3"
+shell-words = "1"
 
 smallvec = { version = "1.8", optional = true }
 

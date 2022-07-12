@@ -34,17 +34,20 @@ impl<'a> Default for Editor<'a> {
 }
 
 fn get_editor() -> Command {
-    Command::new(
-        env::var_os("VISUAL")
-            .or_else(|| env::var_os("EDITOR"))
-            .unwrap_or_else(|| {
-                if cfg!(windows) {
-                    "notepad".into()
-                } else {
-                    "vim".into()
-                }
-            }),
-    )
+    let editor_command = env::var_os("VISUAL")
+        .or_else(|| env::var_os("EDITOR"))
+        .unwrap_or_else(|| {
+            if cfg!(windows) {
+                "notepad".into()
+            } else {
+                "vim".into()
+            }
+        });
+
+    let parts = shell_words::split(editor_command.to_str().unwrap()).unwrap();
+    let mut command = Command::new(&parts[0]);
+    command.args(&parts[1..]);
+    command
 }
 
 struct EditorPrompt<'a, 'e> {
