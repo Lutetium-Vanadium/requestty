@@ -5,10 +5,10 @@ use crate::{question::{Choice, Options}, ListItem};
 
 use super::OrderSelect;
 
-    /// Prompt that allows the user to organize a list of options.
-    ///
-    /// The choices are represented with the [`Choice`] enum. [`Choice::Choice`] can be multi-line.
-    /// but [`Choice::Separator`]s will be ignored.
+/// Prompt that allows the user to organize a list of options.
+///
+/// The choices are represented with the [`Choice`] enum. [`Choice::Choice`] can be multi-line.
+/// but [`Choice::Separator`]s will be ignored.
 ///
 /// // TODO : add gif
 /// <img
