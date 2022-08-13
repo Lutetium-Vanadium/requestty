@@ -2,16 +2,25 @@ mod builder;
 
 use std::io;
 
-use ui::{widgets::{Text, self, List}, Widget, Prompt, backend::Backend, events::EventIterator, style::Color};
+use ui::{
+    backend::Backend,
+    events::EventIterator,
+    style::Color,
+    widgets::{self, List, Text},
+    Prompt, Widget,
+};
 
-use crate::{Answers, ListItem, Answer};
+use crate::{Answer, Answers, ListItem};
 
-use super::{handler::{Transform, Validate, Filter}, Choice};
+use super::{
+    handler::{Filter, Transform, Validate},
+    Choice,
+};
 
 pub use builder::OrderSelectBuilder;
 
 // =============================================================================
-// 
+//
 // =============================================================================
 
 #[derive(Debug, Default)]
@@ -22,7 +31,7 @@ pub(super) struct OrderSelect<'a> {
 
     transform: Transform<'a, [ListItem]>,
     validate: Validate<'a, [usize]>,
-    filter: Filter<'a, Vec<usize>>
+    filter: Filter<'a, Vec<usize>>,
 }
 
 impl widgets::List for OrderSelect<'_> {
@@ -86,13 +95,14 @@ impl<'c> OrderSelect<'c> {
     fn into_multi_select_prompt<'a>(
         self,
         message: &'a str,
-        answers: &'a Answers
+        answers: &'a Answers,
     ) -> OrderSelectPrompt<'a, 'c> {
         OrderSelectPrompt {
-            prompt: widgets::Prompt::new(message)
-                .with_hint("Press <space> to take and place an option, and <up> and <down> to move"),
+            prompt: widgets::Prompt::new(message).with_hint(
+                "Press <space> to take and place an option, and <up> and <down> to move",
+            ),
             select: widgets::Select::new(self),
-            answers
+            answers,
         }
     }
 
@@ -144,7 +154,7 @@ fn print_comma_separated<'a, B: Backend>(
 }
 
 // =============================================================================
-// 
+//
 // =============================================================================
 
 struct OrderSelectPrompt<'a, 'c> {
@@ -158,8 +168,8 @@ impl Prompt for OrderSelectPrompt<'_, '_> {
     type Output = Vec<ListItem>;
 
     fn finish(self) -> Self::Output {
-        let OrderSelect { 
-            choices, 
+        let OrderSelect {
+            choices,
             mut order,
             filter,
             ..
@@ -169,13 +179,14 @@ impl Prompt for OrderSelectPrompt<'_, '_> {
             order = filter(order, self.answers);
         }
 
-        order.into_iter()
+        order
+            .into_iter()
             .filter_map(|i| match &choices.choices[i] {
                 Choice::Choice(text) => Some(ListItem {
                     index: i,
-                    text: text.text.clone()
+                    text: text.text.clone(),
                 }),
-                _ => None
+                _ => None,
             })
             .collect()
     }
@@ -215,7 +226,11 @@ macro_rules! key_swap {
 }
 
 impl Widget for OrderSelectPrompt<'_, '_> {
-    fn render<B: Backend>(&mut self, layout: &mut ui::layout::Layout, backend: &mut B) -> io::Result<()> {
+    fn render<B: Backend>(
+        &mut self,
+        layout: &mut ui::layout::Layout,
+        backend: &mut B,
+    ) -> io::Result<()> {
         self.prompt.render(layout, backend)?;
         self.select.render(layout, backend)
     }
@@ -230,11 +245,15 @@ impl Widget for OrderSelectPrompt<'_, '_> {
 
     fn handle_key(&mut self, key: ui::events::KeyEvent) -> bool {
         match key.code {
-            ui::events::KeyCode::Up => key_swap!(self, key, 0, self.select.list.choices.len() - 1, -),
-            ui::events::KeyCode::Down => key_swap!(self, key, self.select.list.choices.len() - 1, 0, +),
+            ui::events::KeyCode::Up => {
+                key_swap!(self, key, 0, self.select.list.choices.len() - 1, -)
+            }
+            ui::events::KeyCode::Down => {
+                key_swap!(self, key, self.select.list.choices.len() - 1, 0, +)
+            }
 
             ui::events::KeyCode::Char(' ') => self.select.list.moving = !self.select.list.moving,
-            _ => return self.select.handle_key(key)
+            _ => return self.select.handle_key(key),
         }
 
         true

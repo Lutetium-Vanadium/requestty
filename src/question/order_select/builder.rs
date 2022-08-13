@@ -1,7 +1,10 @@
-use ui::widgets::Text;
 use ui::backend::Backend;
+use ui::widgets::Text;
 
-use crate::{question::{Choice, Options}, ListItem};
+use crate::{
+    question::{Choice, Options},
+    ListItem,
+};
 
 use super::OrderSelect;
 
@@ -36,14 +39,14 @@ use super::OrderSelect;
 #[derive(Debug)]
 pub struct OrderSelectBuilder<'a> {
     opts: Options<'a>,
-    order_select: OrderSelect<'a>
+    order_select: OrderSelect<'a>,
 }
 
 impl<'a> OrderSelectBuilder<'a> {
     pub(crate) fn new(name: String) -> Self {
-        Self { 
+        Self {
             opts: Options::new(name),
-            order_select: Default::default()
+            order_select: Default::default(),
         }
     }
 
@@ -238,20 +241,18 @@ impl<'a> OrderSelectBuilder<'a> {
         T: Into<Choice<String>>,
         I: IntoIterator<Item = T>,
     {
-        self.order_select
-            .choices
-            .choices
-            .extend(
-                choices.into_iter()
-                    .filter_map(|c| {
-                        if let Choice::Choice(txt) = c.into() {
-                            Some(txt)
-                        } else {
-                            None
-                        }
-                    })
-                    .map(|c| Choice::Choice(c).map(Text::new))
-            );
+        self.order_select.choices.choices.extend(
+            choices
+                .into_iter()
+                .filter_map(|c| {
+                    if let Choice::Choice(txt) = c.into() {
+                        Some(txt)
+                    } else {
+                        None
+                    }
+                })
+                .map(|c| Choice::Choice(c).map(Text::new)),
+        );
         self
     }
 
@@ -259,8 +260,7 @@ impl<'a> OrderSelectBuilder<'a> {
     ///
     /// [`Question`]: crate::question::Question
     pub fn build(mut self) -> crate::question::Question<'a> {
-        self.order_select.order = (0..self.order_select.choices.len())
-            .collect();
+        self.order_select.order = (0..self.order_select.choices.len()).collect();
 
         crate::question::Question::new(
             self.opts,

@@ -9,8 +9,8 @@ mod handler;
 mod impl_macros;
 mod input;
 mod multi_select;
-mod order_select;
 mod number;
+mod order_select;
 #[macro_use]
 mod options;
 mod custom_prompt;
@@ -25,8 +25,8 @@ pub use editor::EditorBuilder;
 pub use expand::ExpandBuilder;
 pub use input::InputBuilder;
 pub use multi_select::MultiSelectBuilder;
-pub use order_select::OrderSelectBuilder;
 pub use number::{FloatBuilder, IntBuilder};
+pub use order_select::OrderSelectBuilder;
 pub use password::PasswordBuilder;
 pub use raw_select::RawSelectBuilder;
 pub use select::SelectBuilder;
@@ -434,7 +434,6 @@ impl Question<'static> {
         MultiSelectBuilder::new(name.into())
     }
 
-    // TODO : update desc
     /// Prompt that allows the user to organize a list of options.
     ///
     /// The choices are represented with the [`Choice`] enum. [`Choice::Choice`] can be multi-line.
