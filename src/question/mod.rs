@@ -9,6 +9,7 @@ mod handler;
 mod impl_macros;
 mod input;
 mod multi_select;
+mod order_select;
 mod number;
 #[macro_use]
 mod options;
@@ -24,6 +25,7 @@ pub use editor::EditorBuilder;
 pub use expand::ExpandBuilder;
 pub use input::InputBuilder;
 pub use multi_select::MultiSelectBuilder;
+pub use order_select::OrderSelectBuilder;
 pub use number::{FloatBuilder, IntBuilder};
 pub use password::PasswordBuilder;
 pub use raw_select::RawSelectBuilder;
@@ -54,6 +56,7 @@ use options::Options;
 /// - [`select`](Question::select)
 /// - [`raw_select`](Question::raw_select)
 /// - [`multi_select`](Question::multi_select)
+/// - [`order_select`](Question::order_select)
 /// - [`custom`](Question::custom)
 ///
 /// Every [`Question`] has 4 common options.
@@ -431,6 +434,41 @@ impl Question<'static> {
         MultiSelectBuilder::new(name.into())
     }
 
+    // TODO : update desc
+    /// Prompt that allows the user to select multiple items from a list of options
+    ///
+    /// Unlike the other list based prompts, this has a per choice boolean default.
+    ///
+    /// The choices are represented with the [`Choice`] enum. [`Choice::Choice`] can be multi-line,
+    /// but [`Choice::Separator`]s can only be single line.
+    ///
+    /// <img
+    ///   src="https://raw.githubusercontent.com/lutetium-vanadium/requestty/master/assets/multi-select.gif"
+    ///   style="max-height: 20rem"
+    /// />
+    ///
+    /// See the various methods on the [`builder`] for more details on each available option.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use requestty::{Question, DefaultSeparator};
+    ///
+    /// let multi_select = Question::multi_select("cheese")
+    ///     .message("What cheese do you want?")
+    ///     .choice_with_default("Mozzarella", true)
+    ///     .choices(vec![
+    ///         "Cheddar",
+    ///         "Parmesan",
+    ///     ])
+    ///     .build();
+    /// ```
+    ///
+    /// [`builder`]: MultiSelectBuilder
+    pub fn order_select<N: Into<String>>(name: N) -> OrderSelectBuilder<'static> {
+        OrderSelectBuilder::new(name.into())
+    }
+
     /// Create a [`Question`] from a custom prompt.
     ///
     /// See [`Prompt`] for more information on writing custom prompts and the various methods on the
@@ -488,6 +526,7 @@ enum QuestionKind<'a> {
     RawSelect(raw_select::RawSelect<'a>),
     Expand(expand::Expand<'a>),
     MultiSelect(multi_select::MultiSelect<'a>),
+    OrderSelect(order_select::OrderSelect<'a>),
     Password(password::Password<'a>),
     Editor(editor::Editor<'a>),
     Custom(Box<dyn CustomPromptInteral + 'a>),
@@ -527,6 +566,7 @@ impl Question<'_> {
             QuestionKind::RawSelect(r) => r.ask(message, on_esc, answers, b, events)?,
             QuestionKind::Expand(e) => e.ask(message, on_esc, answers, b, events)?,
             QuestionKind::MultiSelect(c) => c.ask(message, on_esc, answers, b, events)?,
+            QuestionKind::OrderSelect(c) => c.ask(message, on_esc, answers, b, events)?,
             QuestionKind::Password(p) => p.ask(message, on_esc, answers, b, events)?,
             QuestionKind::Editor(e) => e.ask(message, on_esc, answers, b, events)?,
             QuestionKind::Custom(mut o) => o.ask(message, answers, b, events)?,
