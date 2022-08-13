@@ -435,13 +435,12 @@ impl Question<'static> {
     }
 
     // TODO : update desc
-    /// Prompt that allows the user to select multiple items from a list of options
+    /// Prompt that allows the user to organize a list of options.
     ///
-    /// Unlike the other list based prompts, this has a per choice boolean default.
+    /// The choices are represented with the [`Choice`] enum. [`Choice::Choice`] can be multi-line.
+    /// but [`Choice::Separator`]s will be ignored.
     ///
-    /// The choices are represented with the [`Choice`] enum. [`Choice::Choice`] can be multi-line,
-    /// but [`Choice::Separator`]s can only be single line.
-    ///
+    /// // TODO : add a gif for OrderSelect
     /// <img
     ///   src="https://raw.githubusercontent.com/lutetium-vanadium/requestty/master/assets/multi-select.gif"
     ///   style="max-height: 20rem"
@@ -454,17 +453,17 @@ impl Question<'static> {
     /// ```
     /// use requestty::{Question, DefaultSeparator};
     ///
-    /// let multi_select = Question::multi_select("cheese")
-    ///     .message("What cheese do you want?")
-    ///     .choice_with_default("Mozzarella", true)
+    /// let multi_select = Question::order_select("tasks")
+    ///     .message("Please organize the tasks")
     ///     .choices(vec![
-    ///         "Cheddar",
-    ///         "Parmesan",
+    ///         "Task 1",
+    ///         "Task 2",
+    ///         "Task 3",
     ///     ])
     ///     .build();
     /// ```
     ///
-    /// [`builder`]: MultiSelectBuilder
+    /// [`builder`]: OrderSelectBuilder
     pub fn order_select<N: Into<String>>(name: N) -> OrderSelectBuilder<'static> {
         OrderSelectBuilder::new(name.into())
     }
