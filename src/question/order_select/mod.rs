@@ -26,6 +26,7 @@ pub use builder::OrderSelectBuilder;
 #[derive(Debug, Default)]
 pub(super) struct OrderSelect<'a> {
     choices: super::ChoiceList<Text<String>>,
+    max_number_len: usize,
     order: Vec<usize>,
     moving: bool,
 
@@ -59,7 +60,14 @@ impl widgets::List for OrderSelect<'_> {
 
         layout.offset_x += 4;
 
-        write!(b, "{} ", index + 1)?;
+        let mut index_str = (index + 1).to_string();
+        index_str.extend(
+            ' '.to_string()
+                .repeat(self.max_number_len - index_str.len())
+                .chars()
+        );
+
+        write!(b, "{} ", index_str)?;
 
         layout.offset_x += 2;
 
@@ -92,7 +100,7 @@ impl widgets::List for OrderSelect<'_> {
 }
 
 impl<'c> OrderSelect<'c> {
-    fn into_multi_select_prompt<'a>(
+    fn into_order_select_prompt<'a>(
         self,
         message: &'a str,
         answers: &'a Answers,
@@ -116,7 +124,7 @@ impl<'c> OrderSelect<'c> {
     ) -> ui::Result<Option<Answer>> {
         let transform = self.transform.take();
 
-        let ans = ui::Input::new(self.into_multi_select_prompt(&message, answers), b)
+        let ans = ui::Input::new(self.into_order_select_prompt(&message, answers), b)
             .hide_cursor()
             .on_esc(on_esc)
             .run(events)?;
