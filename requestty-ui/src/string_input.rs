@@ -4,6 +4,7 @@ use std::{
 };
 
 use unicode_segmentation::UnicodeSegmentation;
+use unicode_width::UnicodeWidthStr;
 
 use crate::{
     backend::Backend,
@@ -326,7 +327,7 @@ where
             return 1;
         }
 
-        let mut width = self.value_len as u16;
+        let mut width = self.value.width() as u16;
         if width > layout.line_width() {
             width -= layout.line_width();
 
@@ -341,14 +342,15 @@ where
     }
 
     fn cursor_pos(&mut self, layout: Layout) -> (u16, u16) {
+        let pos = self.value[0..self.get_byte_i(self.at)].width();
         let relative_pos = if self.hide_output {
             // Nothing will be outputted so no need to move the cursor
             (layout.line_offset, 0)
-        } else if layout.line_width() > self.at as u16 {
+        } else if layout.line_width() > pos as u16 {
             // It is in the same line as the prompt
-            (layout.line_offset + self.at as u16, 0)
+            (layout.line_offset + pos as u16, 0)
         } else {
-            let at = self.at as u16 - layout.line_width();
+            let at = pos as u16 - layout.line_width();
 
             (at % layout.width, 1 + at / layout.width)
         };

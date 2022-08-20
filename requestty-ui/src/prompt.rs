@@ -1,4 +1,5 @@
 use std::{convert::TryFrom, io};
+use unicode_width::UnicodeWidthStr;
 
 use crate::{
     backend::Backend,
@@ -52,7 +53,7 @@ impl<M: AsRef<str>, H: AsRef<str>> Prompt<M, H> {
     /// Creates a new `Prompt`
     pub fn new(message: M) -> Self {
         Self {
-            message_len: u16::try_from(message.as_ref().chars().count())
+            message_len: u16::try_from(message.as_ref().width())
                 .expect("message must fit within a u16"),
             message,
             hint: None,
