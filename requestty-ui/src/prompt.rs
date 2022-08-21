@@ -52,7 +52,7 @@ impl<M: AsRef<str>, H: AsRef<str>> Prompt<M, H> {
     /// Creates a new `Prompt`
     pub fn new(message: M) -> Self {
         Self {
-            message_len: u16::try_from(message.as_ref().chars().count())
+            message_len: u16::try_from(textwrap::core::display_width(message.as_ref()))
                 .expect("message must fit within a u16"),
             message,
             hint: None,
@@ -63,8 +63,8 @@ impl<M: AsRef<str>, H: AsRef<str>> Prompt<M, H> {
 
     /// Sets the hint
     pub fn with_hint(mut self, hint: H) -> Self {
-        self.hint_len =
-            u16::try_from(hint.as_ref().chars().count()).expect("hint must fit within a u16");
+        self.hint_len = u16::try_from(textwrap::core::display_width(hint.as_ref()))
+            .expect("hint must fit within a u16");
         self.hint = Some(hint);
         self
     }
