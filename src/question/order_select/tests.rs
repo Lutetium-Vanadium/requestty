@@ -93,8 +93,7 @@ macro_rules! test_order_select {
                         layout,
                         base_layout.with_offset(0, $height).with_line_offset(0)
                     );
-                    // key events (Up and down) will change the view, triggering an error
-                    // ui::assert_backend_snapshot!(backend); 
+                    ui::assert_backend_snapshot!(backend); 
 
                     assert!(order_select.handle_key(key))
                 }
@@ -107,8 +106,7 @@ macro_rules! test_order_select {
                     layout,
                     base_layout.with_offset(0, $height).with_line_offset(0)
                 );
-                // key events (Up and down) will change the view, triggering an error
-                // ui::assert_backend_snapshot!(backend);
+                ui::assert_backend_snapshot!(backend);
             }
         }
     };
