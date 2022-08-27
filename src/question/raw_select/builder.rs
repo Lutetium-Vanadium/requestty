@@ -315,7 +315,21 @@ impl<'a> RawSelectBuilder<'a> {
     /// Consumes the builder returning a [`Question`]
     ///
     /// [`Question`]: crate::question::Question
-    pub fn build(self) -> crate::question::Question<'a> {
+    pub fn build(mut self) -> crate::question::Question<'a> {
+        let num_choices = self
+            .raw_select
+            .choices
+            .choices
+            .iter()
+            .rfind(|c| c.is_choice())
+            .and_then(|c| match c {
+                Choice::Choice((i, _)) => Some(*i),
+                _ => None,
+            })
+            .unwrap_or(0);
+
+        self.raw_select.max_index_width = (num_choices as f64).log10() as u16 + 1;
+
         crate::question::Question::new(
             self.opts,
             crate::question::QuestionKind::RawSelect(self.raw_select),

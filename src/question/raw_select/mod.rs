@@ -23,6 +23,7 @@ mod tests;
 pub(super) struct RawSelect<'a> {
     choices: super::ChoiceList<(usize, Text<String>)>,
     transform: Transform<'a, ListItem>,
+    max_index_width: u16,
 }
 
 struct RawSelectPrompt<'a> {
@@ -136,9 +137,14 @@ impl widgets::List for RawSelect<'_> {
                     b.set_fg(Color::Cyan)?;
                 }
 
-                write!(b, "  {}) ", index)?;
+                write!(
+                    b,
+                    "  {:>width$}. ",
+                    index,
+                    width = self.max_index_width as usize
+                )?;
 
-                layout.offset_x += (index as f64).log10() as u16 + 5;
+                layout.offset_x += self.max_index_width + 4;
                 text.render(&mut layout, b)?;
 
                 if hovered {
@@ -147,8 +153,8 @@ impl widgets::List for RawSelect<'_> {
             }
             separator => {
                 b.set_fg(Color::DarkGrey)?;
-                b.write_all(b"   ")?;
-                super::get_sep_str(separator).render(&mut layout.with_line_offset(3), b)?;
+                b.write_all(b"  ")?;
+                super::get_sep_str(separator).render(&mut layout.with_line_offset(2), b)?;
                 b.set_fg(Color::Reset)?;
             }
         }
@@ -162,8 +168,8 @@ impl widgets::List for RawSelect<'_> {
 
     fn height_at(&mut self, index: usize, mut layout: ui::layout::Layout) -> u16 {
         match self.choices[index] {
-            Choice::Choice((index, ref mut c)) => {
-                layout.offset_x += (index as f64).log10() as u16 + 5;
+            Choice::Choice((_, ref mut c)) => {
+                layout.offset_x += self.max_index_width + 4;
                 c.height(&mut layout)
             }
             _ => 1,
@@ -186,6 +192,7 @@ impl widgets::List for RawSelect<'_> {
 impl<'a> RawSelect<'a> {
     fn into_prompt(self, message: &'a str) -> RawSelectPrompt<'a> {
         let mut select = widgets::Select::new(self);
+
         if let Some(default) = select.list.choices.default() {
             select.set_at(default);
         }
