@@ -23,6 +23,8 @@ use super::OrderSelect;
 /// # Examples
 ///
 /// ```
+/// use requestty::Question;
+/// 
 /// let order_select = Question::order_select("home_tasks")
 ///     .message("Please organize the tasks to be done at home")
 ///     .choices(vec![
@@ -58,7 +60,7 @@ impl<'a> OrderSelectBuilder<'a> {
         ///
         /// let order_select = Question::order_select("home_tasks")
         ///     .message("Organize the tasks to be done at home")
-        ///     ...
+        ///     //...
         ///     .build();
         /// ```
 
@@ -69,12 +71,12 @@ impl<'a> OrderSelectBuilder<'a> {
         /// use requestty::{Answers, Question};
         ///
         /// let order_select = Question::order_select("home_tasks")
-        ///     ...
+        ///     //...
         ///     .when(|previous_answers: &Answers| match previous_answers.get("home_tasks_left") {
         ///         Some(ans) => ans.as_bool().unwrap(),
         ///         None => true,
         ///     })
-        ///     ...
+        ///     //...
         ///     .build();
         /// ```
 
@@ -85,9 +87,9 @@ impl<'a> OrderSelectBuilder<'a> {
         /// use requestty::{Answers, Question};
         ///
         /// let order_select = Question::order_select("home_tasks")
-        ///     ...
+        ///     //...
         ///     .ask_if_answered(true)
-        ///     ...
+        ///     //...
         ///     .build();
         /// ```
 
@@ -98,9 +100,9 @@ impl<'a> OrderSelectBuilder<'a> {
         /// use requestty::{Answers, Question, OnEsc};
         ///
         /// let order_select = Question::order_select("home_tasks")
-        ///     ...
+        ///     //...
         ///     .on_esc(OnEsc::Terminate)
-        ///     ...
+        ///     //...
         ///     .build();
         /// ```
     }
@@ -112,12 +114,12 @@ impl<'a> OrderSelectBuilder<'a> {
         /// use requestty::Question;
         ///
         /// let order_select = Question::order_select("evil-cheese")
-        ///     ...
+        ///     //...
         ///     .filter(|mut cheeses, previous_answers| {
         ///         cheeses.iter_mut().for_each(|checked| *checked = !*checked);
         ///         cheeses
         ///     })
-        ///     ...
+        ///     //...
         ///     .build();
         /// ```
         Vec<usize>; order_select
@@ -133,7 +135,7 @@ impl<'a> OrderSelectBuilder<'a> {
         /// use requestty::Question;
         ///
         /// let order_select = Question::order_select("cheese")
-        ///     ...
+        ///     //...
         ///     .validate(|cheeses, previous_answers| {
         ///         if cheeses.iter().filter(|&&a| a).count() < 1 {
         ///             Err("You must choose at least one cheese.".into())
@@ -141,7 +143,7 @@ impl<'a> OrderSelectBuilder<'a> {
         ///             Ok(())
         ///         }
         ///     })
-        ///     ...
+        ///     //...
         ///     .build();
         /// ```
         [usize]; order_select
@@ -154,12 +156,14 @@ impl<'a> OrderSelectBuilder<'a> {
         /// use requestty::Question;
         ///
         /// let order_select = Question::order_select("cheese")
+        ///     //...
         ///     .transform(|cheeses, previous_answers, backend| {
         ///         for cheese in cheeses {
         ///             write!(backend, "({}) {}, ", cheese.index, cheese.text)?;
         ///         }
         ///         Ok(())
         ///     })
+        ///     //...
         ///     .build();
         /// ```
         [ListItem]; order_select
@@ -224,12 +228,13 @@ impl<'a> OrderSelectBuilder<'a> {
     /// use requestty::Question;
     ///
     /// let order_select = Question::order_select("hamburger")
-    ///     ...
+    ///     //...
     ///     .choices(vec![
     ///         "Salad",
     ///         "Cheddar",
     ///         "Cheese",
     ///     ])
+    ///     //...
     ///     .build();
     /// ```
     pub fn choices<I, T>(mut self, choices: I) -> Self
