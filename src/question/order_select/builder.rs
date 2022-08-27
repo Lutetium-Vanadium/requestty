@@ -260,7 +260,7 @@ impl<'a> OrderSelectBuilder<'a> {
     /// [`Question`]: crate::question::Question
     pub fn build(mut self) -> crate::question::Question<'a> {
         self.order_select.order = (0..self.order_select.choices.len()).collect();
-        self.order_select.max_number_len = (self.order_select.order.len() + 1).to_string().len();
+        self.order_select.max_index_width = (self.order_select.order.len() as f64 + 1.0).log10() as usize + 1;
 
         crate::question::Question::new(
             self.opts,

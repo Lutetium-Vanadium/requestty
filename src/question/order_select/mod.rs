@@ -29,7 +29,7 @@ mod tests;
 #[derive(Debug, Default)]
 pub(super) struct OrderSelect<'a> {
     choices: super::ChoiceList<Text<String>>,
-    max_number_len: usize,
+    max_index_width: usize,
     order: Vec<usize>,
     moving: bool,
 
@@ -61,18 +61,14 @@ impl widgets::List for OrderSelect<'_> {
             b.write_all(b"  ")?;
         }
 
-        layout.offset_x += 4;
+        write!(
+            b,
+            "{:>width$}. ",
+            index,
+            width = self.max_index_width as usize
+        )?;
 
-        let mut index_str = (index + 1).to_string();
-        index_str.extend(
-            ' '.to_string()
-                .repeat(self.max_number_len - index_str.len())
-                .chars()
-        );
-
-        write!(b, "{} ", index_str)?;
-
-        layout.offset_x += 2;
+        layout.offset_x += self.max_index_width as u16 + 4;
 
         self.choices[self.order[index]].render(&mut layout, b)?;
 
@@ -93,7 +89,7 @@ impl widgets::List for OrderSelect<'_> {
     }
 
     fn height_at(&mut self, index: usize, mut layout: ui::layout::Layout) -> u16 {
-        layout.offset_x += 4;
+        layout.offset_x += self.max_index_width as u16 + 4;
         self.choices[index].height(&mut layout)
     }
 
