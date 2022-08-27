@@ -436,8 +436,7 @@ impl Question<'static> {
 
     /// Prompt that allows the user to organize a list of options.
     ///
-    /// The choices are represented with the [`Choice`] enum. [`Choice::Choice`] can be multi-line.
-    /// but [`Choice::Separator`]s will be ignored.
+    /// The choices are [`String`]s and can be multiline.
     ///
     /// // TODO : add a gif for OrderSelect
     /// <img
