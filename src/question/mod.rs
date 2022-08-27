@@ -452,11 +452,11 @@ impl Question<'static> {
     /// use requestty::{Question, DefaultSeparator};
     ///
     /// let multi_select = Question::order_select("tasks")
-    ///     .message("Please organize the tasks")
+    ///     .message("Please organize the tasks to be done at home")
     ///     .choices(vec![
-    ///         "Task 1",
-    ///         "Task 2",
-    ///         "Task 3",
+    ///         "Make the bed",
+    ///         "Clean the dishes",
+    ///         "Mow the lawn",
     ///     ])
     ///     .build();
     /// ```

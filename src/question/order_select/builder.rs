@@ -23,12 +23,12 @@ use super::OrderSelect;
 /// # Examples
 ///
 /// ```
-/// let order_select = Question::order_select("tasks")
-///     .message("Please organize the tasks")
+/// let order_select = Question::order_select("home_tasks")
+///     .message("Please organize the tasks to be done at home")
 ///     .choices(vec![
-///         "Task 1",
-///         "Task 2",
-///         "Task 3",
+///         "Make the bed",
+///         "Clean the dishes",
+///         "Mow the lawn",
 ///     ])
 ///     .build();
 /// ```
@@ -56,8 +56,8 @@ impl<'a> OrderSelectBuilder<'a> {
         /// ```
         /// use requestty::Question;
         ///
-        /// let order_select = Question::order_select("cheese")
-        ///     .message("Organize the cheeses")
+        /// let order_select = Question::order_select("home_tasks")
+        ///     .message("Organize the tasks to be done at home")
         ///     ...
         ///     .build();
         /// ```
@@ -68,9 +68,9 @@ impl<'a> OrderSelectBuilder<'a> {
         /// ```
         /// use requestty::{Answers, Question};
         ///
-        /// let order_select = Question::order_select("cheese")
+        /// let order_select = Question::order_select("home_tasks")
         ///     ...
-        ///     .when(|previous_answers: &Answers| match previous_answers.get("vegan") {
+        ///     .when(|previous_answers: &Answers| match previous_answers.get("home_tasks_left") {
         ///         Some(ans) => ans.as_bool().unwrap(),
         ///         None => true,
         ///     })
@@ -84,7 +84,7 @@ impl<'a> OrderSelectBuilder<'a> {
         /// ```
         /// use requestty::{Answers, Question};
         ///
-        /// let order_select = Question::order_select("cheese")
+        /// let order_select = Question::order_select("home_tasks")
         ///     ...
         ///     .ask_if_answered(true)
         ///     ...
@@ -97,7 +97,7 @@ impl<'a> OrderSelectBuilder<'a> {
         /// ```
         /// use requestty::{Answers, Question, OnEsc};
         ///
-        /// let order_select = Question::order_select("cheese")
+        /// let order_select = Question::order_select("home_tasks")
         ///     ...
         ///     .on_esc(OnEsc::Terminate)
         ///     ...
@@ -106,9 +106,6 @@ impl<'a> OrderSelectBuilder<'a> {
     }
 
     crate::impl_filter_builder! {
-        /// NOTE: The boolean [`Vec`] contains a boolean value for each index even if it is a separator.
-        /// However it is guaranteed that all the separator indices will be false.
-        ///
         /// # Examples
         ///
         /// ```
@@ -212,10 +209,9 @@ impl<'a> OrderSelectBuilder<'a> {
         self
     }
 
-    // TODO : add docs
     /// Extends the given iterator of [`Choice`]s
     ///
-    /// All separators will be ignored.
+    /// The choices are [`String`]s and can be multiline.
     ///
     /// See [`order_select`] for more information.
     ///
@@ -227,11 +223,12 @@ impl<'a> OrderSelectBuilder<'a> {
     /// ```
     /// use requestty::Question;
     ///
-    /// let order_select = Question::order_select("cheese")
+    /// let order_select = Question::order_select("hamburger")
+    ///     ...
     ///     .choices(vec![
-    ///         "Mozzarella",
+    ///         "Salad",
     ///         "Cheddar",
-    ///         "Parmesan",
+    ///         "Cheese",
     ///     ])
     ///     .build();
     /// ```
