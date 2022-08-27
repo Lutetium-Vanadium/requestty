@@ -1,33 +1,11 @@
-use rand::prelude::*;
-use rand_chacha::ChaCha12Rng;
 use ui::{backend::TestBackend, layout::Layout, events::{KeyCode, KeyEvent}};
 
 use crate::question::{Question, QuestionKind};
 
 use super::*;
 
-const SEED: u64 = 9828123;
-// separators are ignored
-const SEP_RATIO: f32 = 0.0;
-const DEFAULT_SEP_RATIO: f32 = 0.0;
-
-fn choices_with_default(len: usize) -> impl Iterator<Item = Choice<(String, bool)>> {
-    let mut rng = ChaCha12Rng::seed_from_u64(SEED);
-
-    (0..len).map(move |i| {
-        let rand: f32 = rng.gen();
-        if rand < DEFAULT_SEP_RATIO {
-            Choice::DefaultSeparator
-        } else if rand < SEP_RATIO {
-            Choice::Separator(format!("Separator {}", i))
-        } else {
-            Choice::Choice((format!("Choice {}", i), rand > 0.7))
-        }
-    })
-}
-
-fn choices(len: usize) -> impl Iterator<Item = Choice<String>> {
-    choices_with_default(len).map(|choice| choice.map(|(c, _)| c))
+fn choices(len: usize) -> impl Iterator<Item = String> {
+    (0..len).map(|choice| choice.to_string())
 }
 
 fn unwrap_order_select<'a>(question: impl Into<Question<'a>>) -> OrderSelect<'a> {

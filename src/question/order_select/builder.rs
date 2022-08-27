@@ -237,20 +237,13 @@ impl<'a> OrderSelectBuilder<'a> {
     /// ```
     pub fn choices<I, T>(mut self, choices: I) -> Self
     where
-        T: Into<Choice<String>>,
+        T: Into<String>,
         I: IntoIterator<Item = T>,
     {
         self.order_select.choices.choices.extend(
             choices
                 .into_iter()
-                .filter_map(|c| {
-                    if let Choice::Choice(txt) = c.into() {
-                        Some(txt)
-                    } else {
-                        None
-                    }
-                })
-                .map(|c| Choice::Choice(c).map(Text::new)),
+                .map(|c| Choice::Choice(Text::new(c.into()))),
         );
         self
     }
