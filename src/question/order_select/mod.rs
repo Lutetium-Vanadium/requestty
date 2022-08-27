@@ -6,7 +6,7 @@ use ui::{
     backend::Backend,
     events::EventIterator,
     style::Color,
-    widgets::{self, List, Text},
+    widgets::{self, Text},
     Prompt, Widget,
 };
 
@@ -106,7 +106,7 @@ impl<'c> OrderSelect<'c> {
     ) -> OrderSelectPrompt<'a, 'c> {
         OrderSelectPrompt {
             prompt: widgets::Prompt::new(message).with_hint(
-                "Press <space> to take and place an option, and <up> and <down> to move",
+                "Press <space> to take and place an option",
             ),
             select: widgets::Select::new(self),
             answers,
@@ -206,32 +206,6 @@ impl Prompt for OrderSelectPrompt<'_, '_> {
     }
 }
 
-macro_rules! key_swap {
-    ($self: expr, $key: expr, $go_back_if: expr, $go_back_val: expr, $op: tt) => {
-        {
-            if $self.select.list.moving {
-                let mut should_swap = true;
-                let p1 = $self.select.get_at();
-                let p2 = if p1 == $go_back_if {
-                    if $self.select.list.should_loop() {
-                        $go_back_val
-                    } else {
-                        should_swap = false;
-                        p1
-                    }
-                } else {
-                    p1 $op 1
-                };
-
-                if should_swap {
-                    $self.select.list.order.swap(p1, p2);
-                }
-            }
-            $self.select.handle_key($key);
-        }
-    };
-}
-
 impl Widget for OrderSelectPrompt<'_, '_> {
     fn render<B: Backend>(
         &mut self,
@@ -251,18 +225,24 @@ impl Widget for OrderSelectPrompt<'_, '_> {
     }
 
     fn handle_key(&mut self, key: ui::events::KeyEvent) -> bool {
-        match key.code {
-            ui::events::KeyCode::Up => {
-                key_swap!(self, key, 0, self.select.list.choices.len() - 1, -)
+        let prev_at = self.select.get_at();
+    
+        if let ui::events::KeyCode::Char(' ') = key.code {
+            self.select.list.moving = !self.select.list.moving;
+        } else if self.select.handle_key(key) {
+            if self.select.list.moving {
+                let new_at = self.select.get_at();
+    
+                if prev_at < new_at {
+                    self.select.list.order[prev_at..=new_at].rotate_left(1);
+                } else {
+                    self.select.list.order[new_at..=prev_at].rotate_right(1);
+                }
             }
-            ui::events::KeyCode::Down => {
-                key_swap!(self, key, self.select.list.choices.len() - 1, 0, +)
-            }
-
-            ui::events::KeyCode::Char(' ') => self.select.list.moving = !self.select.list.moving,
-            _ => return self.select.handle_key(key),
+        } else {
+            return false;
         }
-
+    
         true
     }
 }
