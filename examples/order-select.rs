@@ -8,11 +8,11 @@ fn main() {
             "Clean the dishes",
             "Mow the lawn",
         ])
-        .validate(|o, _| {
-            if o[0] == 0 {
-                Ok(())
+        .validate(|c, _| {
+            if c[0].text() == "Make the bed" {
+                Err("You have to make the bed first".to_string())
             } else {
-                Err("Task 1 needs to be done first.".to_string())
+                Ok(())
             }
         })
         .build();

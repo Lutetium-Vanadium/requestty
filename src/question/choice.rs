@@ -31,7 +31,7 @@ impl<T: std::fmt::Debug> std::fmt::Debug for SelectList<T> {
 }
 
 impl<T> SelectList<T> {
-    fn new(f: fn(&T) -> bool) -> Self {
+    pub(crate) fn new(f: fn(&T) -> bool) -> Self {
         Self {
             choices: Vec::new(),
             page_size: 15,

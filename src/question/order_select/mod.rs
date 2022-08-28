@@ -4,7 +4,7 @@ use std::io;
 
 use ui::{
     backend::Backend,
-    events::EventIterator,
+    events::{EventIterator, KeyEvent},
     style::Color,
     widgets::{self, Text},
     Prompt, Widget,
@@ -13,8 +13,7 @@ use ui::{
 use crate::{Answer, Answers, ListItem};
 
 use super::{
-    handler::{Filter, Transform, Validate},
-    Choice,
+    handler::{Filter, Transform, Validate}, choice::SelectList,
 };
 
 pub use builder::OrderSelectBuilder;
@@ -26,17 +25,33 @@ mod tests;
 //
 // =============================================================================
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub(super) struct OrderSelect<'a> {
-    choices: super::ChoiceList<Text<String>>,
+    choices: SelectList<OrderSelectItem>,
     max_index_width: usize,
-    order: Vec<usize>,
     moving: bool,
 
-    transform: Transform<'a, [ListItem]>,
-    validate: Validate<'a, [usize]>,
-    filter: Filter<'a, Vec<usize>>,
+    transform: Transform<'a, [OrderSelectItem]>,
+    validate: Validate<'a, [OrderSelectItem]>,
+    filter: Filter<'a, Vec<OrderSelectItem>>,
 }
+
+impl<'a> Default for OrderSelect<'a> {
+    fn default() -> Self {
+        Self { 
+            choices: SelectList::new(|_| true),
+
+            // can't put
+            // `..Default::default()`
+            // because of recursion
+            max_index_width: Default::default(),
+            moving: Default::default(),
+            transform: Default::default(),
+            validate: Default::default(),
+            filter: Default::default(),
+        }
+    }
+} 
 
 impl widgets::List for OrderSelect<'_> {
     fn render_item<B: ui::backend::Backend>(
@@ -70,7 +85,7 @@ impl widgets::List for OrderSelect<'_> {
 
         layout.offset_x += self.max_index_width as u16 + 4;
 
-        self.choices[self.order[index]].render(&mut layout, b)?;
+        self.choices[index].render(&mut layout, b)?;
 
         b.set_fg(Color::Reset)?;
         b.set_bg(Color::Reset)
@@ -132,10 +147,7 @@ impl<'c> OrderSelect<'c> {
             b.set_fg(Color::Cyan)?;
             print_comma_separated(
                 ans.iter().map(|item| {
-                    item.text
-                        .lines()
-                        .next()
-                        .expect("There must be at least one line in a `str`")
+                    item.text()
                 }),
                 b,
             )?;
@@ -172,35 +184,27 @@ struct OrderSelectPrompt<'a, 'c> {
 
 impl Prompt for OrderSelectPrompt<'_, '_> {
     type ValidateErr = widgets::Text<String>;
-    type Output = Vec<ListItem>;
+    type Output = Vec<OrderSelectItem>;
 
     fn finish(self) -> Self::Output {
         let OrderSelect {
             choices,
-            mut order,
             filter,
             ..
         } = self.select.into_inner();
 
+        let mut c = choices.choices;
+
         if let Filter::Sync(filter) = filter {
-            order = filter(order, self.answers);
+            c = filter(c, self.answers);
         }
 
-        order
-            .into_iter()
-            .filter_map(|i| match &choices.choices[i] {
-                Choice::Choice(text) => Some(ListItem {
-                    index: i,
-                    text: text.text.clone(),
-                }),
-                _ => None,
-            })
-            .collect()
+        c
     }
 
     fn validate(&mut self) -> Result<ui::Validation, Self::ValidateErr> {
         if let Validate::Sync(ref mut validate) = self.select.list.validate {
-            validate(&self.select.list.order, self.answers)?;
+            validate(&self.select.list.choices.choices, self.answers)?;
         }
         Ok(ui::Validation::Finish)
     }
@@ -234,9 +238,9 @@ impl Widget for OrderSelectPrompt<'_, '_> {
                 let new_at = self.select.get_at();
     
                 if prev_at < new_at {
-                    self.select.list.order[prev_at..=new_at].rotate_left(1);
+                    self.select.list.choices.choices[prev_at..=new_at].rotate_left(1);
                 } else {
-                    self.select.list.order[new_at..=prev_at].rotate_right(1);
+                    self.select.list.choices.choices[new_at..=prev_at].rotate_right(1);
                 }
             }
         } else {
@@ -244,5 +248,58 @@ impl Widget for OrderSelectPrompt<'_, '_> {
         }
     
         true
+    }
+}
+
+// =============================================================================
+// 
+// =============================================================================
+
+/// The representation of each choice in an [`OrderSelect`].
+///
+/// It is different from [`ListItem`](crate::answer::ListItem) due to an implementation detail.
+#[derive(Debug, Clone, PartialEq)]
+pub struct OrderSelectItem {
+    index: usize,
+    text: Text<String>,
+}
+
+impl OrderSelectItem {
+    /// The index of the choice
+    pub fn index(&self) -> usize {
+        self.index
+    }
+
+    /// The content of the choice -- it is what is displayed to the user
+    pub fn text(&self) -> &str {
+        &self.text.text
+    }
+}
+
+impl Widget for OrderSelectItem {
+    fn render<B: Backend>(
+        &mut self,
+        layout: &mut ui::layout::Layout,
+        backend: &mut B,
+    ) -> io::Result<()> {
+        self.text.render(layout, backend)
+    }
+
+    fn height(&mut self, layout: &mut ui::layout::Layout) -> u16 {
+        self.text.height(layout)
+    }
+
+    fn cursor_pos(&mut self, layout: ui::layout::Layout) -> (u16, u16) {
+        self.text.cursor_pos(layout)
+    }
+
+    fn handle_key(&mut self, key: KeyEvent) -> bool {
+        self.text.handle_key(key)
+    }
+}
+
+impl Into<ListItem> for OrderSelectItem {
+    fn into(self) -> ListItem {
+        ListItem { index: self.index, text: self.text.text }
     }
 }

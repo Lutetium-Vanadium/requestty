@@ -2,11 +2,10 @@ use ui::backend::Backend;
 use ui::widgets::Text;
 
 use crate::{
-    question::{Choice, Options},
-    ListItem,
+    question::{Options},
 };
 
-use super::OrderSelect;
+use super::{OrderSelect, OrderSelectItem};
 
 /// Prompt that allows the user to organize a list of options.
 ///
@@ -113,16 +112,16 @@ impl<'a> OrderSelectBuilder<'a> {
         /// ```
         /// use requestty::Question;
         ///
-        /// let order_select = Question::order_select("evil-cheese")
+        /// let order_select = Question::order_select("evil_home_tasks")
         ///     //...
-        ///     .filter(|mut cheeses, previous_answers| {
-        ///         cheeses.iter_mut().for_each(|checked| *checked = !*checked);
-        ///         cheeses
+        ///     .filter(|mut tasks, previous_answers| {
+        ///         tasks.rotate_left(1);
+        ///         tasks
         ///     })
         ///     //...
         ///     .build();
         /// ```
-        Vec<usize>; order_select
+        Vec<OrderSelectItem>; order_select
     }
 
     crate::impl_validate_builder! {
@@ -134,11 +133,11 @@ impl<'a> OrderSelectBuilder<'a> {
         /// ```
         /// use requestty::Question;
         ///
-        /// let order_select = Question::order_select("cheese")
+        /// let order_select = Question::order_select("home_tasks")
         ///     //...
-        ///     .validate(|cheeses, previous_answers| {
-        ///         if cheeses.iter().filter(|&&a| a).count() < 1 {
-        ///             Err("You must choose at least one cheese.".into())
+        ///     .validate(|tasks, previous_answers| {
+        ///         if tasks[0].text() == "Make the bed" {
+        ///             Err("You have to make the bed first".to_string())
         ///         } else {
         ///             Ok(())
         ///         }
@@ -146,7 +145,7 @@ impl<'a> OrderSelectBuilder<'a> {
         ///     //...
         ///     .build();
         /// ```
-        [usize]; order_select
+        [OrderSelectItem]; order_select
     }
 
     crate::impl_transform_builder! {
@@ -159,14 +158,14 @@ impl<'a> OrderSelectBuilder<'a> {
         ///     //...
         ///     .transform(|cheeses, previous_answers, backend| {
         ///         for cheese in cheeses {
-        ///             write!(backend, "({}) {}, ", cheese.index, cheese.text)?;
+        ///             write!(backend, "({}) {}, ", cheese.index(), cheese.text())?;
         ///         }
         ///         Ok(())
         ///     })
         ///     //...
         ///     .build();
         /// ```
-        [ListItem]; order_select
+        [OrderSelectItem]; order_select
     }
 
     /// The maximum height that can be taken by the list
@@ -242,10 +241,18 @@ impl<'a> OrderSelectBuilder<'a> {
         T: Into<String>,
         I: IntoIterator<Item = T>,
     {
+        let len = self.order_select.choices.choices.len();
+
         self.order_select.choices.choices.extend(
             choices
                 .into_iter()
-                .map(|c| Choice::Choice(Text::new(c.into()))),
+                .enumerate()
+                .map(|(i, c)|
+                    OrderSelectItem { 
+                        index:len + i, 
+                        text: Text::new(c.into())
+                    }
+                ),
         );
         self
     }
@@ -254,8 +261,7 @@ impl<'a> OrderSelectBuilder<'a> {
     ///
     /// [`Question`]: crate::question::Question
     pub fn build(mut self) -> crate::question::Question<'a> {
-        self.order_select.order = (0..self.order_select.choices.len()).collect();
-        self.order_select.max_index_width = (self.order_select.order.len() as f64 + 1.0).log10() as usize + 1;
+        self.order_select.max_index_width = (self.order_select.choices.len() as f64 + 1.0).log10() as usize + 1;
 
         crate::question::Question::new(
             self.opts,

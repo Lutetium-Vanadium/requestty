@@ -5,6 +5,8 @@ use std::{
     ops::{Deref, DerefMut},
 };
 
+use crate::question::OrderSelectItem;
+
 /// The different answer types that can be returned by the [`Question`]s
 ///
 /// [`Question`]: crate::question::Question
@@ -37,9 +39,10 @@ pub enum Answer {
     ///
     /// [`confirm`]: crate::question::Question::confirm
     Bool(bool),
-    /// ListItems will be returned by [`multi_select`].
+    /// ListItems will be returned by [`multi_select`] and [`order_select`].
     ///
     /// [`multi_select`]: crate::question::Question::multi_select
+    /// [`multi_select`]: crate::question::Question::order_select
     ListItems(Vec<ListItem>),
 }
 
@@ -210,6 +213,16 @@ impl_from!(ExpandItem => ExpandItem);
 impl_from!(ListItem => ListItem);
 impl_from!(Vec<ListItem> => ListItems);
 
+impl From<Vec<OrderSelectItem>> for Answer {
+    fn from(v: Vec<OrderSelectItem>) -> Self {
+        Answer::ListItems(
+            v.into_iter()
+                .map(|o| o.into())
+                .collect()
+        )
+    }
+}
+
 /// A representation of a [`Choice`] at a particular index.
 ///
 /// It will be returned by [`select`] and [`raw_select`].
@@ -231,6 +244,12 @@ impl<I: Into<String>> From<(usize, I)> for ListItem {
             index,
             text: text.into(),
         }
+    }
+}
+
+impl AsRef<str> for ListItem {
+    fn as_ref(&self) -> &str {
+        &self.text
     }
 }
 
