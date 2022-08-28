@@ -7,17 +7,41 @@ use ui::{style::Color, widgets::List, Widget};
 
 use crate::ExpandItem;
 
-#[derive(Debug, Clone)]
-pub(crate) struct ChoiceList<T> {
-    pub(crate) choices: Vec<Choice<T>>,
+#[derive(Clone)]
+pub(crate) struct SelectList<T> {
+    pub(crate) choices: Vec<T>,
     page_size: usize,
     default: usize,
     // note: default is not an option usize because it adds an extra usize of space
     has_default: bool,
     should_loop: bool,
+    is_selectable: fn(&T) -> bool,
 }
 
-impl<T> ChoiceList<T> {
+impl<T: std::fmt::Debug> std::fmt::Debug for SelectList<T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("SelectList")
+            .field("choices", &self.choices)
+            .field("page_size", &self.page_size)
+            .field("default", &self.default)
+            .field("has_default", &self.has_default)
+            .field("should_loop", &self.should_loop)
+            .finish()
+    }
+}
+
+impl<T> SelectList<T> {
+    fn new(f: fn(&T) -> bool) -> Self {
+        Self {
+            choices: Vec::new(),
+            page_size: 15,
+            default: 0,
+            has_default: false,
+            should_loop: true,
+            is_selectable: f,
+        }
+    }
+
     pub(crate) fn len(&self) -> usize {
         self.choices.len()
     }
@@ -58,42 +82,21 @@ impl<T> ChoiceList<T> {
     }
 }
 
-impl<T> Index<usize> for ChoiceList<T> {
-    type Output = Choice<T>;
+impl<T> Index<usize> for SelectList<T> {
+    type Output = T;
 
     fn index(&self, index: usize) -> &Self::Output {
         &self.choices[index]
     }
 }
 
-impl<T> IndexMut<usize> for ChoiceList<T> {
+impl<T> IndexMut<usize> for SelectList<T> {
     fn index_mut(&mut self, index: usize) -> &mut Self::Output {
         &mut self.choices[index]
     }
 }
 
-impl<T> std::iter::FromIterator<T> for ChoiceList<T> {
-    fn from_iter<I: IntoIterator<Item = T>>(iter: I) -> Self {
-        Self {
-            choices: iter.into_iter().map(Choice::Choice).collect(),
-            ..Default::default()
-        }
-    }
-}
-
-impl<T> Default for ChoiceList<T> {
-    fn default() -> Self {
-        Self {
-            choices: Vec::new(),
-            page_size: 15,
-            default: 0,
-            has_default: false,
-            should_loop: true,
-        }
-    }
-}
-
-impl<T: Widget> List for ChoiceList<T> {
+impl<T: Widget> List for SelectList<T> {
     fn render_item<B: ui::backend::Backend>(
         &mut self,
         index: usize,
@@ -119,7 +122,7 @@ impl<T: Widget> List for ChoiceList<T> {
     }
 
     fn is_selectable(&self, index: usize) -> bool {
-        matches!(self.choices[index], Choice::Choice(_))
+        (self.is_selectable)(&self.choices[index])
     }
 
     fn page_size(&self) -> usize {
@@ -138,6 +141,22 @@ impl<T: Widget> List for ChoiceList<T> {
 
     fn len(&self) -> usize {
         self.choices.len()
+    }
+}
+
+pub(crate) type ChoiceList<T> = SelectList<Choice<T>>;
+
+impl<T> std::iter::FromIterator<T> for ChoiceList<T> {
+    fn from_iter<I: IntoIterator<Item = T>>(iter: I) -> Self {
+        let mut this = Self::new(Choice::is_choice);
+        this.choices = iter.into_iter().map(Choice::Choice).collect();
+        this
+    }
+}
+
+impl<T> Default for ChoiceList<T> {
+    fn default() -> Self {
+        Self::new(Choice::is_choice)
     }
 }
 
