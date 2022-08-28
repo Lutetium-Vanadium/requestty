@@ -106,68 +106,6 @@ impl<'a> OrderSelectBuilder<'a> {
         /// ```
     }
 
-    crate::impl_filter_builder! {
-        /// # Examples
-        ///
-        /// ```
-        /// use requestty::Question;
-        ///
-        /// let order_select = Question::order_select("evil_home_tasks")
-        ///     //...
-        ///     .filter(|mut tasks, previous_answers| {
-        ///         tasks.rotate_left(1);
-        ///         tasks
-        ///     })
-        ///     //...
-        ///     .build();
-        /// ```
-        Vec<OrderSelectItem>; order_select
-    }
-
-    crate::impl_validate_builder! {
-        /// NOTE: The boolean [`slice`] contains a boolean value for each index even if it is a
-        /// separator. However it is guaranteed that all the separator indices will be false.
-        ///
-        /// # Examples
-        ///
-        /// ```
-        /// use requestty::Question;
-        ///
-        /// let order_select = Question::order_select("home_tasks")
-        ///     //...
-        ///     .validate(|tasks, previous_answers| {
-        ///         if tasks[0].text() == "Make the bed" {
-        ///             Err("You have to make the bed first".to_string())
-        ///         } else {
-        ///             Ok(())
-        ///         }
-        ///     })
-        ///     //...
-        ///     .build();
-        /// ```
-        [OrderSelectItem]; order_select
-    }
-
-    crate::impl_transform_builder! {
-        /// # Examples
-        ///
-        /// ```
-        /// use requestty::Question;
-        ///
-        /// let order_select = Question::order_select("cheese")
-        ///     //...
-        ///     .transform(|cheeses, previous_answers, backend| {
-        ///         for cheese in cheeses {
-        ///             write!(backend, "({}) {}, ", cheese.index(), cheese.text())?;
-        ///         }
-        ///         Ok(())
-        ///     })
-        ///     //...
-        ///     .build();
-        /// ```
-        [OrderSelectItem]; order_select
-    }
-
     /// The maximum height that can be taken by the list
     ///
     /// If the total height exceeds the page size, the list will be scrollable.
@@ -255,6 +193,68 @@ impl<'a> OrderSelectBuilder<'a> {
                 ),
         );
         self
+    }
+
+    crate::impl_filter_builder! {
+        /// # Examples
+        ///
+        /// ```
+        /// use requestty::Question;
+        ///
+        /// let order_select = Question::order_select("evil_home_tasks")
+        ///     //...
+        ///     .filter(|mut tasks, previous_answers| {
+        ///         tasks.rotate_left(1);
+        ///         tasks
+        ///     })
+        ///     //...
+        ///     .build();
+        /// ```
+        Vec<OrderSelectItem>; order_select
+    }
+
+    crate::impl_validate_builder! {
+        /// NOTE: The boolean [`slice`] contains a boolean value for each index even if it is a
+        /// separator. However it is guaranteed that all the separator indices will be false.
+        ///
+        /// # Examples
+        ///
+        /// ```
+        /// use requestty::Question;
+        ///
+        /// let order_select = Question::order_select("home_tasks")
+        ///     //...
+        ///     .validate(|tasks, previous_answers| {
+        ///         if tasks[0].text() == "Make the bed" {
+        ///             Err("You have to make the bed first".to_string())
+        ///         } else {
+        ///             Ok(())
+        ///         }
+        ///     })
+        ///     //...
+        ///     .build();
+        /// ```
+        [OrderSelectItem]; order_select
+    }
+
+    crate::impl_transform_builder! {
+        /// # Examples
+        ///
+        /// ```
+        /// use requestty::Question;
+        ///
+        /// let order_select = Question::order_select("cheese")
+        ///     //...
+        ///     .transform(|cheeses, previous_answers, backend| {
+        ///         for cheese in cheeses {
+        ///             write!(backend, "({}) {}, ", cheese.index(), cheese.text())?;
+        ///         }
+        ///         Ok(())
+        ///     })
+        ///     //...
+        ///     .build();
+        /// ```
+        [OrderSelectItem]; order_select
     }
 
     /// Consumes the builder returning a [`Question`]
