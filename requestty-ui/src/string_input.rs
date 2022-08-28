@@ -326,7 +326,8 @@ where
             return 1;
         }
 
-        let mut width = self.value_len as u16;
+        let mut width = textwrap::core::display_width(&self.value) as u16;
+
         if width > layout.line_width() {
             width -= layout.line_width();
 
@@ -341,14 +342,17 @@ where
     }
 
     fn cursor_pos(&mut self, layout: Layout) -> (u16, u16) {
+        let display_at =
+            textwrap::core::display_width(&self.value[..self.get_byte_i(self.at)]) as u16;
+
         let relative_pos = if self.hide_output {
             // Nothing will be outputted so no need to move the cursor
             (layout.line_offset, 0)
-        } else if layout.line_width() > self.at as u16 {
+        } else if layout.line_width() > display_at {
             // It is in the same line as the prompt
-            (layout.line_offset + self.at as u16, 0)
+            (layout.line_offset + display_at, 0)
         } else {
-            let at = self.at as u16 - layout.line_width();
+            let at = display_at - layout.line_width();
 
             (at % layout.width, 1 + at / layout.width)
         };

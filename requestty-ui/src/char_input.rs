@@ -81,7 +81,7 @@ where
 
     fn render<B: Backend>(&mut self, layout: &mut Layout, backend: &mut B) -> std::io::Result<()> {
         if let Some(value) = self.value {
-            layout.line_offset += 1;
+            layout.line_offset += char_width(value);
 
             write!(backend, "{}", value)?;
         }
@@ -89,13 +89,16 @@ where
     }
 
     fn height(&mut self, layout: &mut Layout) -> u16 {
-        layout.line_offset += self.value.is_some() as u16;
+        layout.line_offset += self.value.map(char_width).unwrap_or(0);
         1
     }
 
     /// Returns the position right after the character if any.
     fn cursor_pos(&mut self, layout: Layout) -> (u16, u16) {
-        layout.offset_cursor((layout.line_offset + self.value.is_some() as u16, 0))
+        layout.offset_cursor((
+            layout.line_offset + self.value.map(char_width).unwrap_or(0),
+            0,
+        ))
     }
 }
 
@@ -103,6 +106,11 @@ impl Default for CharInput {
     fn default() -> Self {
         Self::new()
     }
+}
+
+fn char_width(c: char) -> u16 {
+    let mut buf = [0u8; 4];
+    textwrap::core::display_width(c.encode_utf8(&mut buf)) as u16
 }
 
 #[cfg(test)]
@@ -133,6 +141,17 @@ mod tests {
         assert_eq!(
             input.cursor_pos(layout.with_offset(0, 3).with_line_offset(5)),
             (6, 3)
+        );
+
+        input.set_value('🔥');
+
+        assert_eq!(input.cursor_pos(layout), (2, 0));
+        assert_eq!(input.cursor_pos(layout.with_line_offset(5)), (7, 0));
+
+        assert_eq!(input.cursor_pos(layout.with_offset(0, 3)), (2, 3));
+        assert_eq!(
+            input.cursor_pos(layout.with_offset(0, 3).with_line_offset(5)),
+            (7, 3)
         );
     }
 

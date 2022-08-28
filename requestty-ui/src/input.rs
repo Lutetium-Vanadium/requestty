@@ -79,6 +79,7 @@ pub struct Input<P, B: Backend> {
     backend: TerminalState<B>,
     base_row: u16,
     size: Size,
+    render_overflow: bool,
 }
 
 impl<P, B: Backend> Input<P, B> {
@@ -94,6 +95,7 @@ impl<P, B: Backend> Input<P, B> {
             backend: TerminalState::new(backend, false),
             base_row: 0,
             size: Size::default(),
+            render_overflow: false,
         }
     }
 
@@ -147,8 +149,8 @@ impl<P: Prompt, B: Backend> Input<P, B> {
 
         let mut base_row = self.base_row;
 
-        if self.base_row > th - height {
-            let dist = self.base_row + height - th;
+        if self.base_row > th.saturating_sub(height) {
+            let dist = self.base_row - th.saturating_sub(height);
             base_row -= dist;
             self.backend.scroll(-(dist as i16))?;
             self.backend.move_cursor(MoveDirection::Up(dist))?;
@@ -160,9 +162,35 @@ impl<P: Prompt, B: Backend> Input<P, B> {
     fn flush(&mut self) -> io::Result<()> {
         if !self.backend.hide_cursor {
             let (x, y) = self.prompt.cursor_pos(self.layout());
+
+            if self.render_overflow && y >= self.size.height - 1 {
+                // If the height of the prompt exceeds the height of the terminal a cut-off message
+                // is displayed at the bottom. If the cursor is positioned on this cut-off, then we
+                // hide it.
+                if !self.backend.cursor_hidden {
+                    self.backend.cursor_hidden = true;
+                    self.backend.hide_cursor()?;
+                }
+            } else if self.backend.cursor_hidden {
+                // Otherwise, the cursor should be visible, and currently is not. So, we show it.
+                self.backend.cursor_hidden = false;
+                self.backend.show_cursor()?;
+            }
+
             self.backend.move_cursor_to(x, y)?;
         }
         self.backend.flush()
+    }
+
+    fn render_cutoff_msg(&mut self) -> io::Result<()> {
+        let cross = crate::symbols::current().cross;
+        self.backend.set_fg(crate::style::Color::DarkGrey)?;
+        write!(
+            self.backend,
+            "{0} the window height is too small, the prompt has been cut-off {0}",
+            cross
+        )?;
+        self.backend.set_fg(crate::style::Color::Reset)
     }
 
     fn render(&mut self) -> io::Result<()> {
@@ -172,6 +200,12 @@ impl<P: Prompt, B: Backend> Input<P, B> {
         self.clear()?;
 
         self.prompt.render(&mut self.layout(), &mut *self.backend)?;
+        self.render_overflow = height > self.size.height;
+
+        if self.render_overflow {
+            self.backend.move_cursor_to(0, self.size.height - 1)?;
+            self.render_cutoff_msg()?;
+        }
 
         self.flush()
     }
@@ -190,17 +224,27 @@ impl<P: Prompt, B: Backend> Input<P, B> {
         self.update_size()?;
         let height = self.prompt.height(&mut self.layout());
         self.base_row = self.adjust_scrollback(height + 1)?;
-
         self.clear()?;
         self.prompt.render(&mut self.layout(), &mut *self.backend)?;
+
         self.goto_last_line(height)?;
+
+        let mut layout = Layout::new(2, self.size).with_offset(0, self.base_row + height);
+        let err_height = e.height(&mut layout.clone());
+        self.base_row = self.adjust_scrollback(height + err_height)?;
+
+        if self.render_overflow {
+            self.backend
+                .move_cursor_to(0, self.size.height - err_height - 1)?;
+            self.backend.clear(ClearType::FromCursorDown)?;
+            self.render_cutoff_msg()?;
+            self.backend
+                .move_cursor_to(0, self.size.height - err_height)?;
+        }
 
         self.backend
             .write_styled(&crate::symbols::current().cross.red())?;
         self.backend.write_all(b" ")?;
-
-        let mut layout = Layout::new(2, self.size).with_offset(0, self.base_row + height);
-        self.base_row = self.adjust_scrollback(height + e.height(&mut layout.clone()))?;
 
         e.render(&mut layout, &mut *self.backend)?;
 
@@ -273,6 +317,7 @@ impl<P: Prompt, B: Backend> Input<P, B> {
 struct TerminalState<B: Backend> {
     backend: B,
     hide_cursor: bool,
+    cursor_hidden: bool,
     enabled: bool,
 }
 
@@ -282,21 +327,24 @@ impl<B: Backend> TerminalState<B> {
             backend,
             enabled: false,
             hide_cursor,
+            cursor_hidden: false,
         }
     }
 
     fn init(&mut self) -> io::Result<()> {
         self.enabled = true;
-        if self.hide_cursor {
+        if self.hide_cursor && !self.cursor_hidden {
             self.backend.hide_cursor()?;
+            self.cursor_hidden = true;
         }
         self.backend.enable_raw_mode()
     }
 
     fn reset(&mut self) -> io::Result<()> {
         self.enabled = false;
-        if self.hide_cursor {
+        if self.cursor_hidden {
             self.backend.show_cursor()?;
+            self.cursor_hidden = false;
         }
         self.backend.disable_raw_mode()
     }
@@ -393,6 +441,7 @@ mod tests {
                 backend: TerminalState::new(&mut backend, false),
                 base_row: 14,
                 size,
+                render_overflow: false,
             }
             .adjust_scrollback(3)
             .unwrap(),
@@ -408,6 +457,7 @@ mod tests {
                 backend: TerminalState::new(&mut backend, false),
                 base_row: 14,
                 size,
+                render_overflow: false,
             }
             .adjust_scrollback(6)
             .unwrap(),
@@ -422,6 +472,7 @@ mod tests {
                 backend: TerminalState::new(&mut backend, false),
                 base_row: 14,
                 size,
+                render_overflow: false,
             }
             .adjust_scrollback(10)
             .unwrap(),
@@ -443,6 +494,7 @@ mod tests {
             backend: TerminalState::new(&mut backend, false),
             size,
             base_row: 5,
+            render_overflow: false,
         }
         .render()
         .is_ok());
@@ -462,6 +514,7 @@ mod tests {
             backend: TerminalState::new(&mut backend, false),
             size,
             base_row: 15,
+            render_overflow: false,
         };
 
         assert!(input.goto_last_line(9).is_ok());
@@ -483,6 +536,7 @@ mod tests {
             backend: TerminalState::new(&mut backend, true),
             base_row: 0,
             size,
+            render_overflow: false,
         }
         .print_error(error)
         .is_ok());
