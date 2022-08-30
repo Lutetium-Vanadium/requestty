@@ -247,12 +247,6 @@ impl<I: Into<String>> From<(usize, I)> for ListItem {
     }
 }
 
-impl AsRef<str> for ListItem {
-    fn as_ref(&self) -> &str {
-        &self.text
-    }
-}
-
 /// A representation of a [`Choice`] for a particular key.
 ///
 /// It will be returned by [`expand`].
