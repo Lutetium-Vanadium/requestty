@@ -71,8 +71,8 @@ impl<'a> OrderSelectBuilder<'a> {
         ///
         /// let order_select = Question::order_select("home_tasks")
         ///     //...
-        ///     .when(|previous_answers: &Answers| match previous_answers.get("home_tasks_left") {
-        ///         Some(ans) => ans.as_bool().unwrap(),
+        ///     .when(|previous_answers: &Answers| match previous_answers.get("on_vacation") {
+        ///         Some(ans) => !ans.as_bool().unwrap(),
         ///         None => true,
         ///     })
         ///     //...
