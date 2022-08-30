@@ -260,14 +260,15 @@ impl Widget for OrderSelectPrompt<'_, '_> {
 /// It is different from [`ListItem`](crate::answer::ListItem) due to an implementation detail.
 #[derive(Debug, Clone, PartialEq)]
 pub struct OrderSelectItem {
-    index: usize,
+    initial_index: usize,
     text: Text<String>,
 }
 
 impl OrderSelectItem {
-    /// The index of the choice
-    pub fn index(&self) -> usize {
-        self.index
+    /// The index of the choice in the initial list.
+    /// This is not the index rendered aside on the screen.
+    pub fn initial_index(&self) -> usize {
+        self.initial_index
     }
 
     /// The content of the choice -- it is what is displayed to the user
@@ -300,6 +301,6 @@ impl Widget for OrderSelectItem {
 
 impl Into<ListItem> for OrderSelectItem {
     fn into(self) -> ListItem {
-        ListItem { index: self.index, text: self.text.text }
+        ListItem { index: self.initial_index, text: self.text.text }
     }
 }

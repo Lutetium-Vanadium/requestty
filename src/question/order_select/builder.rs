@@ -184,7 +184,7 @@ impl<'a> OrderSelectBuilder<'a> {
                 .enumerate()
                 .map(|(i, c)|
                     OrderSelectItem { 
-                        index:len + i, 
+                        initial_index:len + i, 
                         text: Text::new(c.into())
                     }
                 ),
@@ -244,7 +244,7 @@ impl<'a> OrderSelectBuilder<'a> {
         ///     //...
         ///     .transform(|cheeses, previous_answers, backend| {
         ///         for cheese in cheeses {
-        ///             write!(backend, "({}) {}, ", cheese.index(), cheese.text())?;
+        ///             write!(backend, "({}) {}, ", cheese.initial_index(), cheese.text())?;
         ///         }
         ///         Ok(())
         ///     })
