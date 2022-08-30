@@ -26,6 +26,11 @@ fn test_validate() {
         KeyCode::Down.into(),
         KeyCode::Char(' ').into(),
         KeyCode::Enter.into(),
+        KeyCode::Up.into(),
+        KeyCode::Char(' ').into(),
+        KeyCode::Down.into(),
+        KeyCode::Char(' ').into(),
+        KeyCode::Enter.into(),
     ]);
 
     let ans: Vec<_> = requestty::prompt_one_with(order_select, &mut backend, &mut events)
