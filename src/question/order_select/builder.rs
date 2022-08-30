@@ -154,10 +154,7 @@ impl<'a> OrderSelectBuilder<'a> {
     ///
     /// The choices are [`String`]s and can be multiline.
     ///
-    /// See [`order_select`] for more information.
-    ///
     /// [`Choice`]: crate::question::Choice
-    /// [`order_select`]: crate::question::Question::order_select
     ///
     /// # Examples
     ///
