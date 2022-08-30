@@ -240,11 +240,11 @@ impl<'a> OrderSelectBuilder<'a> {
         /// ```
         /// use requestty::Question;
         ///
-        /// let order_select = Question::order_select("cheese")
+        /// let order_select = Question::order_select("items")
         ///     //...
-        ///     .transform(|cheeses, previous_answers, backend| {
-        ///         for cheese in cheeses {
-        ///             write!(backend, "({}) {}, ", cheese.initial_index(), cheese.text())?;
+        ///     .transform(|items, previous_answers, backend| {
+        ///         for item in items {
+        ///             write!(backend, "({}) {}, ", item.initial_index(), item.text())?;
         ///         }
         ///         Ok(())
         ///     })
