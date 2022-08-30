@@ -52,11 +52,11 @@ fn test_validate() {
 #[test]
 fn test_filter() {
     let order_select = requestty::Question::order_select("name")
-        .filter(|mut checked, _| {
-            checked.rotate_left(1);
-            checked
+        .filter(|mut items, _| {
+            items.rotate_left(1);
+            items
         })
-        .message("multi select")
+        .message("order select")
         .choices(choices(10));
 
     let size = (50, 20).into();
