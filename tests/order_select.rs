@@ -33,15 +33,20 @@ fn test_validate() {
         KeyCode::Enter.into(),
     ]);
 
-    let ans: Vec<_> = requestty::prompt_one_with(order_select, &mut backend, &mut events)
+    let indexes_a = choices(10)
+        .enumerate()
+        .map(|(i, _)| i)
+        .collect::<Vec<_>>();
+
+    let indexes_b = requestty::prompt_one_with(order_select, &mut backend, &mut events)
         .unwrap()
         .try_into_list_items()
         .unwrap()
         .into_iter()
-        .map(|item| item.index)
-        .collect();
+        .map(|a| a.index)
+        .collect::<Vec<_>>();
 
-    assert_eq!(ans, [3, 9]);
+    assert_eq!(indexes_a, indexes_b)
 }
 
 #[test]
@@ -63,18 +68,22 @@ fn test_filter() {
         KeyCode::Enter.into(),
     ]);
 
-    let ans = requestty::prompt_one_with(order_select, &mut backend, &mut events)
+    let mut indexes_a = choices(10)
+        .enumerate()
+        .map(|(i, _)| i)
+        .collect::<Vec<_>>();
+    indexes_a.swap(0, 1);
+    indexes_a.rotate_left(1);
+
+    let indexes_b = requestty::prompt_one_with(order_select, &mut backend, &mut events)
         .unwrap()
         .try_into_list_items()
         .unwrap()
         .into_iter()
-        .map(|a| a.text)
+        .map(|a| a.index)
         .collect::<Vec<_>>();
 
-    // compute the expected answer
-    let choices = choices(10).collect::<Vec<_>>();
-
-    assert_eq!(ans, choices);
+    assert_eq!(indexes_a, indexes_b)
 }
 
 #[test]
@@ -99,21 +108,24 @@ fn test_transform() {
         KeyCode::Char(' ').into(),
         KeyCode::Down.into(),
         KeyCode::Char(' ').into(),
-        KeyCode::Enter.into(),
+        KeyCode::Enter.into()
     ]);
 
-    let ans = requestty::prompt_one_with(order_select, &mut backend, &mut events)
+    let mut indexes_a = choices(10)
+        .enumerate()
+        .map(|(i, _)| i)
+        .collect::<Vec<_>>();
+    indexes_a.swap(0, 1);
+
+    let indexes_b = requestty::prompt_one_with(order_select, &mut backend, &mut events)
         .unwrap()
         .try_into_list_items()
         .unwrap()
         .into_iter()
-        .map(|a| a.text)
+        .map(|a| a.index)
         .collect::<Vec<_>>();
 
-    // compute the expected answer
-    let choices = choices(10).collect::<Vec<_>>();
-
-    assert_eq!(ans, choices);
+    assert_eq!(indexes_a, indexes_b)
 }
 
 #[test]
