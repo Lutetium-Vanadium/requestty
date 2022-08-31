@@ -10,9 +10,9 @@ fn main() {
         ])
         .validate(|c, _| {
             if c[0].text() == "Make the bed" {
-                Err("You have to make the bed first".to_string())
-            } else {
                 Ok(())
+            } else {
+                Err("You have to make the bed first".to_string())
             }
         })
         .build();

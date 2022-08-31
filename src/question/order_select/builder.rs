@@ -211,9 +211,6 @@ impl<'a> OrderSelectBuilder<'a> {
     }
 
     crate::impl_validate_builder! {
-        /// NOTE: The boolean [`slice`] contains a boolean value for each index even if it is a
-        /// separator. However it is guaranteed that all the separator indices will be false.
-        ///
         /// # Examples
         ///
         /// ```
@@ -223,9 +220,9 @@ impl<'a> OrderSelectBuilder<'a> {
         ///     //...
         ///     .validate(|tasks, previous_answers| {
         ///         if tasks[0].text() == "Make the bed" {
-        ///             Err("You have to make the bed first".to_string())
-        ///         } else {
         ///             Ok(())
+        ///         } else {
+        ///             Err("You have to make the bed first".to_string())
         ///         }
         ///     })
         ///     //...

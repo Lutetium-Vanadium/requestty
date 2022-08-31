@@ -10,8 +10,8 @@ fn choices(len: usize) -> impl Iterator<Item = String> {
 fn test_validate() {
     let order_select = requestty::Question::order_select("name")
         .validate(|c, _| {
-            if c[0].text() == "1" {
-                Err("You have to make the bed first".to_string())
+            if c[0].text() != "1" {
+                Err("Error".to_string())
             } else {
                 Ok(())
             }
