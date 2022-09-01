@@ -99,7 +99,7 @@ fn test_transform() {
             }
             b.set_fg(ui::style::Color::Reset)
         })
-        .message("multi select")
+        .message("order select")
         .choices(choices(10));
 
     let size = (50, 20).into();
