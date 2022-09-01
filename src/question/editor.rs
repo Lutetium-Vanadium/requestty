@@ -33,20 +33,31 @@ impl<'a> Default for Editor<'a> {
     }
 }
 
+#[cfg(unix)]
+fn split(command: &str) -> Option<Vec<String>> {
+    shell_words::split(command).ok()
+}
+#[cfg(windows)]
+fn split(command: &str) -> Option<Vec<String>> {
+    Some(winsplit::split(command))
+}
+
 fn get_editor() -> Command {
-    let editor_command = env::var_os("VISUAL")
+    let editor_args = env::var_os("VISUAL")
         .or_else(|| env::var_os("EDITOR"))
+        .map(|editor_command| editor_command.to_str().map(split))
+        .flatten()
+        .flatten()
         .unwrap_or_else(|| {
             if cfg!(windows) {
-                "notepad".into()
+                vec!["notepad".into()]
             } else {
-                "vim".into()
+                vec!["vim".into()]
             }
         });
 
-    let parts = shell_words::split(editor_command.to_str().unwrap()).unwrap();
-    let mut command = Command::new(&parts[0]);
-    command.args(&parts[1..]);
+    let mut command = Command::new(&editor_args[0]);
+    command.args(&editor_args[1..]);
     command
 }
 
