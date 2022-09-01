@@ -247,6 +247,12 @@ impl<I: Into<String>> From<(usize, I)> for ListItem {
     }
 }
 
+impl From<OrderSelectItem> for ListItem {
+    fn from(o: OrderSelectItem) -> Self {
+        Self { index: o.initial_index(), text: o.text().to_string() }
+    }
+}
+
 /// A representation of a [`Choice`] for a particular key.
 ///
 /// It will be returned by [`expand`].

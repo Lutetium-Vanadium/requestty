@@ -298,9 +298,3 @@ impl Widget for OrderSelectItem {
         self.text.handle_key(key)
     }
 }
-
-impl Into<ListItem> for OrderSelectItem {
-    fn into(self) -> ListItem {
-        ListItem { index: self.initial_index, text: self.text.text }
-    }
-}
