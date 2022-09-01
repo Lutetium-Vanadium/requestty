@@ -79,7 +79,7 @@ impl widgets::List for OrderSelect<'_> {
         write!(
             b,
             "{:>width$}. ",
-            index,
+            index + 1,
             width = self.max_index_width as usize
         )?;
 
