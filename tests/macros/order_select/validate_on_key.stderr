@@ -1,0 +1,5 @@
+error: option `validate_on_key` does not exist for kind `order_select`
+ --> tests/macros/order_select/validate_on_key.rs:3:9
+  |
+3 |         validate_on_key: todo!()
+  |         ^^^^^^^^^^^^^^^

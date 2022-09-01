@@ -32,6 +32,7 @@ pub(crate) enum QuestionKind {
     RawSelect,
     Expand,
     MultiSelect,
+    OrderSelect,
     Password,
     Editor,
     Custom,
@@ -48,6 +49,7 @@ impl QuestionKind {
             QuestionKind::RawSelect => "raw_select",
             QuestionKind::Expand => "expand",
             QuestionKind::MultiSelect => "multi_select",
+            QuestionKind::OrderSelect => "order_select",
             QuestionKind::Password => "password",
             QuestionKind::Editor => "editor",
             QuestionKind::Custom => "custom",
@@ -83,6 +85,13 @@ impl QuestionKind {
                     | BuilderMethods::ON_ESC
             }
             QuestionKind::MultiSelect => {
+                BuilderMethods::TRANSFORM
+                    | BuilderMethods::VAL_FIL
+                    | BuilderMethods::LOOP_PAGE_SIZE
+                    | BuilderMethods::CHOICES
+                    | BuilderMethods::ON_ESC
+            }
+            QuestionKind::OrderSelect => {
                 BuilderMethods::TRANSFORM
                     | BuilderMethods::VAL_FIL
                     | BuilderMethods::LOOP_PAGE_SIZE
@@ -128,6 +137,8 @@ impl Parse for QuestionKind {
             QuestionKind::Expand
         } else if ident == "MultiSelect" {
             QuestionKind::MultiSelect
+        } else if ident == "OrderSelect" {
+            QuestionKind::OrderSelect
         } else if ident == "Password" {
             QuestionKind::Password
         } else if ident == "Editor" {
@@ -265,6 +276,7 @@ impl Parse for Question {
             } else if ident == "choices" {
                 let parser = match kind {
                     QuestionKind::MultiSelect => Choices::parse_multi_select_choice,
+                    QuestionKind::OrderSelect => Choices::parse_order_select_choice,
                     _ => Choices::parse_choice,
                 };
 

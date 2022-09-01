@@ -9,14 +9,14 @@ fn choices(len: usize) -> impl Iterator<Item = String> {
 #[test]
 fn test_validate() {
     let order_select = requestty::Question::order_select("name")
+        .message("order select")
         .validate(|c, _| {
-            if c[0].text() != "1" {
-                Err("Error".to_string())
-            } else {
+            if c[0].text() == "0" {
                 Ok(())
+            } else {
+                Err("Error".to_string())
             }
         })
-        .message("order select")
         .choices(choices(10));
 
     let size = (50, 20).into();
@@ -33,10 +33,7 @@ fn test_validate() {
         KeyCode::Enter.into(),
     ]);
 
-    let indexes_a = choices(10)
-        .enumerate()
-        .map(|(i, _)| i)
-        .collect::<Vec<_>>();
+    let indexes_a = choices(10).enumerate().map(|(i, _)| i).collect::<Vec<_>>();
 
     let indexes_b = requestty::prompt_one_with(order_select, &mut backend, &mut events)
         .unwrap()
@@ -68,10 +65,7 @@ fn test_filter() {
         KeyCode::Enter.into(),
     ]);
 
-    let mut indexes_a = choices(10)
-        .enumerate()
-        .map(|(i, _)| i)
-        .collect::<Vec<_>>();
+    let mut indexes_a = choices(10).enumerate().map(|(i, _)| i).collect::<Vec<_>>();
     indexes_a.swap(0, 1);
     indexes_a.rotate_left(1);
 
@@ -108,13 +102,10 @@ fn test_transform() {
         KeyCode::Char(' ').into(),
         KeyCode::Down.into(),
         KeyCode::Char(' ').into(),
-        KeyCode::Enter.into()
+        KeyCode::Enter.into(),
     ]);
 
-    let mut indexes_a = choices(10)
-        .enumerate()
-        .map(|(i, _)| i)
-        .collect::<Vec<_>>();
+    let mut indexes_a = choices(10).enumerate().map(|(i, _)| i).collect::<Vec<_>>();
     indexes_a.swap(0, 1);
 
     let indexes_b = requestty::prompt_one_with(order_select, &mut backend, &mut events)

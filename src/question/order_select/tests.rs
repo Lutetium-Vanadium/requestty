@@ -1,4 +1,8 @@
-use ui::{backend::TestBackend, layout::Layout, events::{KeyCode, KeyEvent}};
+use ui::{
+    backend::TestBackend,
+    events::{KeyCode, KeyEvent},
+    layout::Layout,
+};
 
 use crate::question::{Question, QuestionKind};
 
@@ -93,7 +97,7 @@ macro_rules! test_order_select {
                         layout,
                         base_layout.with_offset(0, $height).with_line_offset(0)
                     );
-                    ui::assert_backend_snapshot!(backend); 
+                    ui::assert_backend_snapshot!(backend);
 
                     assert!(order_select.handle_key(key))
                 }

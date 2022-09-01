@@ -44,7 +44,7 @@ use options::Options;
 
 /// A `Question` that can be asked.
 ///
-/// There are 11 variants.
+/// There are 12 variants.
 ///
 /// - [`input`](Question::input)
 /// - [`password`](Question::password)
@@ -438,9 +438,8 @@ impl Question<'static> {
     ///
     /// The choices are [`String`]s and can be multiline.
     ///
-    /// // TODO : add a gif for OrderSelect
     /// <img
-    ///   src="https://raw.githubusercontent.com/lutetium-vanadium/requestty/master/assets/multi-select.gif"
+    ///   src="https://raw.githubusercontent.com/lutetium-vanadium/requestty/master/assets/order-select.gif"
     ///   style="max-height: 20rem"
     /// />
     ///

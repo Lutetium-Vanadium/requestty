@@ -88,6 +88,22 @@ fn test_multi_select() {
 
 #[test]
 #[ignore = "proc-macro test"]
+fn test_order_select() {
+    let t = Runner::new("order_select");
+
+    t.pass("valid");
+    t.compile_fail("default");
+    t.compile_fail("separator");
+    t.compile_fail("validate_on_key");
+    t.compile_fail("auto_complete");
+    t.compile_fail("mask");
+    t.compile_fail("extension");
+    t.compile_fail("editor");
+    t.compile_fail("prompt");
+}
+
+#[test]
+#[ignore = "proc-macro test"]
 fn test_confirm() {
     let t = Runner::new("confirm");
 

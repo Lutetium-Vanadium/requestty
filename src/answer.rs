@@ -215,11 +215,7 @@ impl_from!(Vec<ListItem> => ListItems);
 
 impl From<Vec<OrderSelectItem>> for Answer {
     fn from(v: Vec<OrderSelectItem>) -> Self {
-        Answer::ListItems(
-            v.into_iter()
-                .map(|o| o.into())
-                .collect()
-        )
+        Answer::ListItems(v.into_iter().map(|o| o.into()).collect())
     }
 }
 
@@ -249,7 +245,10 @@ impl<I: Into<String>> From<(usize, I)> for ListItem {
 
 impl From<OrderSelectItem> for ListItem {
     fn from(o: OrderSelectItem) -> Self {
-        Self { index: o.initial_index(), text: o.text().to_string() }
+        ListItem {
+            index: o.initial_index,
+            text: o.text.text,
+        }
     }
 }
 

@@ -1,9 +1,7 @@
 use ui::backend::Backend;
 use ui::widgets::Text;
 
-use crate::{
-    question::{Options},
-};
+use crate::question::Options;
 
 use super::{OrderSelect, OrderSelectItem};
 
@@ -11,9 +9,8 @@ use super::{OrderSelect, OrderSelectItem};
 ///
 /// The choices are [`String`]s and can be multiline.
 ///
-/// // TODO : add gif
 /// <img
-///   src="https://raw.githubusercontent.com/lutetium-vanadium/requestty/master/assets/multi-select.gif"
+///   src="https://raw.githubusercontent.com/lutetium-vanadium/requestty/master/assets/order-select.gif"
 ///   style="max-height: 20rem"
 /// />
 ///
@@ -23,7 +20,7 @@ use super::{OrderSelect, OrderSelectItem};
 ///
 /// ```
 /// use requestty::Question;
-/// 
+///
 /// let order_select = Question::order_select("home_tasks")
 ///     .message("Please organize the tasks to be done at home")
 ///     .choices(vec![
@@ -178,17 +175,18 @@ impl<'a> OrderSelectBuilder<'a> {
     {
         let len = self.order_select.choices.choices.len();
 
-        self.order_select.choices.choices.extend(
-            choices
-                .into_iter()
-                .enumerate()
-                .map(|(i, c)|
-                    OrderSelectItem { 
-                        initial_index:len + i, 
-                        text: Text::new(c.into())
-                    }
-                ),
-        );
+        self.order_select
+            .choices
+            .choices
+            .extend(
+                choices
+                    .into_iter()
+                    .enumerate()
+                    .map(|(i, c)| OrderSelectItem {
+                        initial_index: len + i,
+                        text: Text::new(c.into()),
+                    }),
+            );
         self
     }
 
@@ -255,7 +253,8 @@ impl<'a> OrderSelectBuilder<'a> {
     ///
     /// [`Question`]: crate::question::Question
     pub fn build(mut self) -> crate::question::Question<'a> {
-        self.order_select.max_index_width = (self.order_select.choices.len() as f64 + 1.0).log10() as usize + 1;
+        self.order_select.max_index_width =
+            (self.order_select.choices.len() as f64 + 1.0).log10() as usize + 1;
 
         crate::question::Question::new(
             self.opts,

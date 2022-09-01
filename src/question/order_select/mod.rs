@@ -10,10 +10,11 @@ use ui::{
     Prompt, Widget,
 };
 
-use crate::{Answer, Answers, ListItem};
+use crate::{Answer, Answers};
 
 use super::{
-    handler::{Filter, Transform, Validate}, choice::SelectList,
+    choice::SelectList,
+    handler::{Filter, Transform, Validate},
 };
 
 pub use builder::OrderSelectBuilder;
@@ -38,7 +39,7 @@ pub(super) struct OrderSelect<'a> {
 
 impl<'a> Default for OrderSelect<'a> {
     fn default() -> Self {
-        Self { 
+        Self {
             choices: SelectList::new(|_| true),
 
             // can't put
@@ -51,7 +52,7 @@ impl<'a> Default for OrderSelect<'a> {
             filter: Default::default(),
         }
     }
-} 
+}
 
 impl widgets::List for OrderSelect<'_> {
     fn render_item<B: ui::backend::Backend>(
@@ -120,9 +121,8 @@ impl<'c> OrderSelect<'c> {
         answers: &'a Answers,
     ) -> OrderSelectPrompt<'a, 'c> {
         OrderSelectPrompt {
-            prompt: widgets::Prompt::new(message).with_hint(
-                "Press <space> to take and place an option",
-            ),
+            prompt: widgets::Prompt::new(message)
+                .with_hint("Press <space> to take and place an option"),
             select: widgets::Select::new(self),
             answers,
         }
@@ -188,9 +188,7 @@ impl Prompt for OrderSelectPrompt<'_, '_> {
 
     fn finish(self) -> Self::Output {
         let OrderSelect {
-            choices,
-            filter,
-            ..
+            choices, filter, ..
         } = self.select.into_inner();
 
         let mut c = choices.choices;
@@ -230,13 +228,13 @@ impl Widget for OrderSelectPrompt<'_, '_> {
 
     fn handle_key(&mut self, key: ui::events::KeyEvent) -> bool {
         let prev_at = self.select.get_at();
-    
+
         if let ui::events::KeyCode::Char(' ') = key.code {
             self.select.list.moving = !self.select.list.moving;
         } else if self.select.handle_key(key) {
             if self.select.list.moving {
                 let new_at = self.select.get_at();
-    
+
                 if prev_at < new_at {
                     self.select.list.choices.choices[prev_at..=new_at].rotate_left(1);
                 } else {
@@ -246,13 +244,13 @@ impl Widget for OrderSelectPrompt<'_, '_> {
         } else {
             return false;
         }
-    
+
         true
     }
 }
 
 // =============================================================================
-// 
+//
 // =============================================================================
 
 /// The representation of each choice in an [`OrderSelect`].
@@ -260,8 +258,8 @@ impl Widget for OrderSelectPrompt<'_, '_> {
 /// It is different from [`ListItem`](crate::answer::ListItem) due to an implementation detail.
 #[derive(Debug, Clone, PartialEq)]
 pub struct OrderSelectItem {
-    initial_index: usize,
-    text: Text<String>,
+    pub(crate) initial_index: usize,
+    pub(crate) text: Text<String>,
 }
 
 impl OrderSelectItem {

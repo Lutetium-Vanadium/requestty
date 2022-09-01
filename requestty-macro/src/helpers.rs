@@ -87,9 +87,9 @@ impl Choices {
             let content;
             syn::bracketed!(content in input);
 
-            Ok(Choices::Array(content.parse_terminated(parser)?))
+            content.parse_terminated(parser).map(Choices::Array)
         } else {
-            Ok(Choices::Expr(input.parse()?))
+            input.parse().map(Choices::Expr)
         }
     }
 
@@ -99,6 +99,10 @@ impl Choices {
 
     pub(crate) fn parse_multi_select_choice(input: syn::parse::ParseStream) -> syn::Result<Self> {
         Choices::parse_impl(input, parse_multi_select_choice)
+    }
+
+    pub(crate) fn parse_order_select_choice(input: syn::parse::ParseStream) -> syn::Result<Self> {
+        input.parse().map(Choices::Expr)
     }
 }
 

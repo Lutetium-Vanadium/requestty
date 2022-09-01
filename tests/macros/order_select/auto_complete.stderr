@@ -1,0 +1,5 @@
+error: option `auto_complete` does not exist for kind `order_select`
+ --> tests/macros/order_select/auto_complete.rs:3:9
+  |
+3 |         auto_complete: todo!()
+  |         ^^^^^^^^^^^^^

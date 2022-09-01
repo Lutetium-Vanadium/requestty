@@ -1,0 +1,5 @@
+error: expected `,` or `;`
+ --> tests/macros/order_select/separator.rs:6:21
+  |
+6 |                 sep "separator",
+  |                     ^^^^^^^^^^^

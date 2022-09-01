@@ -58,7 +58,7 @@ directory.
 
 ## In-built prompts
 
-There are 10 in-built prompts:
+There are 11 in-built prompts:
 
 - ### Input
 

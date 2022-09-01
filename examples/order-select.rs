@@ -3,11 +3,7 @@ use requestty::Question;
 fn main() {
     let order_select = Question::order_select("home_tasks")
         .message("Please organize the tasks to be done at home")
-        .choices(vec![
-            "Make the bed",
-            "Clean the dishes",
-            "Mow the lawn",
-        ])
+        .choices(vec!["Make the bed", "Clean the dishes", "Mow the lawn"])
         .validate(|c, _| {
             if c[0].text() == "Make the bed" {
                 Ok(())
