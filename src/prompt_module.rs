@@ -131,8 +131,9 @@ where
 ///         // used.
 ///         when,
 ///         // While most values are generic expressions, if a array literal is passed to
-///         // choices, some special syntax applies. Also, unlike other fields, 'choices'
-///         // will call `choices_with_default` for `MultiSelect` questions only.
+///         // choices, some special syntax applies.
+///         // - For `MultiSelect`, default can be specified
+///         // - For `OrderSelect`, separators cannot be specified
 ///         choices: [
 ///             // By default array entries are taken as `Choice(_)`s.
 ///             "Choice 1",

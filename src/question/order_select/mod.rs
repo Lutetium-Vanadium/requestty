@@ -253,7 +253,7 @@ impl Widget for OrderSelectPrompt<'_, '_> {
 //
 // =============================================================================
 
-/// The representation of each choice in an [`OrderSelect`].
+/// The representation of each choice in an [`OrderSelect`](crate::Question::order_select).
 ///
 /// It is different from [`ListItem`](crate::answer::ListItem) due to an implementation detail.
 #[derive(Debug, Clone, PartialEq)]

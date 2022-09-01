@@ -42,7 +42,7 @@ pub enum Answer {
     /// ListItems will be returned by [`multi_select`] and [`order_select`].
     ///
     /// [`multi_select`]: crate::question::Question::multi_select
-    /// [`multi_select`]: crate::question::Question::order_select
+    /// [`order_select`]: crate::question::Question::order_select
     ListItems(Vec<ListItem>),
 }
 

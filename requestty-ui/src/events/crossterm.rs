@@ -1,3 +1,5 @@
+use std::convert::{TryFrom, TryInto};
+
 use crossterm::event;
 
 use super::EventIterator;
@@ -19,14 +21,18 @@ impl EventIterator for CrosstermEvents {
     fn next_event(&mut self) -> std::io::Result<super::KeyEvent> {
         loop {
             if let event::Event::Key(k) = event::read()? {
-                return Ok(k.into());
+                if let Ok(k) = k.try_into() {
+                    return Ok(k);
+                }
             }
         }
     }
 }
 
-impl From<event::KeyEvent> for super::KeyEvent {
-    fn from(event: event::KeyEvent) -> Self {
+impl TryFrom<event::KeyEvent> for super::KeyEvent {
+    type Error = ();
+
+    fn try_from(event: event::KeyEvent) -> Result<Self, ()> {
         let code = match event.code {
             event::KeyCode::Backspace => super::KeyCode::Backspace,
             event::KeyCode::Enter => super::KeyCode::Enter,
@@ -46,6 +52,7 @@ impl From<event::KeyEvent> for super::KeyEvent {
             event::KeyCode::Char(c) => super::KeyCode::Char(c),
             event::KeyCode::Null => super::KeyCode::Null,
             event::KeyCode::Esc => super::KeyCode::Esc,
+            _ => return Err(()),
         };
 
         let mut modifiers = super::KeyModifiers::empty();
@@ -60,6 +67,6 @@ impl From<event::KeyEvent> for super::KeyEvent {
             modifiers |= super::KeyModifiers::ALT;
         }
 
-        super::KeyEvent { code, modifiers }
+        Ok(super::KeyEvent { code, modifiers })
     }
 }
