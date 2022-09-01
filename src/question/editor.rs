@@ -45,8 +45,7 @@ fn split(command: &str) -> Option<Vec<String>> {
 fn get_editor() -> Command {
     let editor_args = env::var_os("VISUAL")
         .or_else(|| env::var_os("EDITOR"))
-        .map(|editor_command| editor_command.to_str().map(split))
-        .flatten()
+        .and_then(|editor_command| editor_command.to_str().map(split))
         .flatten()
         .unwrap_or_else(|| {
             if cfg!(windows) {

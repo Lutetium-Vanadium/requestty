@@ -18,9 +18,9 @@ macro_rules! impl_filter_builder {
         $(#[$meta])+
         pub fn filter<F>(mut self, filter: F) -> Self
         where
-            F: FnOnce($t, &crate::Answers) -> $t + 'a,
+            F: FnOnce($t, &$crate::Answers) -> $t + 'a,
         {
-            self.$inner.filter = crate::question::Filter::Sync(Box::new(filter));
+            self.$inner.filter = $crate::question::Filter::Sync(Box::new(filter));
             self
         }
     };
@@ -56,10 +56,10 @@ macro_rules! impl_auto_complete_builder {
         $(#[$meta])+
         pub fn auto_complete<F>(mut self, auto_complete: F) -> Self
         where
-            F: FnMut($t, &crate::Answers) -> Completions<$t> + 'a,
+            F: FnMut($t, &$crate::Answers) -> Completions<$t> + 'a,
         {
             self.$inner.auto_complete =
-                crate::question::AutoComplete::Sync(Box::new(auto_complete));
+                $crate::question::AutoComplete::Sync(Box::new(auto_complete));
             self
         }
     };
@@ -69,11 +69,11 @@ macro_rules! impl_auto_complete_builder {
 #[macro_export]
 macro_rules! impl_validate_builder {
     ($(#[$meta:meta])+ $t:ty; $inner:ident) => {
-        crate::impl_validate_builder!($(#[$meta])* impl &$t; $inner Validate);
+        $crate::impl_validate_builder!($(#[$meta])* impl &$t; $inner Validate);
     };
 
     ($(#[$meta:meta])+ by val $t:ty; $inner:ident) => {
-        crate::impl_validate_builder!($(#[$meta])* impl $t; $inner ValidateByVal);
+        $crate::impl_validate_builder!($(#[$meta])* impl $t; $inner ValidateByVal);
     };
 
     // NOTE: the 2 extra lines at the end of each doc comment is intentional -- it makes sure that
@@ -93,9 +93,9 @@ macro_rules! impl_validate_builder {
         $(#[$meta])*
         pub fn validate<F>(mut self, filter: F) -> Self
         where
-            F: FnMut($t, &crate::Answers) -> Result<(), String> + 'a,
+            F: FnMut($t, &$crate::Answers) -> Result<(), String> + 'a,
         {
-            self.$inner.validate = crate::question::$handler::Sync(Box::new(filter));
+            self.$inner.validate = $crate::question::$handler::Sync(Box::new(filter));
             self
         }
     };
@@ -105,11 +105,11 @@ macro_rules! impl_validate_builder {
 #[macro_export]
 macro_rules! impl_validate_on_key_builder {
     ($(#[$meta:meta])+ $t:ty; $inner:ident) => {
-        crate::impl_validate_on_key_builder!($(#[$meta])* impl &$t; $inner ValidateOnKey);
+        $crate::impl_validate_on_key_builder!($(#[$meta])* impl &$t; $inner ValidateOnKey);
     };
 
     ($(#[$meta:meta])+ by val $t:ty; $inner:ident) => {
-        crate::impl_validate_on_key_builder!($(#[$meta])* impl $t; $inner ValidateOnKeyByVal);
+        $crate::impl_validate_on_key_builder!($(#[$meta])* impl $t; $inner ValidateOnKeyByVal);
     };
 
     // NOTE: the 2 extra lines at the end of each doc comment is intentional -- it makes sure that
@@ -133,9 +133,9 @@ macro_rules! impl_validate_on_key_builder {
         $(#[$meta])*
         pub fn validate_on_key<F>(mut self, filter: F) -> Self
         where
-            F: FnMut($t, &crate::Answers) -> bool + 'a,
+            F: FnMut($t, &$crate::Answers) -> bool + 'a,
         {
-            self.$inner.validate_on_key = crate::question::$handler::Sync(Box::new(filter));
+            self.$inner.validate_on_key = $crate::question::$handler::Sync(Box::new(filter));
             self
         }
     };
@@ -145,11 +145,11 @@ macro_rules! impl_validate_on_key_builder {
 #[macro_export]
 macro_rules! impl_transform_builder {
     ($(#[$meta:meta])+ $t:ty; $inner:ident) => {
-        crate::impl_transform_builder!($(#[$meta])* impl &$t; $inner Transform);
+        $crate::impl_transform_builder!($(#[$meta])* impl &$t; $inner Transform);
     };
 
     ($(#[$meta:meta])+ by val $t:ty; $inner:ident) => {
-        crate::impl_transform_builder!($(#[$meta])* impl $t; $inner TransformByVal);
+        $crate::impl_transform_builder!($(#[$meta])* impl $t; $inner TransformByVal);
     };
 
     // NOTE: the 2 extra lines at the end of each doc comment is intentional -- it makes sure that
@@ -169,9 +169,9 @@ macro_rules! impl_transform_builder {
         $(#[$meta])*
         pub fn transform<F>(mut self, transform: F) -> Self
         where
-            F: FnOnce($t, &crate::Answers, &mut dyn Backend) -> std::io::Result<()> + 'a,
+            F: FnOnce($t, &$crate::Answers, &mut dyn Backend) -> std::io::Result<()> + 'a,
         {
-            self.$inner.transform = crate::question::$handler::Sync(Box::new(transform));
+            self.$inner.transform = $crate::question::$handler::Sync(Box::new(transform));
             self
         }
     };

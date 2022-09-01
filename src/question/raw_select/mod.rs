@@ -199,7 +199,7 @@ impl<'a> RawSelect<'a> {
 
         RawSelectPrompt {
             input: widgets::StringInput::with_filter_map(|c| {
-                if c.is_digit(10) {
+                if c.is_ascii_digit() {
                     Some(c)
                 } else {
                     None

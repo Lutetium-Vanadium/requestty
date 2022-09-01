@@ -52,7 +52,7 @@ impl Int<'_> {
     }
 
     fn filter_map(c: char) -> Option<char> {
-        if c.is_digit(10) || c == '-' || c == '+' {
+        if c.is_ascii_digit() || c == '-' || c == '+' {
             Some(c)
         } else {
             None

@@ -1,12 +1,31 @@
 # Changelog
 
-## `0.4.1`
+## `0.5.0`
 
-## `0.4.0`
+- `requestty`
+
+  - Update the way indices are shown in `RawSelect`
+
+  - Added `OrderSelect` (#16)
+
+  - [bug fix] Support multi-word editor commands (#14)
+
+- `requestty-ui`
+
+  - [bug fix] Add support for rendering wide characters. (#18, #19 and
+    #20)
+
+  - [bug fix] Show message when prompt's height exceeds the terminal
+    height. Earlier, it would panic in debug builds due to overflow.
+    (#17)
+
+## `0.4.1`
 
 - `requestty-ui`
 
   - Remove `dbg!` in `Input`. Fixes #12
+
+## `0.4.0`
 
 The msrv has been bumped up to `1.56`
 

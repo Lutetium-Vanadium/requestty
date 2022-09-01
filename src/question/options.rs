@@ -48,7 +48,7 @@ macro_rules! impl_options_builder {
         $(#[$message_meta])*
         pub fn message<M>(mut self, message: M) -> Self
         where
-            M: Into<crate::question::options::Getter<'a, String>>,
+            M: Into<$crate::question::options::Getter<'a, String>>,
         {
             self.opts.message = Some(message.into());
             self
@@ -68,7 +68,7 @@ macro_rules! impl_options_builder {
         $(#[$when_meta])*
         pub fn when<W>(mut self, when: W) -> Self
         where
-            W: Into<crate::question::options::Getter<'a, bool>>,
+            W: Into<$crate::question::options::Getter<'a, bool>>,
         {
             self.opts.when = when.into();
             self
@@ -109,7 +109,7 @@ macro_rules! impl_options_builder {
         $(#[$on_esc_meta])*
         pub fn on_esc<T>(mut self, on_esc: T) -> Self
         where
-            T: Into<crate::question::options::Getter<'a, ui::OnEsc>>,
+            T: Into<$crate::question::options::Getter<'a, ui::OnEsc>>,
         {
             self.opts.on_esc = on_esc.into();
             self

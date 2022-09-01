@@ -132,6 +132,12 @@ There are 11 in-built prompts:
 
   <img src="./assets/multi-select.gif" style="max-height: 20rem" />
 
+- ### OrderSelect
+
+  Prompt that allows the user to organize a list of options.
+
+  <img src="./assets/order-select.gif" style="max-height: 20rem" />
+
 ## Optional features
 
 - `macros`: Enabling this feature will allow you to use the `questions`
