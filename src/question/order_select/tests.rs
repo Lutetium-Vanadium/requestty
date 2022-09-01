@@ -7,6 +7,7 @@ use ui::{
 use crate::question::{Question, QuestionKind};
 
 use super::*;
+use builder::OrderSelectBuilder;
 
 fn choices(len: usize) -> impl Iterator<Item = String> {
     (0..len).map(|choice| choice.to_string())

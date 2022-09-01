@@ -1,5 +1,3 @@
-mod builder;
-
 use std::io;
 
 use ui::{
@@ -10,14 +8,13 @@ use ui::{
     Prompt, Widget,
 };
 
-use crate::{Answer, Answers};
-
 use super::{
     choice::SelectList,
     handler::{Filter, Transform, Validate},
 };
+use crate::{Answer, Answers};
 
-pub use builder::OrderSelectBuilder;
+pub(super) mod builder;
 
 #[cfg(test)]
 mod tests;

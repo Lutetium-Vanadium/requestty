@@ -26,7 +26,7 @@ pub use expand::ExpandBuilder;
 pub use input::InputBuilder;
 pub use multi_select::MultiSelectBuilder;
 pub use number::{FloatBuilder, IntBuilder};
-pub use order_select::{OrderSelectBuilder, OrderSelectItem};
+pub use order_select::{builder::OrderSelectBuilder, OrderSelectItem};
 pub use password::PasswordBuilder;
 pub use raw_select::RawSelectBuilder;
 pub use select::SelectBuilder;
