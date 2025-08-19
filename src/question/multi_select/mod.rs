@@ -147,11 +147,12 @@ impl widgets::List for MultiSelect<'_> {
         if self.is_selectable(index) {
             if self.selected[index] {
                 b.set_fg(Color::LightGreen)?;
+                write!(b, "{} ", symbol_set.completed)?;
             } else {
                 b.set_fg(Color::DarkGrey)?;
+                write!(b, "{} ", symbol_set.cross)?;
             }
 
-            write!(b, "{} ", symbol_set.completed)?;
 
             if hovered {
                 b.set_fg(Color::Cyan)?;
