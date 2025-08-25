@@ -150,7 +150,7 @@ impl widgets::List for MultiSelect<'_> {
                 write!(b, "{} ", symbol_set.completed)?;
             } else {
                 b.set_fg(Color::DarkGrey)?;
-                write!(b, "{} ", symbol_set.cross)?;
+                write!(b, "  ")?;
             }
 
 
