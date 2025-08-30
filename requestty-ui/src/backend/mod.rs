@@ -13,7 +13,7 @@ pub fn get_backend<W: io::Write>(buf: W) -> impl Backend {
 
 /// Gets the default [`Backend`] based on the features enabled.
 #[cfg(all(not(feature = "crossterm"), feature = "termion"))]
-#[cfg_attr(docsrs, doc(all(cfg(not(feature = "crossterm"), feature = "termion"))))]
+#[cfg_attr(docsrs, doc(cfg(feature = "termion")))]
 pub fn get_backend<W>(buf: W) -> impl Backend
 where
     W: io::Write + AsFd,

@@ -68,7 +68,7 @@ impl<T: std::ops::Deref<Target = str> + ?Sized> Widget for T {
     /// Does not allow multi-line strings. If the string requires more than a single line, it adds
     /// cuts it short and adds '...' to the end.
     ///
-    /// If a multi-line string is required, use the [`Text`](crate::widgets::Text) widget.
+    /// If a multi-line string is required, use the [`Text`] widget.
     fn render<B: Backend>(&mut self, layout: &mut Layout, backend: &mut B) -> io::Result<()> {
         let max_width = layout.line_width() as usize;
 
@@ -109,7 +109,7 @@ impl<T: std::ops::Deref<Target = str> + ?Sized> Widget for T {
 
     /// Does not allow multi-line strings.
     ///
-    /// If a multi-line string is required, use the [`Text`](crate::widgets::Text) widget.
+    /// If a multi-line string is required, use the [`Text`] widget.
     fn height(&mut self, layout: &mut Layout) -> u16 {
         layout.offset_y += 1;
         layout.line_offset = 0;

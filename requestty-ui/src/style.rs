@@ -6,7 +6,7 @@ use std::{fmt::Display, io};
 ///
 /// See also [`write_styled`] and [`Stylize`].
 ///
-/// [`write_styled`]: crate::backend::Backend::write_styled
+/// [`write_styled`]: crate::backend::DisplayBackend::write_styled
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Styled<T: ?Sized> {
     fg: Option<Color>,
@@ -142,7 +142,7 @@ pub struct AttributeDiff {
 ///
 /// See also [`Styled`] and [`write_styled`].
 ///
-/// [`write_styled`]: crate::backend::Backend::write_styled
+/// [`write_styled`]: crate::backend::DisplayBackend::write_styled
 #[allow(missing_docs)]
 pub trait Stylize<T> {
     fn black(self) -> Styled<T>;

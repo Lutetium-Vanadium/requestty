@@ -1,5 +1,8 @@
 # Changelog
 
+## `0.6.1`
+Fix doc issues
+
 ## `0.6.0`
 
 The msrv has been bumped up to `1.78`
