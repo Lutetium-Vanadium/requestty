@@ -1,5 +1,21 @@
 # Changelog
 
+## `0.6.0`
+
+The msrv has been bumped up to `1.78`
+
+- `requestty`
+
+  - Update `MultiSelect` to show spaces instead of gray tick marks for
+    unselected items (#24).
+
+- `requestty-ui`
+
+  - Update crossterm and termion dependencies>
+
+  - Split `Backend` trait into `DisplayBackend` `Backend` to support
+    different trait requirements for the `termion` backend.
+
 ## `0.5.0`
 
 - `requestty`

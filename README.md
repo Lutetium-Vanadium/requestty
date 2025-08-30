@@ -159,4 +159,4 @@ There are 11 in-built prompts:
 ## Minimum Supported Rust Version (MSRV)
 
 Minimum supported rust version (as per
-[cargo-msrv](https://crates.io/crates/cargo-msrv)) is `1.56.1`
+[cargo-msrv](https://crates.io/crates/cargo-msrv)) is `1.78.0`
