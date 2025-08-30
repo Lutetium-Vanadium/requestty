@@ -106,10 +106,7 @@ impl ui::Prompt for EditorPrompt<'_, '_> {
 
     fn validate(&mut self) -> Result<Validation, Self::ValidateErr> {
         if !self.editor.editor.status().map_err(map_err)?.success() {
-            return Err(map_err(io::Error::new(
-                io::ErrorKind::Other,
-                "Could not open editor",
-            )));
+            return Err(map_err(io::Error::other("Could not open editor")));
         }
 
         self.ans.clear();

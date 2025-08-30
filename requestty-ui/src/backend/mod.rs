@@ -1,20 +1,24 @@
 //! A module to represent a terminal and operations on it.
 
+#[cfg(all(not(feature = "crossterm"), feature = "termion"))]
+use std::os::fd::AsFd;
 use std::{fmt::Display, io};
 
 /// Gets the default [`Backend`] based on the features enabled.
-#[cfg(any(feature = "crossterm", feature = "termion"))]
-#[cfg_attr(docsrs, doc(cfg(any(feature = "crossterm", feature = "termion"))))]
+#[cfg(feature = "crossterm")]
+#[cfg_attr(docsrs, doc(cfg(feature = "crossterm")))]
 pub fn get_backend<W: io::Write>(buf: W) -> impl Backend {
-    #[cfg(feature = "crossterm")]
-    return CrosstermBackend::new(buf);
+    CrosstermBackend::new(buf)
+}
 
-    // XXX: Only works when crossterm and termion are the only two available backends
-    //
-    // Instead of directly checking for termion, we check for not crossterm so that compiling
-    // (documentation) with both features enabled will not error
-    #[cfg(not(feature = "crossterm"))]
-    return TermionBackend::new(buf);
+/// Gets the default [`Backend`] based on the features enabled.
+#[cfg(all(not(feature = "crossterm"), feature = "termion"))]
+#[cfg_attr(docsrs, doc(all(cfg(not(feature = "crossterm"), feature = "termion"))))]
+pub fn get_backend<W>(buf: W) -> impl Backend
+where
+    W: io::Write + AsFd,
+{
+    TermionBackend::new(buf)
 }
 
 mod test_backend;
@@ -24,7 +28,7 @@ pub use test_backend::TestBackend;
 mod termion;
 
 #[cfg(feature = "termion")]
-pub use self::termion::TermionBackend;
+pub use self::termion::{TermionBackend, TermionDisplayBackend};
 
 #[cfg(feature = "crossterm")]
 mod crossterm;
@@ -89,8 +93,26 @@ pub enum MoveDirection {
     Column(u16),
 }
 
-/// A trait to represent a terminal that can be rendered to.
-pub trait Backend: io::Write {
+/// A trait to represent a terminal that can be rendered to without interaction.
+pub trait DisplayBackend: io::Write {
+    /// Sets the given `attributes` removing ones which were previous applied.
+    fn set_attributes(&mut self, attributes: Attributes) -> io::Result<()>;
+    /// Sets the foreground color.
+    fn set_fg(&mut self, color: Color) -> io::Result<()>;
+    /// Sets the background color.
+    fn set_bg(&mut self, color: Color) -> io::Result<()>;
+    /// Write a styled object to the backend.
+    ///
+    /// See also [`Styled`] and [`Stylize`].
+    ///
+    /// [`Stylize`]: crate::style::Stylize
+    fn write_styled(&mut self, styled: &Styled<dyn Display + '_>) -> io::Result<()> {
+        styled.write(self)
+    }
+}
+
+/// A trait to represent a terminal that can be rendered to in an interactive manner.
+pub trait Backend: DisplayBackend {
     /// Enables raw mode.
     fn enable_raw_mode(&mut self) -> io::Result<()>;
     /// Disables raw mode.
@@ -113,21 +135,6 @@ pub trait Backend: io::Write {
     /// A negative number means the terminal scrolls upwards, while a positive number means the
     /// terminal scrolls downwards.
     fn scroll(&mut self, dist: i16) -> io::Result<()>;
-
-    /// Sets the given `attributes` removing ones which were previous applied.
-    fn set_attributes(&mut self, attributes: Attributes) -> io::Result<()>;
-    /// Sets the foreground color.
-    fn set_fg(&mut self, color: Color) -> io::Result<()>;
-    /// Sets the background color.
-    fn set_bg(&mut self, color: Color) -> io::Result<()>;
-    /// Write a styled object to the backend.
-    ///
-    /// See also [`Styled`] and [`Stylize`].
-    ///
-    /// [`Stylize`]: crate::style::Stylize
-    fn write_styled(&mut self, styled: &Styled<dyn Display + '_>) -> io::Result<()> {
-        styled.write(self)
-    }
 
     /// Clears the cells given by clear_type
     fn clear(&mut self, clear_type: ClearType) -> io::Result<()>;
@@ -160,6 +167,21 @@ fn default_move_cursor<B: Backend + ?Sized>(
     backend.move_cursor_to(x, y)
 }
 
+impl<'a, B: DisplayBackend> DisplayBackend for &'a mut B {
+    fn set_attributes(&mut self, attributes: Attributes) -> io::Result<()> {
+        (**self).set_attributes(attributes)
+    }
+    fn set_fg(&mut self, color: Color) -> io::Result<()> {
+        (**self).set_fg(color)
+    }
+    fn set_bg(&mut self, color: Color) -> io::Result<()> {
+        (**self).set_bg(color)
+    }
+    fn write_styled(&mut self, styled: &Styled<dyn Display + '_>) -> io::Result<()> {
+        (**self).write_styled(styled)
+    }
+}
+
 impl<'a, B: Backend> Backend for &'a mut B {
     fn enable_raw_mode(&mut self) -> io::Result<()> {
         (**self).enable_raw_mode()
@@ -184,18 +206,6 @@ impl<'a, B: Backend> Backend for &'a mut B {
     }
     fn scroll(&mut self, dist: i16) -> io::Result<()> {
         (**self).scroll(dist)
-    }
-    fn set_attributes(&mut self, attributes: Attributes) -> io::Result<()> {
-        (**self).set_attributes(attributes)
-    }
-    fn set_fg(&mut self, color: Color) -> io::Result<()> {
-        (**self).set_fg(color)
-    }
-    fn set_bg(&mut self, color: Color) -> io::Result<()> {
-        (**self).set_bg(color)
-    }
-    fn write_styled(&mut self, styled: &Styled<dyn Display + '_>) -> io::Result<()> {
-        (**self).write_styled(styled)
     }
     fn clear(&mut self, clear_type: ClearType) -> io::Result<()> {
         (**self).clear(clear_type)

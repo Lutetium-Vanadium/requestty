@@ -3,6 +3,7 @@ use std::{
     fmt,
     io::{self, Write},
     ops::{Deref, DerefMut},
+    os::fd::AsFd,
 };
 
 use termion::{
@@ -11,15 +12,15 @@ use termion::{
     scroll, style,
 };
 
-use super::{Attributes, Backend, ClearType, Color, MoveDirection, Size};
+use super::{Attributes, Backend, ClearType, Color, DisplayBackend, MoveDirection, Size};
 
-enum Terminal<W: Write> {
+enum Terminal<W: Write + AsFd> {
     Raw(RawTerminal<W>),
     Normal(W),
     TemporaryNone,
 }
 
-impl<W: Write> Deref for Terminal<W> {
+impl<W: Write + AsFd> Deref for Terminal<W> {
     type Target = W;
 
     fn deref(&self) -> &Self::Target {
@@ -31,7 +32,7 @@ impl<W: Write> Deref for Terminal<W> {
     }
 }
 
-impl<W: Write> DerefMut for Terminal<W> {
+impl<W: Write + AsFd> DerefMut for Terminal<W> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         match self {
             Terminal::Raw(w) => w,
@@ -41,25 +42,27 @@ impl<W: Write> DerefMut for Terminal<W> {
     }
 }
 
-/// A backend that uses the `termion` library.
+/// A display backend that uses the `termion` library.
+///
+/// This is separate from [`TermionBackend`] to allow use without [`AsFd`] types.
 #[allow(missing_debug_implementations)]
 #[cfg_attr(docsrs, doc(cfg(feature = "termion")))]
-pub struct TermionBackend<W: Write> {
+pub struct TermionDisplayBackend<W: Write> {
     attributes: Attributes,
-    buffer: Terminal<W>,
+    buffer: W,
 }
 
-impl<W: Write> TermionBackend<W> {
-    /// Creates a new [`TermionBackend`]
-    pub fn new(buffer: W) -> TermionBackend<W> {
-        TermionBackend {
-            buffer: Terminal::Normal(buffer),
+impl<W: Write> TermionDisplayBackend<W> {
+    /// Creates a new [`TermionDisplayBackend`]
+    pub fn new(buffer: W) -> Self {
+        Self {
+            buffer,
             attributes: Attributes::empty(),
         }
     }
 }
 
-impl<W: Write> Write for TermionBackend<W> {
+impl<W: Write> Write for TermionDisplayBackend<W> {
     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
         self.buffer.write(buf)
     }
@@ -69,7 +72,92 @@ impl<W: Write> Write for TermionBackend<W> {
     }
 }
 
-impl<W: Write> Backend for TermionBackend<W> {
+impl<W: Write + AsFd> AsFd for TermionDisplayBackend<W> {
+    fn as_fd(&self) -> std::os::unix::prelude::BorrowedFd<'_> {
+        self.buffer.as_fd()
+    }
+}
+
+impl<W: Write> DisplayBackend for TermionDisplayBackend<W> {
+    fn set_attributes(&mut self, attributes: Attributes) -> io::Result<()> {
+        set_attributes(self.attributes, attributes, &mut self.buffer)?;
+        self.attributes = attributes;
+        Ok(())
+    }
+
+    fn set_fg(&mut self, color: Color) -> io::Result<()> {
+        write!(self.buffer, "{}", Fg(color))
+    }
+
+    fn set_bg(&mut self, color: Color) -> io::Result<()> {
+        write!(self.buffer, "{}", Bg(color))
+    }
+}
+
+/// A backend that uses the `termion` library.
+#[allow(missing_debug_implementations)]
+#[cfg_attr(docsrs, doc(cfg(feature = "termion")))]
+pub struct TermionBackend<W: Write + AsFd> {
+    buffer: Terminal<TermionDisplayBackend<W>>,
+}
+
+impl<W: Write + AsFd> TermionBackend<W> {
+    /// Creates a new [`TermionBackend`]
+    pub fn new(buffer: W) -> Self {
+        Self {
+            buffer: Terminal::Normal(TermionDisplayBackend::new(buffer)),
+        }
+    }
+}
+
+impl<W: Write + AsFd> Write for TermionBackend<W> {
+    fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
+        self.buffer.write(buf)
+    }
+
+    fn flush(&mut self) -> io::Result<()> {
+        self.buffer.flush()
+    }
+}
+
+impl<W: Write + AsFd> DisplayBackend for TermionBackend<W> {
+    fn set_attributes(&mut self, attributes: Attributes) -> io::Result<()> {
+        match self.buffer {
+            Terminal::Raw(ref mut buf) => buf.set_attributes(attributes),
+            Terminal::Normal(ref mut buf) => buf.set_attributes(attributes),
+            Terminal::TemporaryNone => unreachable!("TemporaryNone is only used during swap"),
+        }
+    }
+
+    fn set_fg(&mut self, color: Color) -> io::Result<()> {
+        match self.buffer {
+            Terminal::Raw(ref mut buf) => buf.set_fg(color),
+            Terminal::Normal(ref mut buf) => buf.set_fg(color),
+            Terminal::TemporaryNone => unreachable!("TemporaryNone is only used during swap"),
+        }
+    }
+
+    fn set_bg(&mut self, color: Color) -> io::Result<()> {
+        match self.buffer {
+            Terminal::Raw(ref mut buf) => buf.set_bg(color),
+            Terminal::Normal(ref mut buf) => buf.set_bg(color),
+            Terminal::TemporaryNone => unreachable!("TemporaryNone is only used during swap"),
+        }
+    }
+
+    fn write_styled(
+        &mut self,
+        styled: &crate::style::Styled<dyn fmt::Display + '_>,
+    ) -> io::Result<()> {
+        match self.buffer {
+            Terminal::Raw(ref mut buf) => buf.write_styled(styled),
+            Terminal::Normal(ref mut buf) => buf.write_styled(styled),
+            Terminal::TemporaryNone => unreachable!("TemporaryNone is only used during swap"),
+        }
+    }
+}
+
+impl<W: Write + AsFd> Backend for TermionBackend<W> {
     fn enable_raw_mode(&mut self) -> io::Result<()> {
         match self.buffer {
             Terminal::Raw(ref mut buf) => buf.activate_raw_mode(),
@@ -141,20 +229,6 @@ impl<W: Write> Backend for TermionBackend<W> {
             }
             Ordering::Equal => Ok(()),
         }
-    }
-
-    fn set_attributes(&mut self, attributes: Attributes) -> io::Result<()> {
-        set_attributes(self.attributes, attributes, &mut *self.buffer)?;
-        self.attributes = attributes;
-        Ok(())
-    }
-
-    fn set_fg(&mut self, color: Color) -> io::Result<()> {
-        write!(self.buffer, "{}", Fg(color))
-    }
-
-    fn set_bg(&mut self, color: Color) -> io::Result<()> {
-        write!(self.buffer, "{}", Bg(color))
     }
 
     fn clear(&mut self, clear_type: ClearType) -> io::Result<()> {

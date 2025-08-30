@@ -33,6 +33,20 @@ impl io::Write for SnapshotOnFlushBackend {
     }
 }
 
+impl backend::DisplayBackend for SnapshotOnFlushBackend {
+    fn set_attributes(&mut self, attributes: style::Attributes) -> io::Result<()> {
+        self.backend.set_attributes(attributes)
+    }
+
+    fn set_fg(&mut self, color: style::Color) -> io::Result<()> {
+        self.backend.set_fg(color)
+    }
+
+    fn set_bg(&mut self, color: style::Color) -> io::Result<()> {
+        self.backend.set_bg(color)
+    }
+}
+
 impl backend::Backend for SnapshotOnFlushBackend {
     fn enable_raw_mode(&mut self) -> io::Result<()> {
         self.backend.enable_raw_mode()
@@ -64,18 +78,6 @@ impl backend::Backend for SnapshotOnFlushBackend {
 
     fn scroll(&mut self, dist: i16) -> io::Result<()> {
         self.backend.scroll(dist)
-    }
-
-    fn set_attributes(&mut self, attributes: style::Attributes) -> io::Result<()> {
-        self.backend.set_attributes(attributes)
-    }
-
-    fn set_fg(&mut self, color: style::Color) -> io::Result<()> {
-        self.backend.set_fg(color)
-    }
-
-    fn set_bg(&mut self, color: style::Color) -> io::Result<()> {
-        self.backend.set_bg(color)
     }
 
     fn clear(&mut self, clear_type: backend::ClearType) -> io::Result<()> {

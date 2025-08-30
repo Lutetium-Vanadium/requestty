@@ -78,7 +78,7 @@ impl widgets::List for OrderSelect<'_> {
             b,
             "{:>width$}. ",
             index + 1,
-            width = self.max_index_width as usize
+            width = { self.max_index_width }
         )?;
 
         layout.offset_x += self.max_index_width as u16 + 4;

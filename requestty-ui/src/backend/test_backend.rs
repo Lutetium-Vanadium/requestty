@@ -3,7 +3,7 @@ use std::{
     ops,
 };
 
-use super::{Backend, ClearType, MoveDirection, Size};
+use super::{Backend, ClearType, DisplayBackend, MoveDirection, Size};
 use crate::{
     layout::Layout,
     style::{Attributes, Color},
@@ -283,7 +283,24 @@ impl Write for TestBackend {
     }
 }
 
-impl super::Backend for TestBackend {
+impl DisplayBackend for TestBackend {
+    fn set_attributes(&mut self, attributes: Attributes) -> io::Result<()> {
+        self.current_attributes = attributes;
+        Ok(())
+    }
+
+    fn set_fg(&mut self, color: Color) -> io::Result<()> {
+        self.current_fg = color;
+        Ok(())
+    }
+
+    fn set_bg(&mut self, color: Color) -> io::Result<()> {
+        self.current_bg = color;
+        Ok(())
+    }
+}
+
+impl Backend for TestBackend {
     fn enable_raw_mode(&mut self) -> io::Result<()> {
         self.raw = true;
         Ok(())
@@ -349,21 +366,6 @@ impl super::Backend for TestBackend {
         Ok(())
     }
 
-    fn set_attributes(&mut self, attributes: Attributes) -> io::Result<()> {
-        self.current_attributes = attributes;
-        Ok(())
-    }
-
-    fn set_fg(&mut self, color: Color) -> io::Result<()> {
-        self.current_fg = color;
-        Ok(())
-    }
-
-    fn set_bg(&mut self, color: Color) -> io::Result<()> {
-        self.current_bg = color;
-        Ok(())
-    }
-
     fn clear(&mut self, clear_type: ClearType) -> io::Result<()> {
         match clear_type {
             ClearType::All => self.clear_range(..),
@@ -424,7 +426,7 @@ impl TestBackend {
     /// A screenshot of what the printed output looks like:
     ///
     /// ![](https://raw.githubusercontent.com/lutetium-vanadium/requestty/master/assets/test-backend-rendered.png)
-    pub fn write_to_backend<B: Backend>(&self, mut backend: B) -> io::Result<()> {
+    pub fn write_to_backend<B: DisplayBackend>(&self, mut backend: B) -> io::Result<()> {
         let mut fg = Color::Reset;
         let mut bg = Color::Reset;
         let mut attributes = Attributes::empty();
@@ -432,7 +434,7 @@ impl TestBackend {
         let cursor = if self.hidden_cursor {
             usize::MAX
         } else {
-            self.cursor.to_linear(self.size.width) as usize
+            self.cursor.to_linear(self.size.width)
         };
 
         let width = self.size.width as usize;
@@ -511,6 +513,9 @@ impl TestBackend {
     #[cfg(any(feature = "crossterm", feature = "termion"))]
     #[cfg_attr(docsrs, doc(cfg(any(feature = "crossterm", feature = "termion"))))]
     pub fn write_to_buf<W: Write>(&self, buf: W) -> io::Result<()> {
-        self.write_to_backend(super::get_backend(buf))
+        #[cfg(feature = "crossterm")]
+        return self.write_to_backend(super::CrosstermBackend::new(buf));
+        #[cfg(all(not(feature = "crossterm"), feature = "termion"))]
+        return self.write_to_backend(super::TermionDisplayBackend::new(buf));
     }
 }

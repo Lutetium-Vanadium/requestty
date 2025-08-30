@@ -28,7 +28,7 @@ impl<T: Display> Styled<T> {
 }
 
 impl<T: Display + ?Sized> Styled<T> {
-    pub(super) fn write<B: crate::backend::Backend + ?Sized>(
+    pub(super) fn write<B: crate::backend::DisplayBackend + ?Sized>(
         &self,
         backend: &mut B,
     ) -> io::Result<()> {

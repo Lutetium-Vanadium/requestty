@@ -242,7 +242,7 @@ pub fn prompt<'a, Q>(questions: Q) -> Result<Answers>
 where
     Q: IntoIterator<Item = Question<'a>>,
 {
-    PromptModule::new(questions.into_iter()).prompt_all()
+    PromptModule::new(questions).prompt_all()
 }
 
 /// Prompt the given question, with the default [`Backend`] and [`EventIterator`].
@@ -267,7 +267,7 @@ where
     B: Backend,
     E: EventIterator,
 {
-    PromptModule::new(questions.into_iter()).prompt_all_with(backend, events)
+    PromptModule::new(questions).prompt_all_with(backend, events)
 }
 
 /// Prompt the given question, with the given [`Backend`] and [`EventIterator`].

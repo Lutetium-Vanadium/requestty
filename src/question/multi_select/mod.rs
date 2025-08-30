@@ -46,7 +46,7 @@ fn create_list_items(
     selected
         .into_iter()
         .enumerate()
-        .zip(choices.choices.into_iter())
+        .zip(choices.choices)
         .filter_map(|((index, is_selected), text)| match (is_selected, text) {
             (true, Choice::Choice(text)) => Some(ListItem {
                 index,

@@ -12,7 +12,7 @@ use crossterm::{
     terminal,
 };
 
-use super::{Attributes, Backend, ClearType, Color, MoveDirection, Size};
+use super::{Attributes, Backend, ClearType, Color, DisplayBackend, MoveDirection, Size};
 
 /// A backend that uses the `crossterm` library.
 #[derive(Debug, Clone)]
@@ -39,6 +39,22 @@ impl<W: Write> Write for CrosstermBackend<W> {
 
     fn flush(&mut self) -> io::Result<()> {
         self.buffer.flush()
+    }
+}
+
+impl<W: Write> DisplayBackend for CrosstermBackend<W> {
+    fn set_attributes(&mut self, attributes: Attributes) -> io::Result<()> {
+        set_attributes(self.attributes, attributes, &mut self.buffer)?;
+        self.attributes = attributes;
+        Ok(())
+    }
+
+    fn set_fg(&mut self, color: Color) -> io::Result<()> {
+        queue!(self.buffer, SetForegroundColor(color.into()))
+    }
+
+    fn set_bg(&mut self, color: Color) -> io::Result<()> {
+        queue!(self.buffer, SetBackgroundColor(color.into()))
     }
 }
 
@@ -93,20 +109,6 @@ impl<W: Write> Backend for CrosstermBackend<W> {
             }
             Ordering::Equal => Ok(()),
         }
-    }
-
-    fn set_attributes(&mut self, attributes: Attributes) -> io::Result<()> {
-        set_attributes(self.attributes, attributes, &mut self.buffer)?;
-        self.attributes = attributes;
-        Ok(())
-    }
-
-    fn set_fg(&mut self, color: Color) -> io::Result<()> {
-        queue!(self.buffer, SetForegroundColor(color.into()))
-    }
-
-    fn set_bg(&mut self, color: Color) -> io::Result<()> {
-        queue!(self.buffer, SetBackgroundColor(color.into()))
     }
 
     fn clear(&mut self, clear_type: ClearType) -> io::Result<()> {
