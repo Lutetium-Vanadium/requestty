@@ -91,27 +91,16 @@ pub struct SymbolSet {
 ///
 /// It is composed of unicode characters and so may not be supported by all terminal emulators.
 pub const UNICODE: SymbolSet = SymbolSet {
-    /// `'❯' U+276F`
     pointer: '❯',
-    /// `'›' U+203A`
     arrow: '›',
-    /// `'✔' U+2714`
     completed: '✔',
-    /// `'·' U+00B7`
     middle_dot: '·',
-    /// `'✖' U+2716`
     cross: '✖',
-    /// `'┐' U+2510`
     box_top_right: '┐',
-    /// `'┌' U+250C`
     box_top_left: '┌',
-    /// `'┘' U+2518`
     box_bottom_right: '┘',
-    /// `'└' U+2514`
     box_bottom_left: '└',
-    /// `'─' U+2500`
     box_horizontal: '─',
-    /// `'│' U+2502`
     box_vertical: '│',
 };
 

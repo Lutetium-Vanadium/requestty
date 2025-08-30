@@ -104,9 +104,7 @@ impl<T: std::ops::Deref<Target = str> + ?Sized> Widget for T {
             backend.write_all(self.as_bytes())?;
         }
 
-        backend
-            .move_cursor_to(layout.offset_x, layout.offset_y)
-            .map_err(Into::into)
+        backend.move_cursor_to(layout.offset_x, layout.offset_y)
     }
 
     /// Does not allow multi-line strings.

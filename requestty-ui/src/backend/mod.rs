@@ -167,7 +167,7 @@ fn default_move_cursor<B: Backend + ?Sized>(
     backend.move_cursor_to(x, y)
 }
 
-impl<'a, B: DisplayBackend> DisplayBackend for &'a mut B {
+impl<B: DisplayBackend> DisplayBackend for &mut B {
     fn set_attributes(&mut self, attributes: Attributes) -> io::Result<()> {
         (**self).set_attributes(attributes)
     }
@@ -182,7 +182,7 @@ impl<'a, B: DisplayBackend> DisplayBackend for &'a mut B {
     }
 }
 
-impl<'a, B: Backend> Backend for &'a mut B {
+impl<B: Backend> Backend for &mut B {
     fn enable_raw_mode(&mut self) -> io::Result<()> {
         (**self).enable_raw_mode()
     }

@@ -100,12 +100,7 @@ fn parse_char(mut c: char, mut modifiers: super::KeyModifiers) -> io::Result<sup
             event::Event::Key(k) => k,
             _ => match char::try_from(c as u32) {
                 Ok(c) => break super::KeyCode::Char(c),
-                Err(_) => {
-                    return Err(io::Error::new(
-                        io::ErrorKind::Other,
-                        "Could not parse an event",
-                    ))
-                }
+                Err(_) => return Err(io::Error::other("Could not parse an event")),
             },
         };
 

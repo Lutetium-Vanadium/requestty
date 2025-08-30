@@ -85,7 +85,7 @@ fn main() -> requestty::Result<()> {
             .message("For leaving a comment, you get a freebie")
             .choices(vec!["cake", "fries"])
             .when(|answers: &requestty::Answers| {
-                return answers["comments"].as_string().unwrap() != "Nope, all good!";
+                answers["comments"].as_string().unwrap() != "Nope, all good!"
             })
             .build(),
     ])

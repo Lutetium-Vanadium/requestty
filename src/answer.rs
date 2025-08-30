@@ -320,16 +320,6 @@ impl Extend<(String, Answer)> for Answers {
     fn extend<T: IntoIterator<Item = (String, Answer)>>(&mut self, iter: T) {
         self.answers.extend(iter)
     }
-
-    #[cfg(nightly)]
-    fn extend_one(&mut self, item: (String, Answer)) {
-        self.answers.extend_one(item);
-    }
-
-    #[cfg(nightly)]
-    fn extend_reserve(&mut self, additional: usize) {
-        self.answers.extend_reserve(additional)
-    }
 }
 
 impl Deref for Answers {

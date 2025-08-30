@@ -309,9 +309,7 @@ impl<L: List> Select<L> {
             .map(|i| (i, false))
             .into_iter()
             .chain(
-                self.try_get_index(-direction)
-                    .map(|i| (i, true)) // boolean value to show this is special
-                    .into_iter(),
+                self.try_get_index(-direction).map(|i| (i, true)), // boolean value to show this is special
             )
             .chain(
                 (2..(max_height as isize))

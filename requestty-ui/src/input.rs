@@ -126,13 +126,10 @@ impl<P: Prompt, B: Backend> Input<P, B> {
     fn update_size(&mut self) -> io::Result<()> {
         self.size = self.backend.size()?;
         if self.size.area() == 0 {
-            Err(io::Error::new(
-                io::ErrorKind::Other,
-                format!(
-                    "Invalid terminal {:?}. Both width and height must be larger than 0",
-                    self.size
-                ),
-            ))
+            Err(io::Error::other(format!(
+                "Invalid terminal {:?}. Both width and height must be larger than 0",
+                self.size
+            )))
         } else {
             Ok(())
         }

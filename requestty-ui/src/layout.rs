@@ -3,16 +3,12 @@
 /// The part of the text to render if the full text cannot be rendered
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[allow(missing_docs)]
+#[derive(Default)]
 pub enum RenderRegion {
     Top,
+    #[default]
     Middle,
     Bottom,
-}
-
-impl Default for RenderRegion {
-    fn default() -> Self {
-        RenderRegion::Middle
-    }
 }
 
 /// `Layout` represents a portion of the screen that is available to be rendered to.
