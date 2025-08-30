@@ -16,7 +16,7 @@ jobs:
         include:
           # pinned (MSRV) rust version :: ubuntu
           - build: msrv
-            os: ubuntu-18.04
+            os: ubuntu-latest
             rust: 1.78.0
 
           # latest rust stable :: ubuntu
