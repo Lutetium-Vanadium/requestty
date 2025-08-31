@@ -153,7 +153,6 @@ impl widgets::List for MultiSelect<'_> {
                 write!(b, "  ")?;
             }
 
-
             if hovered {
                 b.set_fg(Color::Cyan)?;
             } else {

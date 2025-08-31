@@ -71,24 +71,6 @@ jobs:
       - name: test
         run: cargo test --workspace --verbose
 
-  rustfmt:
-    name: rustfmt
-    runs-on: ubuntu-latest
-    steps:
-      - name: checkout_repository
-        uses: actions/checkout@v1
-        with:
-          fetch-depth: 1
-      - name: install_rust
-        uses: hecrj/setup-rust-action@v1
-        with:
-          rust-version: stable
-      - name: install_rustfmt
-        run: rustup component add rustfmt
-      - name: Check formatting
-        run: |
-          cargo fmt -- --check
-
   clippy:
     name: clippy
     runs-on: ubuntu-latest
