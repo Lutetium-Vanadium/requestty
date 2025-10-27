@@ -55,7 +55,7 @@ impl Parse for Questions {
 
         Ok(Self {
             inline,
-            questions: input.parse_terminated(Question::parse)?,
+            questions: input.parse_terminated(Question::parse, Token![,])?,
         })
     }
 }
