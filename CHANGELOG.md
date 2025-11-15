@@ -1,5 +1,8 @@
 # Changelog
 
+## `0.6.2`
+Update `syn` crate
+
 ## `0.6.1`
 Fix doc issues
 
