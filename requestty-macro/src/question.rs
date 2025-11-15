@@ -307,7 +307,7 @@ impl Parse for Question {
         if let QuestionKind::Custom = kind {
             if opts.prompt.is_none() {
                 return Err(syn::Error::new(
-                    brace.span,
+                    brace.span.join(),
                     "missing required option `prompt`",
                 ));
             }
@@ -315,8 +315,9 @@ impl Parse for Question {
 
         Ok(Self {
             kind,
-            name: name
-                .ok_or_else(|| syn::Error::new(brace.span, "missing required option `name`"))?,
+            name: name.ok_or_else(|| {
+                syn::Error::new(brace.span.join(), "missing required option `name`")
+            })?,
             opts,
         })
     }

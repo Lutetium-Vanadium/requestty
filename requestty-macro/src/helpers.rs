@@ -87,7 +87,9 @@ impl Choices {
             let content;
             syn::bracketed!(content in input);
 
-            content.parse_terminated(parser).map(Choices::Array)
+            content
+                .parse_terminated(parser, Token![,])
+                .map(Choices::Array)
         } else {
             input.parse().map(Choices::Expr)
         }
@@ -205,7 +207,7 @@ fn make_into(expr: syn::Expr) -> syn::Expr {
                 attrs: Vec::new(),
                 qself: None,
                 path: syn::Path {
-                    leading_colon: Some(syn::token::Colon2(expr.span())),
+                    leading_colon: Some(syn::token::PathSep(expr.span())),
                     segments: from_path_segments,
                 },
             }
