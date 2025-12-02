@@ -1,6 +1,6 @@
 [package]
 name = "requestty"
-version = "0.6.2"
+version = "0.6.3"
 authors = ["Lutetium Vanadium"]
 edition = "2018"
 description = "An easy-to-use collection of interactive cli prompts"
@@ -21,7 +21,7 @@ members = [
 ]
 
 [dependencies]
-ui = { package = "requestty-ui", path = "./requestty-ui", version = "=0.6.2" }
+ui = { package = "requestty-ui", path = "./requestty-ui", version = "=0.6.3" }
 macro = { package = "requestty-macro", path = "./requestty-macro", optional = true, version = "=0.6.2" }
 
 tempfile = "3"

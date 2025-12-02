@@ -1,9 +1,15 @@
 # Changelog
 
+## `0.6.3`
+
+Fix 'double event' on windows crossterm read #27
+
 ## `0.6.2`
+
 Update `syn` crate
 
 ## `0.6.1`
+
 Fix doc issues
 
 ## `0.6.0`
@@ -11,12 +17,10 @@ Fix doc issues
 The msrv has been bumped up to `1.78`
 
 - `requestty`
-
   - Update `MultiSelect` to show spaces instead of gray tick marks for
     unselected items (#24).
 
 - `requestty-ui`
-
   - Update crossterm and termion dependencies>
 
   - Split `Backend` trait into `DisplayBackend` `Backend` to support
@@ -25,7 +29,6 @@ The msrv has been bumped up to `1.78`
 ## `0.5.0`
 
 - `requestty`
-
   - Update the way indices are shown in `RawSelect`
 
   - Added `OrderSelect` (#16)
@@ -33,7 +36,6 @@ The msrv has been bumped up to `1.78`
   - [bug fix] Support multi-word editor commands (#14)
 
 - `requestty-ui`
-
   - [bug fix] Add support for rendering wide characters. (#18, #19 and
     #20)
 
@@ -44,7 +46,6 @@ The msrv has been bumped up to `1.78`
 ## `0.4.1`
 
 - `requestty-ui`
-
   - Remove `dbg!` in `Input`. Fixes #12
 
 ## `0.4.0`
@@ -52,13 +53,11 @@ The msrv has been bumped up to `1.78`
 The msrv has been bumped up to `1.56`
 
 - `requestty`
-
   - Allow programmatic customisation of `Question::editor`
 
   - Update `smallvec` version.
 
 - `requestty-ui`
-
   - Allow customising the symbol set used during rendering.
 
   - Return error on 0 sized terminal instead of panicking.
@@ -68,7 +67,6 @@ The msrv has been bumped up to `1.56`
 ## `0.3.0`
 
 - `requestty`
-
   - Allow using the Right Arrow key to auto-complete default
 
   - Implement #6 - Add support for handling abort with `Esc`
@@ -86,7 +84,6 @@ The msrv has been bumped up to `1.56`
   - Fix #7 - input returns empty string even if default was given
 
 - `requestty-ui`
-
   - Added `OnEsc` to configure behaviour on `Esc` for `Input`s
 
   - Added the `skipped` parameter to `Prompt::write_finished_message`
@@ -107,7 +104,6 @@ The msrv has been bumped up to `1.56`
 ## `0.2.1`
 
 - `requestty`
-
   - Implement #4 - defaults are now shown in a different way for the
     `input`, `int` and `float` prompts.
 
@@ -130,7 +126,6 @@ The msrv has been bumped up to `1.56`
 ## `0.1.3`
 
 - `requestty`
-
   - Fix #3
 
 - `requestty-ui`
@@ -139,7 +134,6 @@ The msrv has been bumped up to `1.56`
 ## `0.1.2`
 
 - `requestty`
-
   - Fix #2
 
 - `requestty-ui`
