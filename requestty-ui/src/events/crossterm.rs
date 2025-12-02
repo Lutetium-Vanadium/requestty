@@ -21,8 +21,10 @@ impl EventIterator for CrosstermEvents {
     fn next_event(&mut self) -> std::io::Result<super::KeyEvent> {
         loop {
             if let event::Event::Key(k) = event::read()? {
-                if let Ok(k) = k.try_into() {
-                    return Ok(k);
+                if k.is_press() || k.is_repeat() {
+                    if let Ok(k) = k.try_into() {
+                        return Ok(k);
+                    }
                 }
             }
         }
