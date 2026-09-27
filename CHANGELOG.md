@@ -1,5 +1,20 @@
 # Changelog
 
+## Unreleased
+
+The msrv has been bumped up to `1.88`
+
+- `requestty-ui`
+  - `Text` now stores the byte ranges of wrapped lines instead of a wrapped copy
+    of the string.
+  - Update `bitflags` to `2`. `Attributes` and `KeyModifiers` are now generated
+    by bitflags 2, which changes their `Debug` output and some bitflags methods.
+
+- `requestty-macro`
+  - Update `syn` to `3` and `bitflags` to `2`
+
+- Update all other dependencies to their latest versions
+
 ## `0.6.3`
 
 Fix 'double event' on windows crossterm read #27

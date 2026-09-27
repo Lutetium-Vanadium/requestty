@@ -1,3 +1,11 @@
+use std::ops::Range;
+
+use textwrap::{
+    core::{break_words, Word},
+    word_splitters::split_words,
+    WordSeparator, WordSplitter, WrapAlgorithm,
+};
+
 use crate::{backend, layout::Layout, Widget};
 
 /// A string that can render over multiple lines.
@@ -11,10 +19,8 @@ pub struct Text<S> {
     /// If this is changed, the updated text is not guaranteed to be rendered. If the text is
     /// changed, [`force_recompute`](Text::force_recompute) should be called.
     pub text: S,
-    // FIXME: currently textwrap doesn't provide a way to find the locations at which the text
-    // should be split. Using that will be much more efficient than essentially duplicating the
-    // string.
-    wrapped: String,
+    /// Byte ranges into `text` for each wrapped line.
+    lines: Vec<Range<usize>>,
     line_offset: u16,
     width: u16,
 }
@@ -32,7 +38,7 @@ impl<S: AsRef<str>> Text<S> {
     pub fn new(text: S) -> Self {
         Self {
             text,
-            wrapped: String::new(),
+            lines: Vec::new(),
             width: 0,
             line_offset: 0,
         }
@@ -50,12 +56,12 @@ impl<S: AsRef<str>> Text<S> {
         let width = layout.available_width();
 
         if self.width != width || self.line_offset != layout.line_offset {
-            self.wrapped = fill(self.text.as_ref(), layout);
+            wrap(self.text.as_ref(), layout, &mut self.lines);
             self.width = width;
             self.line_offset = layout.line_offset;
         }
 
-        self.wrapped.lines().count() as u16
+        self.lines.len() as u16
     }
 }
 
@@ -72,9 +78,10 @@ impl<S: AsRef<str>> Widget for Text<S> {
     ) -> std::io::Result<()> {
         // Update just in case the layout is out of date
         let height = self.max_height(*layout);
+        let text = self.text.as_ref();
 
         if height == 1 {
-            backend.write_all(self.wrapped.as_bytes())?;
+            backend.write_all(text[self.lines[0].clone()].as_bytes())?;
             layout.offset_y += 1;
             backend.move_cursor_to(layout.offset_x, layout.offset_y)?;
         } else {
@@ -82,13 +89,13 @@ impl<S: AsRef<str>> Widget for Text<S> {
             let nlines = height.min(layout.max_height);
 
             for (i, line) in self
-                .wrapped
-                .lines()
+                .lines
+                .iter()
                 .skip(start)
                 .take(nlines as usize)
                 .enumerate()
             {
-                backend.write_all(line.as_bytes())?;
+                backend.write_all(text[line.clone()].as_bytes())?;
                 backend.move_cursor_to(layout.offset_x, layout.offset_y + i as u16 + 1)?;
             }
 
@@ -131,31 +138,73 @@ impl<S: AsRef<str>> From<S> for Text<S> {
     }
 }
 
-// 200 spaces to remove allocation for indent
-static SPACES: &str = "                                                                                                                                                                                                        ";
+/// Wraps `text` into lines, storing the byte range of each line in `lines`.
+///
+/// This mirrors what `textwrap::fill` does with an initial indent of `layout.line_offset`, but
+/// borrows from `text` instead of building a new string.
+fn wrap(text: &str, layout: Layout, lines: &mut Vec<Range<usize>>) {
+    lines.clear();
 
-fn fill(text: &str, layout: Layout) -> String {
-    // This won't allocate until the **highly unlikely** case that there is a line
-    // offset of more than 200.
-    let s: String;
+    let width = layout.available_width() as usize;
+    let line_widths = [width.saturating_sub(layout.line_offset as usize), width];
 
-    let indent_len = layout.line_offset as usize;
+    let mut start = 0;
+    for line in text.split_inclusive('\n') {
+        let next_start = start + line.len();
+        let line = line.strip_suffix('\n').unwrap_or(line);
+        let line = line.strip_suffix('\r').unwrap_or(line);
+        let first_line = lines.is_empty();
 
-    let indent = if SPACES.len() > indent_len {
-        &SPACES[..indent_len]
-    } else {
-        s = " ".repeat(indent_len);
-        &s[..]
-    };
+        if line.len() < width && !(first_line && layout.line_offset > 0) {
+            // Fast path: the line fits, so only trailing spaces need to be removed.
+            lines.push(start..start + line.trim_end_matches(' ').len());
+        } else {
+            wrap_line(line, start, &line_widths, first_line, lines);
+        }
 
-    let mut text = textwrap::fill(
-        text,
-        textwrap::Options::new(layout.available_width() as usize).initial_indent(indent),
-    );
+        start = next_start;
+    }
+}
 
-    drop(text.drain(..indent_len));
+fn wrap_line(
+    line: &str,
+    start: usize,
+    line_widths: &[usize; 2],
+    first_line: bool,
+    lines: &mut Vec<Range<usize>>,
+) {
+    let words = WordSeparator::new().find_words(line);
+    let words = split_words(words, &WordSplitter::HyphenSplitter);
+    let mut words = break_words(words, line_widths[1]);
 
-    text
+    if first_line && line_widths[0] != line_widths[1] {
+        // Words are broken based on the width of the subsequent lines, so the first word may not
+        // fit on the (shorter) first line. An empty word allows the first line to be empty.
+        words.insert(0, Word::from(""));
+    }
+
+    let mut idx = start;
+    for words in WrapAlgorithm::new().wrap(&words, line_widths) {
+        let last_word = match words.last() {
+            Some(word) => word,
+            None => {
+                lines.push(idx..idx);
+                continue;
+            }
+        };
+
+        // The hyphen splitter only splits after existing hyphens, so no extra characters are
+        // added and every line is a contiguous slice of the original text.
+        debug_assert!(last_word.penalty.is_empty());
+
+        let len = words
+            .iter()
+            .map(|word| word.len() + word.whitespace.len())
+            .sum::<usize>();
+
+        lines.push(idx..idx + len - last_word.whitespace.len());
+        idx += len;
+    }
 }
 
 #[cfg(test)]
@@ -165,13 +214,24 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_fill() {
+    fn test_wrap() {
         fn test(text: &str, indent: usize, max_width: usize, nlines: usize) {
             let layout = Layout::new(indent as u16, (max_width as u16, 100).into());
-            let filled = fill(text, layout);
+            let mut wrapped = Vec::new();
+            wrap(text, layout, &mut wrapped);
 
-            assert_eq!(nlines, filled.lines().count());
-            let mut lines = filled.lines();
+            // Should match the output of `textwrap::fill`
+            let indent_str = " ".repeat(indent);
+            let filled = textwrap::fill(
+                text,
+                textwrap::Options::new(max_width).initial_indent(&indent_str),
+            );
+            let expected: Vec<_> = filled[indent..].lines().collect();
+            let actual: Vec<_> = wrapped.iter().map(|r| &text[r.clone()]).collect();
+            assert_eq!(expected, actual);
+
+            assert_eq!(nlines, wrapped.len());
+            let mut lines = actual.into_iter();
 
             assert!(lines.next().unwrap().chars().count() <= max_width - indent);
 
@@ -186,6 +246,15 @@ mod tests {
 
         test(LOREM, 40, 80, 7);
         test(UNICODE, 40, 80, 7);
+
+        test("Hello\n\nWorld  \n", 0, 80, 3);
+        test("Hello\r\nWorld", 3, 80, 2);
+        test(
+            "a-very-long-hyphenated-word and a supercalifragilisticexpialidocious one",
+            5,
+            12,
+            8,
+        );
     }
 
     #[test]

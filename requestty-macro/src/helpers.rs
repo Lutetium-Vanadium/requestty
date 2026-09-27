@@ -16,7 +16,7 @@ pub(crate) fn parse_optional_comma(
     Ok(Some(input.parse::<Token![,]>()?))
 }
 
-pub(crate) fn insert_non_dup<T: Parse + From<syn::ExprPath>>(
+pub(crate) fn insert_non_dup<T: Parse + From<syn::Expr>>(
     ident: syn::Ident,
     item: &mut Option<T>,
     input: syn::parse::ParseStream,
@@ -24,7 +24,7 @@ pub(crate) fn insert_non_dup<T: Parse + From<syn::ExprPath>>(
     insert_non_dup_parse(ident, item, input, T::parse)
 }
 
-pub(crate) fn insert_non_dup_parse<T: From<syn::ExprPath>>(
+pub(crate) fn insert_non_dup_parse<T: From<syn::Expr>>(
     ident: syn::Ident,
     item: &mut Option<T>,
     input: syn::parse::ParseStream,
@@ -41,14 +41,14 @@ pub(crate) fn insert_non_dup_parse<T: From<syn::ExprPath>>(
             arguments: syn::PathArguments::None,
         });
 
-        syn::ExprPath {
+        syn::Expr::Path(syn::ExprPath {
             attrs: Vec::new(),
             qself: None,
             path: syn::Path {
                 leading_colon: None,
                 segments: path_segments,
             },
-        }
+        })
         .into()
     } else if lookahead.peek(Token![:]) {
         input.parse::<Token![:]>()?;
@@ -108,9 +108,9 @@ impl Choices {
     }
 }
 
-impl From<syn::ExprPath> for Choices {
-    fn from(path: syn::ExprPath) -> Self {
-        Self::Expr(path.into())
+impl From<syn::Expr> for Choices {
+    fn from(expr: syn::Expr) -> Self {
+        Self::Expr(expr)
     }
 }
 
@@ -200,27 +200,23 @@ fn make_into(expr: syn::Expr) -> syn::Expr {
         arguments: syn::PathArguments::None,
     });
 
-    syn::ExprCall {
+    syn::Expr::Call(syn::ExprCall {
         attrs: Vec::new(),
-        func: Box::new(
-            syn::ExprPath {
-                attrs: Vec::new(),
-                qself: None,
-                path: syn::Path {
-                    leading_colon: Some(syn::token::PathSep(expr.span())),
-                    segments: from_path_segments,
-                },
-            }
-            .into(),
-        ),
+        func: Box::new(syn::Expr::Path(syn::ExprPath {
+            attrs: Vec::new(),
+            qself: None,
+            path: syn::Path {
+                leading_colon: Some(syn::token::PathSep(expr.span())),
+                segments: from_path_segments,
+            },
+        })),
         paren_token: syn::token::Paren(expr.span()),
         args: {
             let mut args = syn::punctuated::Punctuated::new();
             args.push(expr);
             args
         },
-    }
-    .into()
+    })
 }
 
 // For multi_select, defaults can be given for each option, this method, takes option
@@ -241,12 +237,11 @@ fn make_multi_select_tuple(choice: syn::Expr, default: syn::Expr) -> syn::Expr {
     elems.push_value(make_into(choice));
     elems.push(make_into(default));
 
-    syn::ExprTuple {
+    syn::Expr::Tuple(syn::ExprTuple {
         attrs: Vec::new(),
         paren_token,
         elems,
-    }
-    .into()
+    })
 }
 
 fn parse_multi_select_choice(input: syn::parse::ParseStream) -> syn::Result<Choice> {
@@ -261,11 +256,10 @@ fn parse_multi_select_choice(input: syn::parse::ParseStream) -> syn::Result<Choi
             let span = choice.span();
             Choice::Choice(make_multi_select_tuple(
                 choice,
-                syn::ExprLit {
-                    lit: syn::LitBool { value: false, span }.into(),
+                syn::Expr::Lit(syn::ExprLit {
+                    lit: syn::Lit::Bool(syn::LitBool { value: false, span }),
                     attrs: Vec::new(),
-                }
-                .into(),
+                }),
             ))
         }
         sep => sep,

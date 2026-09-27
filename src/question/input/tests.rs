@@ -9,13 +9,13 @@ const AUTO_COMPLETE_IDX: usize = 2;
 
 fn inputs(answers: &Answers) -> [(InputPrompt<'static, '_>, u16); NINPUTS] {
     [
-        (Input::default().into_input_prompt("message", &answers), 17),
+        (Input::default().into_input_prompt("message", answers), 17),
         (
             Input {
                 default: Some(("default".into(), 7)),
                 ..Input::default()
             }
-            .into_input_prompt("message", &answers),
+            .into_input_prompt("message", answers),
             24,
         ),
         (
@@ -33,7 +33,7 @@ fn inputs(answers: &Answers) -> [(InputPrompt<'static, '_>, u16); NINPUTS] {
                 })),
                 ..Input::default()
             }
-            .into_input_prompt("message", &answers),
+            .into_input_prompt("message", answers),
             17,
         ),
     ]

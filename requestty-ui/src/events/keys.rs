@@ -1,5 +1,6 @@
 bitflags::bitflags! {
     /// Represents key modifiers (shift, control, alt).
+    #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
     pub struct KeyModifiers: u8 {
         #[allow(missing_docs)]
         const SHIFT = 0b0000_0001;

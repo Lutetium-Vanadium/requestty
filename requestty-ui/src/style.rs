@@ -91,6 +91,7 @@ pub enum Color {
 
 bitflags::bitflags! {
     /// Attributes change the way a piece of text is displayed.
+    #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
     pub struct Attributes: u16 {
         /// Increases the text intensity.
         const BOLD              = 0b0000_0000_0001;

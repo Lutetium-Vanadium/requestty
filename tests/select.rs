@@ -13,7 +13,7 @@ fn choices(len: usize) -> impl Iterator<Item = Choice<String>> {
     let mut rng = ChaCha12Rng::seed_from_u64(SEED);
 
     (0..len).map(move |i| {
-        let rand: f32 = rng.gen();
+        let rand: f32 = rng.random();
         if rand < DEFAULT_SEP_RATIO {
             Choice::DefaultSeparator
         } else if rand < SEP_RATIO {

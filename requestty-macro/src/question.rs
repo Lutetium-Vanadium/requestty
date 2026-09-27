@@ -7,6 +7,7 @@ use syn::{parse::Parse, spanned::Spanned};
 use crate::helpers::*;
 
 bitflags::bitflags! {
+    #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
     pub struct BuilderMethods: u16 {
         const DEFAULT        = 0b000_0000_0001;
         const TRANSFORM      = 0b000_0000_0010;

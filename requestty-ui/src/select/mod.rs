@@ -446,7 +446,7 @@ impl<L: List> Select<L> {
         }
 
         old_layout.offset_y = layout.offset_y;
-        layout.line_offset = 0;
+        old_layout.line_offset = 0;
 
         Ok(())
     }
