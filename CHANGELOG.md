@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## `0.7.0`
 
 The msrv has been bumped up to `1.88`
 

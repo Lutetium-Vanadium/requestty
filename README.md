@@ -32,7 +32,7 @@ Add this to your `Cargo.toml`
 
 ```toml
 [dependencies]
-requestty = "0.6.3"
+requestty = "0.7.0"
 ```
 
 To ask a question:
